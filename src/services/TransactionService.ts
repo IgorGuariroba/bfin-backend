@@ -1,9 +1,7 @@
-import { PrismaClient } from '@prisma/client';
 import { ValidationError, InsufficientBalanceError, NotFoundError, ForbiddenError } from '../middlewares/errorHandler';
 import { SuggestionEngine } from './SuggestionEngine';
 import { AccountMemberService } from './AccountMemberService';
-
-const prisma = new PrismaClient();
+import prisma from '../lib/prisma';
 const accountMemberService = new AccountMemberService();
 
 interface CreateIncomeDTO {

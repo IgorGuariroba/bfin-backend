@@ -1,10 +1,8 @@
-import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import jwt, { Secret, SignOptions } from 'jsonwebtoken';
 import { ValidationError, UnauthorizedError } from '../middlewares/errorHandler';
 import { RegisterDTO, LoginDTO, AuthResponse, JWTPayload } from '../types';
-
-const prisma = new PrismaClient();
+import prisma from '../lib/prisma';
 
 export class AuthService {
   private readonly JWT_SECRET: string;

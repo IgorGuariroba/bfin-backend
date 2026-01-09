@@ -1,9 +1,7 @@
-import { PrismaClient } from '@prisma/client';
 import { ValidationError, ForbiddenError, NotFoundError } from '../middlewares/errorHandler';
 import { CreateAccountDTO, UpdateAccountDTO } from '../types';
 import { AccountMemberService } from './AccountMemberService';
-
-const prisma = new PrismaClient();
+import prisma from '../lib/prisma';
 const accountMemberService = new AccountMemberService();
 
 export class AccountService {

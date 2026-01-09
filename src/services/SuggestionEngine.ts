@@ -1,7 +1,5 @@
-import { PrismaClient } from '@prisma/client';
 import Redis from 'ioredis';
-
-const prisma = new PrismaClient();
+import prisma from '../lib/prisma';
 const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
 
 interface DailyLimitSuggestion {
