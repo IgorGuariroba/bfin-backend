@@ -1,0 +1,306 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ====================================
+// USUÁRIOS E AUTENTICAÇÃO
+// ====================================
+
+model User {
+  id             String    @id @default(uuid())
+  email          String    @unique
+  password_hash  String
+  full_name      String
+  created_at     DateTime  @default(now())
+  updated_at     DateTime  @updatedAt
+  last_login     DateTime?
+  is_active      Boolean   @default(true)
+  email_verified Boolean   @default(false)
+
+  // Relacionamentos
+  accounts            Account[]
+  account_members     AccountMember[]
+  account_invitations AccountInvitation[]
+  notifications       Notification[]
+
+  @@map("users")
+}
+
+// ====================================
+// CONTAS FINANCEIRAS
+// ====================================
+
+model Account {
+  id       String @id @default(uuid())
+  user_id  String
+  user     User   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  account_name String
+  account_type String @default("checking") // checking, savings, investment
+
+  // Saldos
+  total_balance      Decimal @default(0) @db.Decimal(15, 2)
+  available_balance  Decimal @default(0) @db.Decimal(15, 2)
+  locked_balance     Decimal @default(0) @db.Decimal(15, 2)
+  emergency_reserve  Decimal @default(0) @db.Decimal(15, 2)
+
+  // Configurações
+  currency   String  @default("BRL")
+  is_default Boolean @default(false)
+
+  // Auditoria
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  // Relacionamentos
+  transactions         Transaction[]
+  financial_rules      FinancialRule[]
+  balance_history      BalanceHistory[]
+  spending_suggestions SpendingSuggestion[]
+  members              AccountMember[]
+  invitations          AccountInvitation[]
+
+  @@index([user_id])
+  @@index([user_id, is_default])
+  @@map("accounts")
+}
+
+// ====================================
+// MEMBROS DE CONTAS (Multi-usuário)
+// ====================================
+
+model AccountMember {
+  id         String   @id @default(uuid())
+  account_id String
+  account    Account  @relation(fields: [account_id], references: [id], onDelete: Cascade)
+  user_id    String
+  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  role       String   @default("member") // owner, member, viewer
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@unique([account_id, user_id])
+  @@index([user_id])
+  @@index([account_id])
+  @@map("account_members")
+}
+
+// ====================================
+// CONVITES DE CONTAS
+// ====================================
+
+model AccountInvitation {
+  id            String    @id @default(uuid())
+  account_id    String
+  account       Account   @relation(fields: [account_id], references: [id], onDelete: Cascade)
+  invited_email String
+  invited_by    String
+  inviter       User      @relation(fields: [invited_by], references: [id], onDelete: Cascade)
+  role          String    @default("member") // owner, member, viewer
+  status        String    @default("pending") // pending, accepted, rejected
+  token         String    @unique @default(uuid())
+  created_at    DateTime  @default(now())
+  updated_at    DateTime  @updatedAt
+  expires_at    DateTime
+
+  @@unique([account_id, invited_email, status])
+  @@index([invited_email, status])
+  @@index([token])
+  @@map("account_invitations")
+}
+
+// ====================================
+// CATEGORIAS
+// ====================================
+
+model Category {
+  id        String  @id @default(uuid())
+  user_id   String? // null = categoria do sistema
+  name      String
+  type      String // income, expense
+  color     String?
+  icon      String?
+  is_system Boolean @default(false)
+
+  created_at DateTime @default(now())
+
+  // Relacionamentos
+  transactions Transaction[]
+
+  @@index([user_id, type])
+  @@map("categories")
+}
+
+// ====================================
+// TRANSAÇÕES
+// ====================================
+
+model Transaction {
+  id          String   @id @default(uuid())
+  account_id  String
+  account     Account  @relation(fields: [account_id], references: [id], onDelete: Cascade)
+  category_id String?
+  category    Category? @relation(fields: [category_id], references: [id], onDelete: SetNull)
+
+  // Tipo e Valores
+  type        String  // income, fixed_expense, variable_expense
+  amount      Decimal @db.Decimal(15, 2)
+  description String?
+
+  // Datas
+  due_date       DateTime
+  executed_date  DateTime?
+  created_at     DateTime  @default(now())
+  updated_at     DateTime  @updatedAt
+
+  // Status
+  status String @default("pending") // pending, executed, cancelled, locked
+
+  // Recorrência
+  is_recurring          Boolean @default(false)
+  recurrence_pattern    String? // monthly, weekly, yearly
+  recurrence_end_date   DateTime?
+  parent_transaction_id String?
+  parent_transaction    Transaction? @relation("RecurringTransactions", fields: [parent_transaction_id], references: [id])
+  child_transactions    Transaction[] @relation("RecurringTransactions")
+
+  // Metadados
+  tags           String[]
+  attachment_url String?
+  notes          String?
+
+  // Relacionamentos
+  balance_history BalanceHistory[]
+  notifications   Notification[]
+
+  @@index([account_id])
+  @@index([due_date])
+  @@index([status])
+  @@index([type])
+  @@index([category_id])
+  @@map("transactions")
+}
+
+// ====================================
+// REGRAS FINANCEIRAS
+// ====================================
+
+model FinancialRule {
+  id         String  @id @default(uuid())
+  account_id String
+  account    Account @relation(fields: [account_id], references: [id], onDelete: Cascade)
+
+  // Tipo de regra
+  rule_type String // emergency_reserve, auto_investment, smart_saving
+  rule_name String
+
+  // Configuração
+  percentage     Decimal? @db.Decimal(5, 2)
+  fixed_amount   Decimal? @db.Decimal(15, 2)
+  condition_json Json?
+
+  // Prioridade e Status
+  priority  Int     @default(0)
+  is_active Boolean @default(true)
+
+  // Auditoria
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@index([account_id, is_active])
+  @@map("financial_rules")
+}
+
+// ====================================
+// HISTÓRICO DE SALDOS
+// ====================================
+
+model BalanceHistory {
+  id             String       @id @default(uuid())
+  account_id     String
+  account        Account      @relation(fields: [account_id], references: [id], onDelete: Cascade)
+  transaction_id String?
+  transaction    Transaction? @relation(fields: [transaction_id], references: [id], onDelete: SetNull)
+
+  // Snapshot dos saldos
+  total_balance     Decimal @db.Decimal(15, 2)
+  available_balance Decimal @db.Decimal(15, 2)
+  locked_balance    Decimal @db.Decimal(15, 2)
+  emergency_reserve Decimal @db.Decimal(15, 2)
+
+  // Metadados
+  change_reason String? // income_received, expense_paid, rule_applied, etc
+  recorded_at   DateTime @default(now())
+
+  @@index([account_id, recorded_at])
+  @@map("balance_history")
+}
+
+// ====================================
+// SUGESTÕES DE GASTOS
+// ====================================
+
+model SpendingSuggestion {
+  id         String  @id @default(uuid())
+  account_id String
+  account    Account @relation(fields: [account_id], references: [id], onDelete: Cascade)
+
+  // Período da sugestão
+  suggestion_date DateTime
+  valid_until     DateTime
+
+  // Valores calculados
+  daily_limit        Decimal @db.Decimal(15, 2)
+  monthly_projection Decimal @db.Decimal(15, 2)
+
+  // Contexto do cálculo
+  available_balance_snapshot Decimal @db.Decimal(15, 2)
+  locked_balance_snapshot    Decimal @db.Decimal(15, 2)
+  days_until_next_income     Int
+  average_daily_expense      Decimal? @db.Decimal(15, 2)
+
+  // Metadados
+  calculation_metadata Json?
+  created_at           DateTime @default(now())
+
+  @@index([account_id, suggestion_date])
+  @@map("spending_suggestions")
+}
+
+// ====================================
+// NOTIFICAÇÕES
+// ====================================
+
+model Notification {
+  id      String @id @default(uuid())
+  user_id String
+  user    User   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  // Tipo e conteúdo
+  notification_type String // expense_due, limit_exceeded, low_balance, etc
+  title             String
+  message           String
+
+  // Status
+  is_read Boolean   @default(false)
+  read_at DateTime?
+
+  // Referências
+  related_transaction_id String?
+  related_transaction    Transaction? @relation(fields: [related_transaction_id], references: [id])
+
+  // Auditoria
+  created_at DateTime @default(now())
+
+  @@index([user_id, is_read])
+  @@index([created_at])
+  @@map("notifications")
+}
