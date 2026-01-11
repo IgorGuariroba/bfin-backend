@@ -7,7 +7,6 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 // ====================================
@@ -67,6 +66,7 @@ model Account {
   spending_suggestions SpendingSuggestion[]
   members              AccountMember[]
   invitations          AccountInvitation[]
+  categories           Category[]
 
   @@index([user_id])
   @@index([user_id, is_default])
@@ -122,20 +122,21 @@ model AccountInvitation {
 // ====================================
 
 model Category {
-  id        String  @id @default(uuid())
-  user_id   String? // null = categoria do sistema
-  name      String
-  type      String // income, expense
-  color     String?
-  icon      String?
-  is_system Boolean @default(false)
+  id         String   @id @default(uuid())
+  account_id String? // null = categoria do sistema
+  account    Account? @relation(fields: [account_id], references: [id], onDelete: Cascade)
+  name       String
+  type       String // income, expense
+  color      String?
+  icon       String?
+  is_system  Boolean  @default(false)
 
   created_at DateTime @default(now())
 
   // Relacionamentos
   transactions Transaction[]
 
-  @@index([user_id, type])
+  @@index([account_id, type])
   @@map("categories")
 }
 
