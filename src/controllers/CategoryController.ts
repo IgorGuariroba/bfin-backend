@@ -2,7 +2,7 @@ import { Response } from 'express';
 import { CategoryService } from '../services/CategoryService';
 import { AccountMemberService } from '../services/AccountMemberService';
 import { AuthRequest } from '../types';
-import { BadRequestError, ForbiddenError } from '../middlewares/errorHandler';
+import { ValidationError, ForbiddenError } from '../middlewares/errorHandler';
 
 const categoryService = new CategoryService();
 const accountMemberService = new AccountMemberService();
@@ -27,22 +27,22 @@ export class CategoryController {
 
     // Validar campos obrigatórios
     if (!name || !type) {
-      throw new BadRequestError('Name and type are required');
+      throw new ValidationError('Name and type are required');
     }
 
     if (!account_id) {
-      throw new BadRequestError('Account ID is required');
+      throw new ValidationError('Account ID is required');
     }
 
     // Validar tipo
     if (type !== 'income' && type !== 'expense') {
-      throw new BadRequestError('Type must be either "income" or "expense"');
+      throw new ValidationError('Type must be either "income" or "expense"');
     }
 
     // Obter user_id do token
     const userId = req.user?.userId;
     if (!userId) {
-      throw new BadRequestError('User not authenticated');
+      throw new ValidationError('User not authenticated');
     }
 
     // Verificar se o usuário tem acesso à conta

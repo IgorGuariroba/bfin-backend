@@ -4,8 +4,10 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
+import swaggerUi from 'swagger-ui-express';
 import { errorHandler } from './middlewares/errorHandler';
 import { rateLimiter } from './middlewares/rateLimit';
+import { swaggerSpec } from './config/swagger';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -29,6 +31,12 @@ app.get('/health', (_req, res) => {
     uptime: process.uptime(),
   });
 });
+
+// Swagger Documentation
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+  customCss: '.swagger-ui .topbar { display: none }',
+  customSiteTitle: 'BFIN API Documentation',
+}));
 
 // Rotas da API
 app.get('/api/v1', (_req, res) => {
