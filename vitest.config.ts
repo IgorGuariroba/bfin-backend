@@ -10,7 +10,8 @@ export default defineConfig({
     },
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'json', 'html'],
+      reporter: ['text', 'json', 'html', 'lcov'],
+      reportsDirectory: './coverage',
       exclude: [
         'node_modules/**',
         'dist/**',
@@ -19,6 +20,9 @@ export default defineConfig({
         '**/*.test.ts',
         'vitest.config.ts',
         'prisma/**',
+        'src/types/**',
+        'src/server.ts',
+        '**/*.config.ts',
       ],
     },
     testTimeout: 30000,
