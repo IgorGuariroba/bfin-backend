@@ -240,8 +240,8 @@ export class SuggestionEngine {
 
       // Filtrar apenas dias com gastos
       if (spent <= 0) {
-continue;
-}
+        continue;
+      }
 
       // Buscar limite do dia (snapshot ou fallback)
       let dailyLimit = limitsByDate.get(dateStr);

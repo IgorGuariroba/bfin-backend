@@ -269,8 +269,8 @@ export class AuthService {
   private parseExpiration(expiration: string): number {
     const match = expiration.match(/^(\d+)([smhd])$/);
     if (!match) {
-return 900;
-} // 15 minutos padrão
+      return 900;
+    } // 15 minutos padrão
 
     const value = parseInt(match[1]);
     const unit = match[2];
