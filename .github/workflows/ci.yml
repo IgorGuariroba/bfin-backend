@@ -135,6 +135,16 @@ jobs:
         ports:
           - 5432:5432
 
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -163,6 +173,10 @@ jobs:
         env:
           NODE_ENV: test
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/bfin_test
+          JWT_SECRET: test-secret-key-for-ci-pipeline-do-not-use-in-production
+          JWT_EXPIRES_IN: 7d
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
 
   build:
     name: Build Verification
