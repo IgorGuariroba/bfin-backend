@@ -13,6 +13,21 @@ jobs:
     name: SonarCloud Scan
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: bfin_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -31,12 +46,18 @@ jobs:
       - name: Generate Prisma Client
         run: npm run db:generate
         env:
-          DATABASE_URL: postgresql://user:password@localhost:5432/db
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/bfin_test
+
+      - name: Run database migrations
+        run: npx prisma migrate deploy
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/bfin_test
 
       - name: Run tests with coverage
         run: npm run test:coverage
         env:
           NODE_ENV: test
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/bfin_test
 
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@master
