@@ -1,8 +1,12 @@
 import rateLimit from 'express-rate-limit';
 
+// Desabilitar rate limiting em ambiente de teste
+const isTest = process.env.NODE_ENV === 'test';
+
 export const rateLimiter = rateLimit({
   windowMs: Number(process.env.RATE_LIMIT_WINDOW_MS) || 60000, // 1 minuto
   max: Number(process.env.RATE_LIMIT_MAX_REQUESTS) || 100, // 100 requests por minuto
+  skip: () => isTest, // Pular rate limiting em testes
   message: {
     error: 'TooManyRequestsError',
     message: 'Too many requests, please try again later',
@@ -19,6 +23,7 @@ export const rateLimiter = rateLimit({
 export const authRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutos
   max: 5, // 5 tentativas de login
+  skip: () => isTest, // Pular rate limiting em testes
   message: {
     error: 'TooManyRequestsError',
     message: 'Too many login attempts, please try again after 15 minutes',
@@ -32,6 +37,7 @@ export const authRateLimiter = rateLimit({
 export const transactionRateLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minuto
   max: 20, // 20 transações por minuto
+  skip: () => isTest, // Pular rate limiting em testes
   message: {
     error: 'TooManyRequestsError',
     message: 'Too many transactions, please try again later',

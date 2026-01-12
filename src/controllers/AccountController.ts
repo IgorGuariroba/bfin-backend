@@ -29,7 +29,7 @@ export class AccountController {
 
     const accounts = await accountService.listByUser(req.user.userId);
 
-    res.json({ accounts });
+    res.json(accounts);
   }
 
   /**
