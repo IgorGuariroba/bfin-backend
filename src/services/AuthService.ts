@@ -1,8 +1,9 @@
 import bcrypt from 'bcryptjs';
-import jwt, { Secret, SignOptions } from 'jsonwebtoken';
-import { ValidationError, UnauthorizedError } from '../middlewares/errorHandler';
-import { RegisterDTO, LoginDTO, AuthResponse, JWTPayload } from '../types';
+import jwt from 'jsonwebtoken';
+import type { Secret, SignOptions } from 'jsonwebtoken';
 import prisma from '../lib/prisma';
+import { ValidationError, UnauthorizedError } from '../middlewares/errorHandler';
+import type { RegisterDTO, LoginDTO, AuthResponse, JWTPayload } from '../types';
 
 export class AuthService {
   private readonly JWT_SECRET: string;
@@ -267,7 +268,9 @@ export class AuthService {
    */
   private parseExpiration(expiration: string): number {
     const match = expiration.match(/^(\d+)([smhd])$/);
-    if (!match) return 900; // 15 minutos padrão
+    if (!match) {
+return 900;
+} // 15 minutos padrão
 
     const value = parseInt(match[1]);
     const unit = match[2];

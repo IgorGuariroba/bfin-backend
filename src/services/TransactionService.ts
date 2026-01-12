@@ -1,7 +1,13 @@
-import { ValidationError, InsufficientBalanceError, NotFoundError, ForbiddenError } from '../middlewares/errorHandler';
-import { SuggestionEngine } from './SuggestionEngine';
 import { AccountMemberService } from './AccountMemberService';
+import { SuggestionEngine } from './SuggestionEngine';
 import prisma from '../lib/prisma';
+import {
+  ValidationError,
+  InsufficientBalanceError,
+  NotFoundError,
+  ForbiddenError,
+} from '../middlewares/errorHandler';
+
 const accountMemberService = new AccountMemberService();
 
 interface CreateIncomeDTO {
@@ -66,7 +72,7 @@ export class TransactionService {
         orderBy: { priority: 'asc' },
       });
 
-      const emergencyRule = rules.find(r => r.rule_type === 'emergency_reserve');
+      const emergencyRule = rules.find((r) => r.rule_type === 'emergency_reserve');
       const reservePercentage = emergencyRule?.percentage ? Number(emergencyRule.percentage) : 30;
 
       // 3. Calcular divisão 30/70
@@ -310,16 +316,19 @@ export class TransactionService {
   /**
    * Lista transações com filtros
    */
-  async list(userId: string, filters: {
-    accountId?: string;
-    type?: string;
-    status?: string;
-    startDate?: Date;
-    endDate?: Date;
-    categoryId?: string;
-    page?: number;
-    limit?: number;
-  }) {
+  async list(
+    userId: string,
+    filters: {
+      accountId?: string;
+      type?: string;
+      status?: string;
+      startDate?: Date;
+      endDate?: Date;
+      categoryId?: string;
+      page?: number;
+      limit?: number;
+    }
+  ) {
     const page = filters.page || 1;
     const limit = filters.limit || 50;
     const skip = (page - 1) * limit;
@@ -363,7 +372,7 @@ export class TransactionService {
       });
 
       where.account_id = {
-        in: userAccounts.map(a => a.id),
+        in: userAccounts.map((a) => a.id),
       };
     }
 
@@ -410,10 +419,7 @@ export class TransactionService {
             },
           },
         },
-        orderBy: [
-          { due_date: 'desc' },
-          { created_at: 'desc' },
-        ],
+        orderBy: [{ due_date: 'desc' }, { created_at: 'desc' }],
         skip,
         take: limit,
       }),

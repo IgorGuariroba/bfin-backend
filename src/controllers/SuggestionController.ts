@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import { SuggestionEngine } from '../services/SuggestionEngine';
 
 interface AuthRequest extends Request {

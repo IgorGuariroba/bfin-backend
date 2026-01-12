@@ -1,7 +1,7 @@
-import { Response } from 'express';
-import { AccountMemberService } from '../services/AccountMemberService';
-import { AuthRequest } from '../types';
+import type { Response } from 'express';
 import { z } from 'zod';
+import { AccountMemberService } from '../services/AccountMemberService';
+import type { AuthRequest } from '../types';
 
 const accountMemberService = new AccountMemberService();
 
@@ -65,10 +65,7 @@ export class AccountMemberController {
     }
 
     const { accountId } = req.params;
-    const invitations = await accountMemberService.listInvitations(
-      accountId,
-      req.user.userId
-    );
+    const invitations = await accountMemberService.listInvitations(accountId, req.user.userId);
 
     res.json(invitations);
   }
@@ -83,9 +80,7 @@ export class AccountMemberController {
       return;
     }
 
-    const invitations = await accountMemberService.listMyInvitations(
-      req.user.email
-    );
+    const invitations = await accountMemberService.listMyInvitations(req.user.email);
 
     res.json(invitations);
   }
@@ -101,10 +96,7 @@ export class AccountMemberController {
     }
 
     const { token } = req.params;
-    const result = await accountMemberService.acceptInvitation(
-      token,
-      req.user.userId
-    );
+    const result = await accountMemberService.acceptInvitation(token, req.user.userId);
 
     res.json(result);
   }
@@ -120,10 +112,7 @@ export class AccountMemberController {
     }
 
     const { token } = req.params;
-    const result = await accountMemberService.rejectInvitation(
-      token,
-      req.user.userId
-    );
+    const result = await accountMemberService.rejectInvitation(token, req.user.userId);
 
     res.json(result);
   }
@@ -162,11 +151,7 @@ export class AccountMemberController {
     }
 
     const { accountId, userId } = req.params;
-    const result = await accountMemberService.removeMember(
-      accountId,
-      req.user.userId,
-      userId
-    );
+    const result = await accountMemberService.removeMember(accountId, req.user.userId, userId);
 
     res.json(result);
   }

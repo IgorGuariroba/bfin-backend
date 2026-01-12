@@ -1,7 +1,8 @@
-import { ValidationError, ForbiddenError, NotFoundError } from '../middlewares/errorHandler';
-import { CreateAccountDTO, UpdateAccountDTO } from '../types';
-import { AccountMemberService } from './AccountMemberService';
 import prisma from '../lib/prisma';
+import { ValidationError, ForbiddenError, NotFoundError } from '../middlewares/errorHandler';
+import type { CreateAccountDTO, UpdateAccountDTO } from '../types';
+import { AccountMemberService } from './AccountMemberService';
+
 const accountMemberService = new AccountMemberService();
 
 export class AccountService {
@@ -26,10 +27,7 @@ export class AccountService {
       include: {
         members: true, // Incluir TODOS os membros para verificar se é compartilhada
       },
-      orderBy: [
-        { is_default: 'desc' },
-        { created_at: 'asc' },
-      ],
+      orderBy: [{ is_default: 'desc' }, { created_at: 'asc' }],
     });
 
     // Mapear para adicionar informações de role
@@ -38,11 +36,11 @@ export class AccountService {
       const isOwner = account.user_id === userId;
 
       // Verificar role em account_members
-      const userMembership = account.members.find(m => m.user_id === userId);
+      const userMembership = account.members.find((m) => m.user_id === userId);
       const membershipRole = userMembership?.role;
 
       // Determinar role e se é compartilhada
-      const user_role = isOwner ? 'owner' : (membershipRole || 'member');
+      const user_role = isOwner ? 'owner' : membershipRole || 'member';
 
       // Conta é compartilhada se:
       // 1. Usuário não é o dono original (está como membro de outra pessoa), OU
@@ -62,7 +60,7 @@ export class AccountService {
         created_at: account.created_at,
         updated_at: account.updated_at,
         user_role: user_role as 'owner' | 'member',
-        is_shared: is_shared,
+        is_shared,
       };
     });
 

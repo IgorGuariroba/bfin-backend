@@ -1,11 +1,14 @@
-import { ValidationError, ForbiddenError, NotFoundError } from '../middlewares/errorHandler';
 import prisma from '../lib/prisma';
+import { ValidationError, ForbiddenError, NotFoundError } from '../middlewares/errorHandler';
 
 export class AccountMemberService {
   /**
    * Verifica se o usuário tem acesso à conta (owner ou member)
    */
-  async checkAccess(accountId: string, userId: string): Promise<{
+  async checkAccess(
+    accountId: string,
+    userId: string
+  ): Promise<{
     hasAccess: boolean;
     role?: string;
   }> {
@@ -106,10 +109,14 @@ export class AccountMemberService {
   /**
    * Cria um convite para um membro
    */
-  async createInvitation(accountId: string, requestUserId: string, data: {
-    email: string;
-    role: string;
-  }) {
+  async createInvitation(
+    accountId: string,
+    requestUserId: string,
+    data: {
+      email: string;
+      role: string;
+    }
+  ) {
     // Verificar se o usuário tem permissão de owner
     await this.checkOwnerPermission(accountId, requestUserId);
 

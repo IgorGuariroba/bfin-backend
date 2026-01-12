@@ -1,7 +1,7 @@
-import { Response } from 'express';
-import { AccountService } from '../services/AccountService';
-import { AuthRequest } from '../types';
+import type { Response } from 'express';
 import { z } from 'zod';
+import { AccountService } from '../services/AccountService';
+import type { AuthRequest } from '../types';
 
 const accountService = new AccountService();
 
