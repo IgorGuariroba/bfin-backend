@@ -85,6 +85,7 @@ jobs:
             -Dsonar.organization=igorguariroba
 
       - name: Check Quality Gate
+        id: quality-gate
         uses: sonarsource/sonarqube-quality-gate-action@cb3ed20f9fec62b4c3b8ad9e77656c6adaade913
         timeout-minutes: 5
         env:
