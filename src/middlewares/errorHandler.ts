@@ -1,6 +1,6 @@
-import { Request, Response, NextFunction } from 'express';
-import { ZodError } from 'zod';
 import { Prisma } from '@prisma/client';
+import type { Request, Response, NextFunction } from 'express';
+import { ZodError } from 'zod';
 
 export class AppError extends Error {
   constructor(
@@ -47,12 +47,7 @@ export class NotFoundError extends AppError {
   }
 }
 
-export function errorHandler(
-  error: Error,
-  _req: Request,
-  res: Response,
-  _next: NextFunction
-) {
+export function errorHandler(error: Error, _req: Request, res: Response, _next: NextFunction) {
   console.error('Error:', error);
 
   // AppError (erros customizados)
@@ -129,8 +124,6 @@ export function errorHandler(
   // Default error (500)
   return res.status(500).json({
     error: 'InternalServerError',
-    message: process.env.NODE_ENV === 'production'
-      ? 'An unexpected error occurred'
-      : error.message,
+    message: process.env.NODE_ENV === 'production' ? 'An unexpected error occurred' : error.message,
   });
 }

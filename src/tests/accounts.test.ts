@@ -19,9 +19,7 @@ describe('Accounts', () => {
     });
 
     it('should not list accounts without authentication', async () => {
-      const response = await testRequest
-        .get('/api/v1/accounts')
-        .expect(401);
+      const response = await testRequest.get('/api/v1/accounts').expect(401);
 
       expect(response.body).toHaveProperty('error');
     });

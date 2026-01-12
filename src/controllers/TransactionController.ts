@@ -1,7 +1,7 @@
-import { Response } from 'express';
-import { TransactionService } from '../services/TransactionService';
-import { AuthRequest } from '../types';
+import type { Response } from 'express';
 import { z } from 'zod';
+import { TransactionService } from '../services/TransactionService';
+import type { AuthRequest } from '../types';
 
 const transactionService = new TransactionService();
 
@@ -11,7 +11,11 @@ const createIncomeSchema = z.object({
   amount: z.number().positive('Amount must be positive'),
   description: z.string().min(1, 'Description is required'),
   categoryId: z.string().uuid('Invalid category ID'),
-  dueDate: z.string().datetime().optional().transform(val => val ? new Date(val) : undefined),
+  dueDate: z
+    .string()
+    .datetime()
+    .optional()
+    .transform((val) => (val ? new Date(val) : undefined)),
   isRecurring: z.boolean().optional(),
   recurrencePattern: z.enum(['monthly', 'weekly', 'yearly']).optional(),
 });
@@ -21,7 +25,10 @@ const createFixedExpenseSchema = z.object({
   amount: z.number().positive('Amount must be positive'),
   description: z.string().min(1, 'Description is required'),
   categoryId: z.string().uuid('Invalid category ID'),
-  dueDate: z.string().datetime('Due date is required').transform(val => new Date(val)),
+  dueDate: z
+    .string()
+    .datetime('Due date is required')
+    .transform((val) => new Date(val)),
   isRecurring: z.boolean().optional(),
   recurrencePattern: z.enum(['monthly', 'weekly', 'yearly']).optional(),
 });
@@ -37,18 +44,36 @@ const listTransactionsSchema = z.object({
   accountId: z.string().uuid().optional(),
   type: z.enum(['income', 'fixed_expense', 'variable_expense']).optional(),
   status: z.enum(['pending', 'executed', 'cancelled', 'locked']).optional(),
-  startDate: z.string().datetime().optional().transform(val => val ? new Date(val) : undefined),
-  endDate: z.string().datetime().optional().transform(val => val ? new Date(val) : undefined),
+  startDate: z
+    .string()
+    .datetime()
+    .optional()
+    .transform((val) => (val ? new Date(val) : undefined)),
+  endDate: z
+    .string()
+    .datetime()
+    .optional()
+    .transform((val) => (val ? new Date(val) : undefined)),
   categoryId: z.string().uuid().optional(),
-  page: z.string().optional().transform(val => val ? parseInt(val, 10) : 1),
-  limit: z.string().optional().transform(val => val ? parseInt(val, 10) : 50),
+  page: z
+    .string()
+    .optional()
+    .transform((val) => (val ? parseInt(val, 10) : 1)),
+  limit: z
+    .string()
+    .optional()
+    .transform((val) => (val ? parseInt(val, 10) : 50)),
 });
 
 const updateTransactionSchema = z.object({
   amount: z.number().positive('Amount must be positive').optional(),
   description: z.string().min(1, 'Description is required').optional(),
   categoryId: z.string().uuid('Invalid category ID').optional(),
-  dueDate: z.string().datetime().optional().transform(val => val ? new Date(val) : undefined),
+  dueDate: z
+    .string()
+    .datetime()
+    .optional()
+    .transform((val) => (val ? new Date(val) : undefined)),
 });
 
 export class TransactionController {

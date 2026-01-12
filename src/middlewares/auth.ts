@@ -1,6 +1,6 @@
-import { Response, NextFunction } from 'express';
-import { AuthRequest } from '../types';
+import type { Response, NextFunction } from 'express';
 import { AuthService } from '../services/AuthService';
+import type { AuthRequest } from '../types';
 import { UnauthorizedError } from './errorHandler';
 
 const authService = new AuthService();

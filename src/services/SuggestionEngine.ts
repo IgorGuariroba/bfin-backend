@@ -1,5 +1,6 @@
 import Redis from 'ioredis';
 import prisma from '../lib/prisma';
+
 const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
 
 interface DailyLimitSuggestion {
@@ -136,10 +137,7 @@ export class SuggestionEngine {
   /**
    * Obtém o histórico de sugestões
    */
-  static async getHistory(
-    accountId: string,
-    limit: number = 30
-  ): Promise<SuggestionHistory[]> {
+  static async getHistory(accountId: string, limit: number = 30): Promise<SuggestionHistory[]> {
     const suggestions = await prisma.spendingSuggestion.findMany({
       where: { account_id: accountId },
       select: {
@@ -189,9 +187,7 @@ export class SuggestionEngine {
     startDate.setHours(0, 0, 0, 0);
 
     // Query 1: Agregar gastos diários
-    const dailyExpenses = await prisma.$queryRaw<
-      Array<{ date: Date; spent: any }>
-    >`
+    const dailyExpenses = await prisma.$queryRaw<Array<{ date: Date; spent: any }>>`
       SELECT
         DATE(executed_date) as date,
         SUM(amount) as spent
@@ -243,7 +239,9 @@ export class SuggestionEngine {
       const spent = Number(expense.spent);
 
       // Filtrar apenas dias com gastos
-      if (spent <= 0) continue;
+      if (spent <= 0) {
+continue;
+}
 
       // Buscar limite do dia (snapshot ou fallback)
       let dailyLimit = limitsByDate.get(dateStr);

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { CategoryService } from '../../services/CategoryService';
 import prisma from '../../lib/prisma';
+import { CategoryService } from '../../services/CategoryService';
 
 describe('CategoryService', () => {
   let categoryService: CategoryService;
@@ -39,9 +39,7 @@ describe('CategoryService', () => {
       const expenseCategories = await categoryService.list('expense');
       const incomeCategories = await categoryService.list('income');
 
-      expect(expenseCategories.every((cat) => cat.type === 'expense')).toBe(
-        true
-      );
+      expect(expenseCategories.every((cat) => cat.type === 'expense')).toBe(true);
       expect(incomeCategories.every((cat) => cat.type === 'income')).toBe(true);
       expect(expenseCategories.length).toBe(2);
       expect(incomeCategories.length).toBe(1);

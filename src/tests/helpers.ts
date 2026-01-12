@@ -1,6 +1,6 @@
 import request from 'supertest';
-import app from '../server';
 import prisma from '../lib/prisma';
+import app from '../server';
 
 export const testRequest = request(app);
 

@@ -1,7 +1,7 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { AuthService } from '../../services/AuthService';
-import prisma from '../../lib/prisma';
 import bcrypt from 'bcryptjs';
+import { describe, it, expect, beforeEach } from 'vitest';
+import prisma from '../../lib/prisma';
+import { AuthService } from '../../services/AuthService';
 
 describe('AuthService', () => {
   let authService: AuthService;
@@ -31,10 +31,7 @@ describe('AuthService', () => {
         where: { email: userData.email },
       });
       expect(user?.password_hash).not.toBe(userData.password);
-      const isPasswordValid = await bcrypt.compare(
-        userData.password,
-        user!.password_hash
-      );
+      const isPasswordValid = await bcrypt.compare(userData.password, user!.password_hash);
       expect(isPasswordValid).toBe(true);
     });
 

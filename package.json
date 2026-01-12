@@ -18,7 +18,13 @@
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage",
     "lint": "eslint src --ext .ts",
+    "lint:fix": "eslint src --ext .ts --fix",
+    "lint:all": "eslint . --ext .ts",
     "format": "prettier --write \"src/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.ts\"",
+    "format:all": "prettier --write \"**/*.{ts,json,md}\"",
+    "type-check": "tsc --noEmit",
+    "check": "npm run type-check && npm run lint && npm run format:check",
     "cron:execute-expenses": "tsx src/jobs/ExecuteScheduledExpenses.ts"
   },
   "keywords": [
@@ -67,6 +73,8 @@
     "@vitest/coverage-v8": "^4.0.16",
     "@vitest/ui": "^4.0.16",
     "eslint": "^8.56.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-import": "^2.32.0",
     "prettier": "^3.1.1",
     "prisma": "^7.2.0",
     "supertest": "^7.2.2",

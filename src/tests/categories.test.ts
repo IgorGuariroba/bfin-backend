@@ -4,17 +4,13 @@ import { testRequest, createTestUser, createTestAccount, getAuthHeader } from '.
 describe('Categories', () => {
   describe('GET /api/v1/categories', () => {
     it('should list categories without authentication', async () => {
-      const response = await testRequest
-        .get('/api/v1/categories')
-        .expect(200);
+      const response = await testRequest.get('/api/v1/categories').expect(200);
 
       expect(Array.isArray(response.body)).toBe(true);
     });
 
     it('should filter categories by type', async () => {
-      const response = await testRequest
-        .get('/api/v1/categories?type=expense')
-        .expect(200);
+      const response = await testRequest.get('/api/v1/categories?type=expense').expect(200);
 
       expect(Array.isArray(response.body)).toBe(true);
     });

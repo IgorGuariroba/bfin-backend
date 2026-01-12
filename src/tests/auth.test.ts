@@ -10,10 +10,7 @@ describe('Authentication', () => {
         full_name: 'John Doe',
       };
 
-      const response = await testRequest
-        .post('/api/v1/auth/register')
-        .send(userData)
-        .expect(201);
+      const response = await testRequest.post('/api/v1/auth/register').send(userData).expect(201);
 
       expect(response.body).toHaveProperty('user');
       expect(response.body).toHaveProperty('tokens');
@@ -35,10 +32,7 @@ describe('Authentication', () => {
       await testRequest.post('/api/v1/auth/register').send(userData);
 
       // Segundo registro com mesmo email
-      const response = await testRequest
-        .post('/api/v1/auth/register')
-        .send(userData)
-        .expect(400);
+      const response = await testRequest.post('/api/v1/auth/register').send(userData).expect(400);
 
       expect(response.body).toHaveProperty('error');
       expect(response.body.message).toContain('already registered');
@@ -159,9 +153,7 @@ describe('Authentication', () => {
     });
 
     it('should not return data without token', async () => {
-      const response = await testRequest
-        .get('/api/v1/auth/me')
-        .expect(401);
+      const response = await testRequest.get('/api/v1/auth/me').expect(401);
 
       expect(response.body).toHaveProperty('error');
     });
