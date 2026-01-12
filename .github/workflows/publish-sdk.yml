@@ -1,0 +1,183 @@
+name: Publish SDK to GitHub Packages
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/**'
+      - 'prisma/**'
+      - 'package.json'
+      - 'scripts/generate-openapi-spec.ts'
+      - 'orval.config.ts'
+  workflow_dispatch:
+    inputs:
+      version_type:
+        description: 'Version bump type (major, minor, patch)'
+        required: false
+        default: 'auto'
+        type: choice
+        options:
+          - auto
+          - major
+          - minor
+          - patch
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  publish:
+    name: Publish SDK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0  # Necessário para pegar todas as tags
+
+      - name: Setup Node.js
+        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
+        with:
+          node-version: '20'
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@igorguariroba'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: npm run db:generate
+        env:
+          DATABASE_URL: postgresql://user:password@localhost:5432/db
+
+      - name: Generate SDK
+        run: |
+          npm run generate:openapi
+          npm run generate:sdk
+
+      - name: Determine new version
+        id: version
+        run: |
+          chmod +x scripts/auto-version.sh
+          bash scripts/auto-version.sh
+
+      - name: Check if should publish
+        id: check
+        run: |
+          if [ "${{ steps.version.outputs.should_publish }}" != "true" ]; then
+            echo "⏭️  No new commits to publish"
+            echo "skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "✅ Publishing new version: ${{ steps.version.outputs.new_tag }}"
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Update SDK version
+        if: steps.check.outputs.skip != 'true'
+        run: |
+          cd sdk
+          npm version ${{ steps.version.outputs.version }} --no-git-tag-version
+
+      - name: Generate Changelog
+        if: steps.check.outputs.skip != 'true'
+        id: changelog
+        run: |
+          PREV_TAG="${{ steps.version.outputs.previous_tag }}"
+          NEW_TAG="${{ steps.version.outputs.new_tag }}"
+
+          if [ "$PREV_TAG" == "v0.0.0" ]; then
+            COMMITS=$(git log --pretty=format:"- %s (%h)" HEAD)
+          else
+            COMMITS=$(git log --pretty=format:"- %s (%h)" ${PREV_TAG}..HEAD)
+          fi
+
+          # Categorizar commits
+          FEATURES=$(echo "$COMMITS" | grep "^- feat" || echo "")
+          FIXES=$(echo "$COMMITS" | grep "^- fix" || echo "")
+          BREAKING=$(echo "$COMMITS" | grep -E "^- .*!:|BREAKING CHANGE" || echo "")
+
+          # Criar changelog
+          CHANGELOG="## Changes\n\n"
+
+          if [ -n "$BREAKING" ]; then
+            CHANGELOG="${CHANGELOG}### 💥 BREAKING CHANGES\n${BREAKING}\n\n"
+          fi
+
+          if [ -n "$FEATURES" ]; then
+            CHANGELOG="${CHANGELOG}### ✨ Features\n${FEATURES}\n\n"
+          fi
+
+          if [ -n "$FIXES" ]; then
+            CHANGELOG="${CHANGELOG}### 🐛 Bug Fixes\n${FIXES}\n\n"
+          fi
+
+          # Salvar em arquivo
+          echo -e "$CHANGELOG" > /tmp/changelog.txt
+          echo "changelog_file=/tmp/changelog.txt" >> $GITHUB_OUTPUT
+
+      - name: Create and push tag
+        if: steps.check.outputs.skip != 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a ${{ steps.version.outputs.new_tag }} -m "Release ${{ steps.version.outputs.new_tag }}"
+          git push origin ${{ steps.version.outputs.new_tag }}
+
+      - name: Publish to GitHub Packages
+        if: steps.check.outputs.skip != 'true'
+        run: |
+          cd sdk
+          npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create GitHub Release
+        if: steps.check.outputs.skip != 'true'
+        uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # v1
+        with:
+          tag_name: ${{ steps.version.outputs.new_tag }}
+          name: SDK ${{ steps.version.outputs.new_tag }}
+          body: |
+            ## BFIN SDK ${{ steps.version.outputs.version }}
+
+            **Type:** ${{ steps.version.outputs.bump_type }} release
+
+            ### 📦 Installation
+
+            Configure npm to use GitHub Packages:
+            ```bash
+            echo "@igorguariroba:registry=https://npm.pkg.github.com" >> ~/.npmrc
+            ```
+
+            Install the SDK:
+            ```bash
+            npm install @igorguariroba/bfin-sdk@${{ steps.version.outputs.version }}
+            ```
+
+            ### 📝 Changelog
+
+            $(cat ${{ steps.changelog.outputs.changelog_file }})
+
+            ### 📚 Documentation
+
+            - [SDK README](https://github.com/IgorGuariroba/bfin-backend/blob/main/sdk/README.md)
+            - [Full CHANGELOG](https://github.com/IgorGuariroba/bfin-backend/blob/main/sdk/CHANGELOG.md)
+
+            ### 🔗 Links
+
+            - [Package on GitHub](https://github.com/IgorGuariroba/bfin-backend/packages)
+            - [Documentation](https://github.com/IgorGuariroba/bfin-backend/tree/main/sdk)
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Notify success
+        if: steps.check.outputs.skip != 'true'
+        run: |
+          echo "✅ SDK ${{ steps.version.outputs.new_tag }} published successfully!"
+          echo "📦 Package: @igorguariroba/bfin-sdk@${{ steps.version.outputs.version }}"
+          echo "🔗 https://github.com/IgorGuariroba/bfin-backend/packages"

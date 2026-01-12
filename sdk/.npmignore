@@ -1,0 +1,15 @@
+# Config files
+.npmrc
+
+# Development
+*.log
+.DS_Store
+node_modules/
+
+# Tests
+*.test.ts
+*.spec.ts
+__tests__/
+
+# Keep only source files
+# (everything is already configured in package.json files[])

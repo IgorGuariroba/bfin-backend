@@ -23,6 +23,69 @@ Banking Finance API - A comprehensive backend solution for personal finance mana
 - Comprehensive API documentation with Swagger
 - Automated testing with Vitest
 - Code quality monitoring with SonarCloud
+- **Auto-generated TypeScript SDK** with React Query and SWR support
+
+## SDK
+
+Este projeto gera automaticamente um SDK TypeScript para consumir a API.
+
+### Instalação
+
+Configurar npm para usar GitHub Packages:
+
+```bash
+echo "@igorguariroba:registry=https://npm.pkg.github.com" >> ~/.npmrc
+```
+
+Instalar o SDK:
+
+```bash
+npm install @igorguariroba/bfin-sdk
+```
+
+**Nota:** Você precisa de um GitHub Personal Access Token com permissão `read:packages`. Adicione ao `.npmrc`:
+
+```
+//npm.pkg.github.com/:_authToken=YOUR_GITHUB_TOKEN
+```
+
+### Uso
+
+```typescript
+import { configureBfinApi } from '@igorguariroba/bfin-sdk';
+import { useGetApiV1Accounts } from '@igorguariroba/bfin-sdk/react-query';
+
+// Configurar SDK
+configureBfinApi({
+  baseUrl: 'https://api.bfin.com/api/v1',
+  token: 'your-jwt-token',
+});
+
+// Usar hooks no React
+function AccountsList() {
+  const { data: accounts } = useGetApiV1Accounts();
+  return <div>{accounts?.map(account => <div key={account.id}>{account.account_name}</div>)}</div>;
+}
+```
+
+Ver [SDK README](./sdk/README.md) para documentação completa.
+
+### Publicação Automática
+
+O SDK é **publicado automaticamente** quando um PR é merged na `main`!
+
+O versionamento é baseado em **conventional commits**:
+- `feat:` → versão **MINOR** (x.1.x)
+- `fix:` → versão **PATCH** (x.x.1)
+- `feat!:` ou `BREAKING CHANGE:` → versão **MAJOR** (1.x.x)
+
+**Exemplo:**
+```bash
+git commit -m "feat: add transaction filters"
+# Após merge do PR → publica automaticamente como versão MINOR
+```
+
+Ver [guia de publicação](./docs/SDK_PUBLISHING.md) para detalhes completos.
 
 ## Tech Stack
 
