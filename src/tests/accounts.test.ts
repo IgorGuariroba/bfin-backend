@@ -5,8 +5,9 @@ describe('Accounts', () => {
   describe('GET /api/v1/accounts', () => {
     it('should list user accounts', async () => {
       const { user, tokens } = await createTestUser();
-      await createTestAccount(user.id, 'Account 1');
-      await createTestAccount(user.id, 'Account 2');
+      // Usuário já tem uma conta criada automaticamente no registro
+      // Criar mais uma conta
+      await createTestAccount(user.id, 'Second Account');
 
       const response = await testRequest
         .get('/api/v1/accounts')

@@ -22,5 +22,7 @@ export default defineConfig({
       ],
     },
     testTimeout: 30000,
+    singleThread: true,
+    fileParallelism: false,
   },
 });

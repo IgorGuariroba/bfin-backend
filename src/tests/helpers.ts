@@ -29,14 +29,25 @@ export async function createTestUser(options: CreateUserOptions = {}) {
 }
 
 export async function createTestAccount(userId: string, accountName = 'Test Account') {
-  return await prisma.account.create({
+  const account = await prisma.account.create({
     data: {
       user_id: userId,
       account_name: accountName,
       account_type: 'checking',
-      is_default: true,
+      is_default: false,
     },
   });
+
+  // Adicionar usuário como owner em account_members
+  await prisma.accountMember.create({
+    data: {
+      account_id: account.id,
+      user_id: userId,
+      role: 'owner',
+    },
+  });
+
+  return account;
 }
 
 export async function createTestCategory(

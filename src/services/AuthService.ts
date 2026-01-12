@@ -61,7 +61,7 @@ export class AuthService {
       });
 
       // Criar conta padrão
-      await tx.account.create({
+      const account = await tx.account.create({
         data: {
           user_id: user.id,
           account_name: 'Conta Principal',
@@ -70,23 +70,26 @@ export class AuthService {
         },
       });
 
-      // Criar regra de reserva de emergência para a conta
-      const account = await tx.account.findFirst({
-        where: { user_id: user.id, is_default: true },
+      // Adicionar usuário como owner em account_members
+      await tx.accountMember.create({
+        data: {
+          account_id: account.id,
+          user_id: user.id,
+          role: 'owner',
+        },
       });
 
-      if (account) {
-        await tx.financialRule.create({
-          data: {
-            account_id: account.id,
-            rule_type: 'emergency_reserve',
-            rule_name: 'Reserva de Emergência Automática',
-            percentage: 30,
-            priority: 1,
-            is_active: true,
-          },
-        });
-      }
+      // Criar regra de reserva de emergência para a conta
+      await tx.financialRule.create({
+        data: {
+          account_id: account.id,
+          rule_type: 'emergency_reserve',
+          rule_name: 'Reserva de Emergência Automática',
+          percentage: 30,
+          priority: 1,
+          is_active: true,
+        },
+      });
 
       return user;
     });
@@ -97,11 +100,16 @@ export class AuthService {
       email: result.email,
     });
 
-    // Atualizar last_login
-    await prisma.user.update({
-      where: { id: result.id },
-      data: { last_login: new Date() },
-    });
+    // Atualizar last_login (não crítico, não deve falhar o registro)
+    try {
+      await prisma.user.update({
+        where: { id: result.id },
+        data: { last_login: new Date() },
+      });
+    } catch (error) {
+      // Log error but don't fail the registration
+      console.error('Failed to update last_login:', error);
+    }
 
     return {
       user: {
@@ -149,11 +157,16 @@ export class AuthService {
       email: user.email,
     });
 
-    // Atualizar last_login
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { last_login: new Date() },
-    });
+    // Atualizar last_login (não crítico, não deve falhar o login)
+    try {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { last_login: new Date() },
+      });
+    } catch (error) {
+      // Log error but don't fail the login
+      console.error('Failed to update last_login:', error);
+    }
 
     return {
       user: {

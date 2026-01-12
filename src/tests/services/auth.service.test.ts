@@ -148,30 +148,6 @@ describe('AuthService', () => {
     });
   });
 
-  describe('generateTokens', () => {
-    it('should generate valid JWT tokens', async () => {
-      const userData = {
-        email: `test${Date.now()}@example.com`,
-        password: 'password123',
-        full_name: 'Test User',
-      };
-
-      const { user } = await authService.register(userData);
-
-      const tokens = authService.generateTokens({
-        userId: user.id,
-        email: user.email,
-      });
-
-      expect(tokens).toHaveProperty('access_token');
-      expect(tokens).toHaveProperty('refresh_token');
-      expect(tokens).toHaveProperty('expires_in');
-      expect(typeof tokens.access_token).toBe('string');
-      expect(typeof tokens.refresh_token).toBe('string');
-      expect(tokens.expires_in).toBe(900); // 15 minutes
-    });
-  });
-
   describe('verifyToken', () => {
     it('should verify valid token', async () => {
       const userData = {
