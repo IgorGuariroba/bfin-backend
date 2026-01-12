@@ -1,0 +1,86 @@
+name: Publish SDK to GitHub Packages
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  publish:
+    name: Publish SDK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@igorguariroba'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: npm run db:generate
+        env:
+          DATABASE_URL: postgresql://user:password@localhost:5432/db
+
+      - name: Generate SDK
+        run: |
+          npm run generate:openapi
+          npm run generate:sdk
+
+      - name: Extract version from tag
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Update SDK version
+        run: |
+          cd sdk
+          npm version ${{ steps.get_version.outputs.VERSION }} --no-git-tag-version
+
+      - name: Publish to GitHub Packages
+        run: |
+          cd sdk
+          npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: SDK ${{ github.ref_name }}
+          body: |
+            ## BFIN SDK ${{ steps.get_version.outputs.VERSION }}
+
+            ### Installation
+
+            Configure npm to use GitHub Packages:
+            ```bash
+            echo "@igorguariroba:registry=https://npm.pkg.github.com" >> ~/.npmrc
+            ```
+
+            Install the SDK:
+            ```bash
+            npm install @igorguariroba/bfin-sdk@${{ steps.get_version.outputs.VERSION }}
+            ```
+
+            ### Documentation
+
+            See [SDK README](https://github.com/IgorGuariroba/bfin-backend/blob/main/sdk/README.md) for usage instructions.
+
+            ### Changelog
+
+            See [CHANGELOG.md](https://github.com/IgorGuariroba/bfin-backend/blob/main/sdk/CHANGELOG.md) for all changes in this release.
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

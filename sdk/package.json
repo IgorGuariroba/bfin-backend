@@ -1,0 +1,81 @@
+{
+  "name": "@igorguariroba/bfin-sdk",
+  "version": "1.0.0",
+  "description": "TypeScript SDK for BFIN Banking Finance API with React Query and SWR support",
+  "author": "Igor Guariroba",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/IgorGuariroba/bfin-backend.git",
+    "directory": "sdk"
+  },
+  "homepage": "https://github.com/IgorGuariroba/bfin-backend#readme",
+  "bugs": {
+    "url": "https://github.com/IgorGuariroba/bfin-backend/issues"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "@igorguariroba:registry": "https://npm.pkg.github.com"
+  },
+  "keywords": [
+    "bfin",
+    "banking",
+    "finance",
+    "api",
+    "sdk",
+    "typescript",
+    "react-query",
+    "swr",
+    "axios"
+  ],
+  "main": "./client/index.ts",
+  "module": "./client/index.ts",
+  "types": "./client/index.ts",
+  "exports": {
+    ".": {
+      "types": "./client/index.ts",
+      "import": "./client/index.ts",
+      "require": "./client/index.ts"
+    },
+    "./client": {
+      "types": "./client/index.ts",
+      "import": "./client/index.ts",
+      "require": "./client/index.ts"
+    },
+    "./react-query": {
+      "types": "./react-query/index.ts",
+      "import": "./react-query/index.ts",
+      "require": "./react-query/index.ts"
+    },
+    "./swr": {
+      "types": "./swr/index.ts",
+      "import": "./swr/index.ts",
+      "require": "./swr/index.ts"
+    }
+  },
+  "files": [
+    "client/**/*",
+    "react-query/**/*",
+    "swr/**/*",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "peerDependencies": {
+    "axios": "^1.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@tanstack/react-query": {
+      "optional": true
+    },
+    "swr": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "scripts": {
+    "prepublishOnly": "echo 'SDK ready for publishing'"
+  }
+}

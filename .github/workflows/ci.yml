@@ -209,3 +209,17 @@ jobs:
           name: build-output
           path: dist/
           retention-days: 7
+
+      - name: Upload SDK artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: sdk-output
+          path: sdk/
+          retention-days: 30
+
+      - name: Upload OpenAPI Spec
+        uses: actions/upload-artifact@v4
+        with:
+          name: openapi-spec
+          path: openapi/openapi.json
+          retention-days: 30

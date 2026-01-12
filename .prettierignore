@@ -1,9 +1,25 @@
 # Dependencies
 node_modules/
 
-# Build output
+# Build outputs
 dist/
 build/
+
+# SDK Generation (auto-generated code)
+openapi/
+sdk/**/api.ts
+sdk/**/api.schemas.ts
+sdk/**/hooks.ts
+sdk/**/hooks.schemas.ts
+sdk/client/authentication/
+sdk/client/accounts/
+sdk/client/categories/
+sdk/react-query/authentication/
+sdk/react-query/accounts/
+sdk/react-query/categories/
+sdk/swr/authentication/
+sdk/swr/accounts/
+sdk/swr/categories/
 
 # Coverage
 coverage/
@@ -12,9 +28,3 @@ coverage/
 package-lock.json
 yarn.lock
 pnpm-lock.yaml
-
-# Prisma generated
-prisma/generated/
-
-# Docs
-*.md
