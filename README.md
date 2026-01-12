@@ -7,6 +7,8 @@
 [![Code Smells](https://sonarcloud.io/api/project_badges/measure?project=IgorGuariroba_bfin-backend&metric=code_smells)](https://sonarcloud.io/summary/new_code?id=IgorGuariroba_bfin-backend)
 [![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=IgorGuariroba_bfin-backend&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=IgorGuariroba_bfin-backend)
 [![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=IgorGuariroba_bfin-backend&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=IgorGuariroba_bfin-backend)
+[![CI Pipeline](https://github.com/IgorGuariroba/bfin-backend/actions/workflows/ci.yml/badge.svg)](https://github.com/IgorGuariroba/bfin-backend/actions/workflows/ci.yml)
+[![CommitLint](https://github.com/IgorGuariroba/bfin-backend/actions/workflows/commitlint.yml/badge.svg)](https://github.com/IgorGuariroba/bfin-backend/actions/workflows/commitlint.yml)
 
 Banking Finance API - A comprehensive backend solution for personal finance management.
 
