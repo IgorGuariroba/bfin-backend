@@ -70,23 +70,22 @@ function AccountsList() {
 
 Ver [SDK README](./sdk/README.md) para documentação completa.
 
-### Publicando Nova Versão
+### Publicação Automática
 
-Para publicar uma nova versão do SDK:
+O SDK é **publicado automaticamente** quando um PR é merged na `main`!
 
+O versionamento é baseado em **conventional commits**:
+- `feat:` → versão **MINOR** (x.1.x)
+- `fix:` → versão **PATCH** (x.x.1)
+- `feat!:` ou `BREAKING CHANGE:` → versão **MAJOR** (1.x.x)
+
+**Exemplo:**
 ```bash
-# 1. Atualizar CHANGELOG.md do SDK
-# 2. Commit mudanças
-git add .
-git commit -m "feat: add new SDK features"
-git push origin main
-
-# 3. Criar e push tag
-git tag v1.1.0
-git push origin v1.1.0
+git commit -m "feat: add transaction filters"
+# Após merge do PR → publica automaticamente como versão MINOR
 ```
 
-GitHub Actions publicará automaticamente no GitHub Packages. Ver [guia de publicação](./docs/SDK_PUBLISHING.md) para detalhes.
+Ver [guia de publicação](./docs/SDK_PUBLISHING.md) para detalhes completos.
 
 ## Tech Stack
 

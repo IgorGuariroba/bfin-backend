@@ -1,6 +1,47 @@
 # SDK Publishing Guide
 
-Este guia explica como publicar novas versões do SDK no GitHub Packages.
+Este guia explica como funciona a publicação automática do SDK no GitHub Packages.
+
+## 🤖 Publicação Automática
+
+**O SDK é publicado automaticamente** quando um PR é merged na branch `main`!
+
+### Como Funciona
+
+1. **PR Merged** → Dispara workflow de publicação
+2. **Análise de Commits** → Determina tipo de versão (major, minor, patch)
+3. **Bump Automático** → Incrementa versão baseado em conventional commits
+4. **Publicação** → Publica no GitHub Packages
+5. **Release** → Cria GitHub Release com changelog
+
+### Conventional Commits
+
+O versionamento é baseado em **conventional commits**:
+
+| Commit Type | Exemplo | Versão |
+|------------|---------|---------|
+| `feat:` | `feat: add new endpoint` | **MINOR** (x.1.x) |
+| `fix:` | `fix: resolve auth bug` | **PATCH** (x.x.1) |
+| `feat!:` ou `BREAKING CHANGE:` | `feat!: redesign API` | **MAJOR** (1.x.x) |
+| `chore:`, `docs:`, etc. | `docs: update README` | **PATCH** (x.x.1) |
+
+### Exemplo de Fluxo
+
+```bash
+# 1. Criar branch e fazer mudanças
+git checkout -b feat/add-filters
+# ... fazer mudanças
+
+# 2. Commit com conventional commits
+git commit -m "feat: add transaction filters"
+
+# 3. Push e criar PR
+git push origin feat/add-filters
+# Criar PR no GitHub
+
+# 4. Após aprovação, merge o PR
+# ✅ SDK é publicado AUTOMATICAMENTE como versão MINOR (ex: 1.1.0)
+```
 
 ## Versionamento Semântico
 
@@ -30,67 +71,87 @@ O SDK segue [Semantic Versioning](https://semver.org/):
 - Melhorias de documentação
 - Correções de segurança
 
-## Como Publicar Nova Versão
+## ⚙️ Como Funciona o Versionamento Automático
 
-### 1. Atualizar CHANGELOG.md
+### Script de Auto-Versioning
 
-Adicione as notas de release em `sdk/CHANGELOG.md`:
+O script `scripts/auto-version.sh` analisa os commits desde a última tag:
 
-```markdown
-## [1.1.0] - 2024-01-15
+1. Busca última tag (ex: `v1.0.5`)
+2. Lista commits desde a última tag
+3. Procura por padrões:
+   - `feat!:` ou `BREAKING CHANGE:` → **MAJOR**
+   - `feat:` → **MINOR**
+   - `fix:` → **PATCH**
+4. Incrementa versão apropriadamente
+5. Cria nova tag (ex: `v1.1.0`)
 
-### Added
-- Novo endpoint de filtros de transações
-- Hooks para busca avançada
+### Workflow de Publicação
 
-### Fixed
-- Correção no refresh de token
-- Types do erro 401
+Localizado em `.github/workflows/publish-sdk.yml`:
 
-### Changed
-- Melhorias na documentação
-```
+**Dispara quando:**
+- Push na branch `main` (quando PR é merged)
+- Mudanças em arquivos relevantes (`src/`, `prisma/`, etc.)
 
-### 2. Commit das Mudanças
+**Passos:**
+1. ✅ Gera OpenAPI spec
+2. ✅ Gera SDK com Orval
+3. 🔍 Analisa commits e determina versão
+4. 📝 Gera changelog automático
+5. 🏷️ Cria e publica tag
+6. 📦 Publica no GitHub Packages
+7. 🎉 Cria GitHub Release
 
-```bash
-git add .
-git commit -m "feat: add transaction filters to SDK"
-git push origin main
-```
+## 📝 Como Publicar (Automático)
 
-### 3. Criar Git Tag
-
-```bash
-# Criar tag com a versão
-git tag v1.1.0
-
-# Push da tag (isso dispara a publicação automática)
-git push origin v1.1.0
-```
-
-### 4. Publicação Automática
-
-O GitHub Actions automaticamente:
-1. Gera o OpenAPI spec
-2. Gera o SDK
-3. Atualiza a versão no `package.json`
-4. Publica no GitHub Packages
-5. Cria GitHub Release
-
-### 5. Verificar Publicação
-
-1. Acesse: https://github.com/IgorGuariroba/bfin-backend/packages
-2. Verifique se a versão foi publicada corretamente
-3. Teste a instalação:
+### Fluxo Normal (Recomendado)
 
 ```bash
-npm install @igorguariroba/bfin-sdk@1.1.0
+# 1. Criar branch de feature
+git checkout -b feat/new-feature
+
+# 2. Fazer mudanças e commit com conventional commits
+git commit -m "feat: add new awesome feature"
+
+# 3. Push e criar PR
+git push origin feat/new-feature
+# Criar PR no GitHub
+
+# 4. Após aprovação, merge o PR na main
+# ✅ SDK é publicado AUTOMATICAMENTE!
 ```
 
-## Publicação Manual (Se Necessário)
+### Verificar Publicação
 
-Se precisar publicar manualmente:
+Após o merge, o workflow é executado automaticamente:
+
+1. Acesse: https://github.com/IgorGuariroba/bfin-backend/actions
+2. Verifique o workflow "Publish SDK to GitHub Packages"
+3. Após conclusão, verifique: https://github.com/IgorGuariroba/bfin-backend/packages
+4. Teste a instalação:
+
+```bash
+npm install @igorguariroba/bfin-sdk@latest
+```
+
+## 🔧 Publicação Manual (Casos Especiais)
+
+Em casos especiais, você pode publicar manualmente:
+
+### Opção 1: Workflow Manual (Recomendado)
+
+Via interface do GitHub:
+
+1. Acesse: https://github.com/IgorGuariroba/bfin-backend/actions/workflows/publish-sdk.yml
+2. Clique em "Run workflow"
+3. Selecione a branch `main`
+4. Escolha o tipo de bump (ou deixe "auto")
+5. Clique em "Run workflow"
+
+### Opção 2: Via Linha de Comando
+
+Se precisar publicar manualmente via linha de comando:
 
 ```bash
 # Gerar SDK
@@ -148,140 +209,339 @@ Os usuários precisam de um GitHub Personal Access Token com permissão `read:pa
 3. Selecione `read:packages`
 4. Copie o token e adicione ao `.npmrc`
 
-## Exemplo de Fluxo Completo
+## 📚 Exemplos Práticos
 
-### Nova Feature (MINOR)
+### Exemplo 1: Adicionar Nova Feature (MINOR)
+
+**Cenário:** Adicionar endpoint de filtros de transações
 
 ```bash
-# 1. Desenvolver a feature na API
-# ... fazer mudanças no código
+# 1. Criar branch
+git checkout -b feat/transaction-filters
 
-# 2. Testar localmente
+# 2. Desenvolver a feature
+# ... adicionar endpoint em src/routes/transactions.routes.ts
+# ... adicionar docs Swagger
+
+# 3. Testar localmente
 npm run build
+npm test
 
-# 3. Atualizar CHANGELOG
-vim sdk/CHANGELOG.md
-# Adicionar seção [1.1.0] com as mudanças
-
-# 4. Commit
+# 4. Commit com conventional commit
 git add .
-git commit -m "feat: add transaction filters"
-git push origin main
+git commit -m "feat: add transaction filters with date range"
 
-# 5. Criar e push tag
-git tag v1.1.0
-git push origin v1.1.0
+# 5. Push e criar PR
+git push origin feat/transaction-filters
+# Criar PR no GitHub
 
-# 6. Aguardar GitHub Actions publicar
-# Verificar em: https://github.com/IgorGuariroba/bfin-backend/actions
+# 6. Após aprovação e merge do PR
+# ✅ SDK v1.1.0 é publicado AUTOMATICAMENTE!
+# 📦 Disponível em: @igorguariroba/bfin-sdk@1.1.0
 ```
 
-### Bug Fix (PATCH)
+### Exemplo 2: Corrigir Bug (PATCH)
+
+**Cenário:** Corrigir bug no token refresh
 
 ```bash
-# 1. Corrigir bug
-# ... fazer correção
+# 1. Criar branch
+git checkout -b fix/token-refresh
 
-# 2. Atualizar CHANGELOG
-vim sdk/CHANGELOG.md
-# Adicionar seção [1.0.1] com correções
+# 2. Corrigir o bug
+# ... fix em sdk/client/custom-instance.ts
 
-# 3. Commit
-git commit -m "fix: token refresh logic"
-git push origin main
+# 3. Commit com conventional commit
+git commit -m "fix: resolve token refresh timing issue"
 
-# 4. Criar e push tag
-git tag v1.0.1
-git push origin v1.0.1
+# 4. Push e criar PR
+git push origin fix/token-refresh
+# Criar PR no GitHub
+
+# 5. Após merge do PR
+# ✅ SDK v1.0.1 é publicado AUTOMATICAMENTE!
+# 📦 Disponível em: @igorguariroba/bfin-sdk@1.0.1
 ```
 
-### Breaking Change (MAJOR)
+### Exemplo 3: Breaking Change (MAJOR)
+
+**Cenário:** Redesign da autenticação (breaking change)
 
 ```bash
-# 1. Implementar breaking change
-# ... fazer mudanças incompatíveis
+# 1. Criar branch
+git checkout -b feat/auth-redesign
 
-# 2. Atualizar CHANGELOG com BREAKING CHANGES destacado
-vim sdk/CHANGELOG.md
-# Adicionar seção [2.0.0] com BREAKING CHANGES
+# 2. Implementar breaking change
+# ... redesign completo do auth
 
-# 3. Commit
+# 3. Commit com '!' ou 'BREAKING CHANGE:'
 git commit -m "feat!: redesign authentication flow
 
-BREAKING CHANGE: Authentication now requires explicit token configuration"
-git push origin main
+BREAKING CHANGE: configureBfinApi() now requires apiKey parameter.
+Migration guide: https://github.com/.../migration-v2.md"
 
-# 4. Criar e push tag
-git tag v2.0.0
-git push origin v2.0.0
+# 4. Push e criar PR
+git push origin feat/auth-redesign
+# Criar PR no GitHub com label 'breaking-change'
+
+# 5. Após merge do PR
+# ✅ SDK v2.0.0 é publicado AUTOMATICAMENTE!
+# 📦 Disponível em: @igorguariroba/bfin-sdk@2.0.0
+# ⚠️  Release notes incluem warning de breaking change
 ```
 
-## Troubleshooting
+### Exemplo 4: Múltiplos Commits em um PR
 
-### Erro de Autenticação ao Publicar
+**Cenário:** PR com múltiplas mudanças
+
+```bash
+git checkout -b feature/improvements
+
+# Commit 1: Nova feature
+git commit -m "feat: add pagination support"
+
+# Commit 2: Bug fix
+git commit -m "fix: resolve memory leak"
+
+# Commit 3: Docs
+git commit -m "docs: update API examples"
+
+# Push e merge PR
+# ✅ SDK publicado como MINOR (feat: tem prioridade)
+# Changelog inclui todas as mudanças categorizadas
+```
+
+## 🔧 Troubleshooting
+
+### Workflow Não Dispara Após Merge
+
+**Problema:** PR foi merged mas workflow não executou
+
+**Soluções:**
+1. Verificar se o PR modificou arquivos monitorados (`src/`, `prisma/`, etc.)
+2. Verificar se há erros na sintaxe do workflow
+3. Acesse Actions no GitHub e verifique se há workflows falhados
+4. Verifique permissões do workflow em Settings → Actions
+
+```bash
+# Forçar disparo manual
+gh workflow run publish-sdk.yml
+```
+
+### Versão Não Incrementou Corretamente
+
+**Problema:** Expected v1.1.0 mas publicou v1.0.1
+
+**Causa:** Commit message não seguiu conventional commits
+
+**Solução:**
+```bash
+# Verificar commits desde última tag
+git log v1.0.0..HEAD --oneline
+
+# Exemplo incorreto:
+# "Add new feature" ❌ (sem prefixo feat:)
+
+# Exemplo correto:
+# "feat: add new feature" ✅
+```
+
+**Corrigir:**
+1. Delete a versão errada no GitHub Packages
+2. Delete a tag: `git push --delete origin v1.0.1`
+3. Refaça o commit com message correto
+4. Crie novo PR e merge
+
+### SDK Não Foi Publicado
+
+**Problema:** Workflow completou mas SDK não aparece no GitHub Packages
+
+**Soluções:**
+1. Verificar logs do step "Publish to GitHub Packages"
+2. Verificar permissões: Settings → Actions → Workflow permissions
+3. Verificar se `GITHUB_TOKEN` tem permissão `write:packages`
+
+```yaml
+# .github/workflows/publish-sdk.yml deve ter:
+permissions:
+  contents: write
+  packages: write
+```
+
+### Erro 401 ao Publicar
 
 **Problema:** `npm ERR! 401 Unauthorized`
 
 **Solução:**
-1. Verificar se o token tem permissão `write:packages`
-2. Verificar se o token está no `.npmrc`
-3. Verificar se o scope está correto no `package.json`
+Workflow usa `GITHUB_TOKEN` automaticamente. Verificar:
+1. Se o repositório tem permissão para criar packages
+2. Se o workflow tem permissão correta (ver acima)
 
-### Versão Errada Publicada
+### Changelog Vazio no Release
 
-**Solução:**
-1. Ir para: https://github.com/IgorGuariroba/bfin-backend/packages
-2. Clicar no package
-3. Package settings → Delete package version
-4. Criar nova tag e push
+**Problema:** Release criado mas changelog está vazio
 
-### SDK Não Atualiza Após Publicação
-
-**Problema:** `npm install` instala versão antiga
+**Causa:** Commits não seguem conventional commits
 
 **Solução:**
+Use prefixos corretos:
+- `feat:` para features
+- `fix:` para bug fixes
+- `docs:` para documentação
+- etc.
+
+### SDK com Versão Errada
+
+**Problema:** Publicou versão incorreta (ex: v2.0.0 ao invés de v1.1.0)
+
+**Solução:**
+1. Delete a versão no GitHub Packages
+2. Delete a tag:
 ```bash
-# Limpar cache do npm
-npm cache clean --force
+git tag -d v2.0.0
+git push --delete origin v2.0.0
+```
+3. Ajuste os commits (rebase/amend) se necessário
+4. Re-merge o PR ou dispare workflow manual
 
-# Reinstalar
-npm install @igorguariroba/bfin-sdk@latest
+### Testar Workflow Antes de Merge
+
+**Solução:** Use workflow manual com branch de teste
+
+1. Acesse: Actions → Publish SDK to GitHub Packages
+2. Run workflow em sua branch de feature
+3. Verifique o output
+4. Se OK, faça o merge
+
+## ✅ Best Practices
+
+### 1. Use Conventional Commits
+
+**Sempre use prefixos corretos:**
+```bash
+✅ git commit -m "feat: add new endpoint"
+✅ git commit -m "fix: resolve auth bug"
+✅ git commit -m "feat!: breaking change description"
+
+❌ git commit -m "Added new endpoint"
+❌ git commit -m "Fixed bug"
+❌ git commit -m "Update code"
 ```
 
-### Workflow Falha na Publicação
+### 2. Agrupe Mudanças Relacionadas
 
-**Soluções:**
-1. Verificar logs do GitHub Actions
-2. Verificar se OpenAPI spec foi gerado corretamente
-3. Verificar se todos os arquivos necessários estão no `files[]` do package.json
-4. Testar publicação manual localmente
+**Bom:**
+```bash
+# Um PR com mudanças relacionadas
+feat: add transaction filters
+  - Add date range filter
+  - Add category filter
+  - Add tests
+```
 
-## Best Practices
+**Evite:**
+```bash
+# Múltiplos PRs pequenos desnecessários
+feat: add date filter
+feat: add category filter
+fix: add tests
+```
 
-1. **Sempre atualizar CHANGELOG.md** antes de criar tag
-2. **Testar SDK localmente** antes de publicar
-3. **Seguir semver estritamente** para não quebrar dependentes
-4. **Documentar breaking changes** claramente no CHANGELOG
-5. **Manter versões sincronizadas** com mudanças na API
-6. **Revisar changes** antes de criar tag
-7. **Não pular versões** (não ir de 1.0.0 para 1.2.0 diretamente)
-8. **Testar instalação** após publicação
+### 3. Documente Breaking Changes
 
-## Checklist de Publicação
+**No commit message:**
+```bash
+git commit -m "feat!: redesign auth API
 
-- [ ] Mudanças testadas localmente
-- [ ] CHANGELOG.md atualizado
-- [ ] README atualizado (se necessário)
-- [ ] Build local passa (`npm run build`)
-- [ ] SDK gerado corretamente
-- [ ] Versão semântica correta escolhida
+BREAKING CHANGE: configureBfinApi() signature changed.
+Before: configureBfinApi(url, token)
+After: configureBfinApi({ baseUrl, token })
+
+Migration: Update all calls to use object syntax"
+```
+
+### 4. Teste Antes de Merge
+
+```bash
+# Antes de criar PR
+npm run build        # Verifica se compila
+npm test             # Roda testes
+npm run type-check   # Verifica types
+```
+
+### 5. Revise o Changelog Automático
+
+Após publicação, verifique o changelog gerado:
+1. Acesse o Release no GitHub
+2. Revise se categorizações estão corretas
+3. Se necessário, edite manualmente o release
+
+### 6. Coordene Breaking Changes
+
+**Para breaking changes:**
+1. Avise o time antes de merge
+2. Atualize documentação de migração
+3. Considere fazer em release separado
+4. Teste com consumidores do SDK
+
+### 7. Monitor Publicações
+
+Após merge, monitore:
+1. Status do workflow no GitHub Actions
+2. Publicação no GitHub Packages
+3. Notificações de erro
+
+### 8. Mantenha CHANGELOG.md Atualizado
+
+Mesmo com changelog automático, mantenha `/sdk/CHANGELOG.md`:
+```bash
+# Periodicamente, atualize manualmente com detalhes
+vim sdk/CHANGELOG.md
+```
+
+## 📋 Checklist Antes de Merge
+
+Use este checklist antes de fazer merge do PR:
+
+### Desenvolvimento
+- [ ] Mudanças implementadas e testadas localmente
+- [ ] Build local passa: `npm run build`
+- [ ] Testes passam: `npm test`
+- [ ] Type check passa: `npm run type-check`
+- [ ] Lint passa: `npm run lint`
+
+### Commits
+- [ ] Todos os commits seguem conventional commits
+- [ ] Prefixo correto usado (feat:, fix:, feat!:)
+- [ ] Breaking changes documentados no commit body
+- [ ] Mensagens descritivas e claras
+
+### Documentação
+- [ ] README atualizado se necessário
+- [ ] Swagger docs atualizados
 - [ ] Breaking changes documentados
-- [ ] Commit com mensagem descritiva
-- [ ] Tag criada com versão correta
-- [ ] GitHub Actions passou
-- [ ] Package aparece no GitHub Packages
-- [ ] Testada instalação do package
-- [ ] Release notes criadas automaticamente
+
+### Pull Request
+- [ ] PR title é descritivo
+- [ ] PR description explica as mudanças
+- [ ] Labels apropriados (se aplicável)
+- [ ] Code review aprovado
+
+### Pós-Merge (Automático)
+O sistema fará automaticamente:
+- ✅ Determinar nova versão
+- ✅ Gerar SDK
+- ✅ Criar tag
+- ✅ Publicar no GitHub Packages
+- ✅ Criar GitHub Release
+- ✅ Gerar changelog
+
+### Verificação Pós-Publicação
+- [ ] Workflow passou no GitHub Actions
+- [ ] Package aparece em GitHub Packages
+- [ ] Release criado com changelog correto
+- [ ] Versão incrementada corretamente
+- [ ] (Opcional) Testar instalação: `npm install @igorguariroba/bfin-sdk@latest`
 
 ## Contato
 
