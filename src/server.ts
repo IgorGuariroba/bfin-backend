@@ -11,6 +11,7 @@ import { rateLimiter } from './middlewares/rateLimit';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const DOCS_ENABLED = process.env.NODE_ENV !== 'production';
 
 // Middlewares globais
 app.use(helmet());
@@ -35,21 +36,23 @@ app.get('/health', (_req, res) => {
 });
 
 // Swagger Documentation
-app.use(
-  '/api-docs',
-  swaggerUi.serve,
-  swaggerUi.setup(swaggerSpec, {
-    customCss: '.swagger-ui .topbar { display: none }',
-    customSiteTitle: 'BFIN API Documentation',
-  })
-);
+if (DOCS_ENABLED) {
+  app.use(
+    '/api-docs',
+    swaggerUi.serve,
+    swaggerUi.setup(swaggerSpec, {
+      customCss: '.swagger-ui .topbar { display: none }',
+      customSiteTitle: 'BFIN API Documentation',
+    })
+  );
+}
 
 // Rotas da API
 app.get('/api/v1', (_req, res) => {
   res.json({
     message: 'BFIN API v1.0',
     version: '1.0.0',
-    docs: '/api-docs',
+    ...(DOCS_ENABLED ? { docs: '/api-docs' } : {}),
   });
 });
 
