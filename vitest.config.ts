@@ -5,6 +5,9 @@ export default defineConfig({
     globals: true,
     environment: 'node',
     setupFiles: ['./src/tests/setup.ts'],
+    // Evita executar arquivos gerados pelo build (ex: dist/tests/*.test.js)
+    include: ['src/tests/**/*.test.ts', 'src/tests/**/*.spec.ts'],
+    exclude: ['node_modules/**', 'dist/**'],
     env: {
       NODE_ENV: 'test',
       ...(process.env.DATABASE_URL && { DATABASE_URL: process.env.DATABASE_URL }),
