@@ -12,11 +12,55 @@ export class CategoryController {
    * GET /api/v1/categories
    */
   async list(req: AuthRequest, res: Response): Promise<void> {
-    const { type } = req.query;
+    const { type, account_id } = req.query;
 
-    const categories = await categoryService.list(type as 'income' | 'expense');
+    if (account_id) {
+      // Se pedir categorias de uma conta, precisa estar autenticado e ter acesso
+      const userId = req.user?.userId;
+      if (!userId) {
+        throw new ValidationError('User not authenticated');
+      }
+
+      const access = await accountMemberService.checkAccess(String(account_id), userId);
+      if (!access.hasAccess) {
+        throw new ForbiddenError('Access denied to this account');
+      }
+    }
+
+    const categories = await categoryService.list(
+      type as 'income' | 'expense',
+      account_id ? String(account_id) : undefined
+    );
 
     res.json(categories);
+  }
+
+  /**
+   * GET /api/v1/categories/:id
+   */
+  async getById(req: AuthRequest, res: Response): Promise<void> {
+    const { id } = req.params;
+    const category = await categoryService.getById(id);
+
+    if (category.is_system) {
+      res.json(category);
+      return;
+    }
+
+    // Se não for do sistema, verificar acesso à conta
+    const userId = req.user?.userId;
+    if (!userId) {
+      throw new ValidationError('User not authenticated');
+    }
+
+    if (category.account_id) {
+      const access = await accountMemberService.checkAccess(category.account_id, userId);
+      if (!access.hasAccess) {
+        throw new ForbiddenError('Access denied to this category');
+      }
+    }
+
+    res.json(category);
   }
 
   /**
@@ -60,5 +104,73 @@ export class CategoryController {
     });
 
     res.status(201).json(category);
+  }
+
+  /**
+   * PATCH /api/v1/categories/:id
+   */
+  async update(req: AuthRequest, res: Response): Promise<void> {
+    const { id } = req.params;
+    const { name, color, icon, type } = req.body;
+    const userId = req.user?.userId;
+
+    if (!userId) {
+      throw new ValidationError('User not authenticated');
+    }
+
+    // Buscar categoria para verificar permissões
+    const category = await categoryService.getById(id);
+
+    if (category.is_system) {
+      throw new ForbiddenError('Cannot update system categories');
+    }
+
+    if (category.account_id) {
+      const access = await accountMemberService.checkAccess(category.account_id, userId);
+      if (!access.hasAccess) {
+        throw new ForbiddenError('Access denied to this account');
+      }
+    }
+
+    // Atualizar
+    const updatedCategory = await categoryService.update(id, {
+      name,
+      color,
+      icon,
+      type,
+    });
+
+    res.json(updatedCategory);
+  }
+
+  /**
+   * DELETE /api/v1/categories/:id
+   */
+  async delete(req: AuthRequest, res: Response): Promise<void> {
+    const { id } = req.params;
+    const userId = req.user?.userId;
+
+    if (!userId) {
+      throw new ValidationError('User not authenticated');
+    }
+
+    // Buscar categoria para verificar permissões
+    const category = await categoryService.getById(id);
+
+    if (category.is_system) {
+      throw new ForbiddenError('Cannot delete system categories');
+    }
+
+    if (category.account_id) {
+      const access = await accountMemberService.checkAccess(category.account_id, userId);
+      if (!access.hasAccess) {
+        throw new ForbiddenError('Access denied to this account');
+      }
+    }
+
+    // Deletar
+    const result = await categoryService.delete(id);
+
+    res.json(result);
   }
 }
