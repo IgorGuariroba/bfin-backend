@@ -5,7 +5,7 @@ import { CategoryService } from '../../services/CategoryService';
 async function createTestUserAndAccount() {
   const user = await prisma.user.create({
     data: {
-      email: `test${Date.now()}${Math.random()}@example.com`,
+      email: `test${Date.now()}${Math.random()}@example.com`, // NOSONAR - not used for security, just unique test emails
       password_hash: 'test_hash_value', // NOSONAR - not a real password, test fixture only
       full_name: 'Test User',
     },
