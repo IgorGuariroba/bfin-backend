@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { CategoryController } from '../controllers/CategoryController';
-import { authenticate, optionalAuthenticate } from '../middlewares/auth';
+import { authenticate } from '../middlewares/auth';
 
 const router = Router();
 const categoryController = new CategoryController();
@@ -12,6 +12,8 @@ const categoryController = new CategoryController();
  *     tags: [Categories]
  *     summary: Listar categorias
  *     description: Retorna lista de categorias. Se account_id for fornecido, retorna categorias do sistema + categorias da conta.
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: query
  *         name: type
@@ -24,7 +26,7 @@ const categoryController = new CategoryController();
  *         schema:
  *           type: string
  *           format: uuid
- *         description: ID da conta para buscar categorias personalizadas (requer autenticação)
+ *         description: ID da conta para buscar categorias personalizadas
  *     responses:
  *       200:
  *         description: Lista de categorias
@@ -34,11 +36,12 @@ const categoryController = new CategoryController();
  *               type: array
  *               items:
  *                 $ref: '#/components/schemas/Category'
+ *       401:
+ *         description: Não autenticado
  *       403:
  *         description: Sem acesso à conta especificada
  */
-// Public endpoint (if account_id not provided) - checks auth inside controller if needed
-router.get('/', optionalAuthenticate, (req, res, next) => {
+router.get('/', authenticate, (req, res, next) => {
   categoryController.list(req, res).catch(next);
 });
 
@@ -49,6 +52,8 @@ router.get('/', optionalAuthenticate, (req, res, next) => {
  *     tags: [Categories]
  *     summary: Obter categoria por ID
  *     description: Retorna detalhes de uma categoria específica
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -64,12 +69,14 @@ router.get('/', optionalAuthenticate, (req, res, next) => {
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Category'
+ *       401:
+ *         description: Não autenticado
  *       403:
  *         description: Sem acesso à categoria
  *       404:
  *         description: Categoria não encontrada
  */
-router.get('/:id', optionalAuthenticate, (req, res, next) => {
+router.get('/:id', authenticate, (req, res, next) => {
   categoryController.getById(req, res).catch(next);
 });
 
@@ -103,7 +110,8 @@ router.get('/:id', optionalAuthenticate, (req, res, next) => {
  *               account_id:
  *                 type: string
  *                 format: uuid
- *                 example: 123e4567-e89b-12d3-a456-426614174000
+ *                 description: ID de uma conta que você possui (obtenha em GET /api/v1/accounts)
+ *                 example: "9ff1b303-b050-451d-8b4b-3cbbcce664bd"
  *               color:
  *                 type: string
  *                 example: "#FF5733"

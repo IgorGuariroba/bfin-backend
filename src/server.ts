@@ -43,6 +43,9 @@ if (DOCS_ENABLED) {
     swaggerUi.setup(swaggerSpec, {
       customCss: '.swagger-ui .topbar { display: none }',
       customSiteTitle: 'BFIN API Documentation',
+      swaggerOptions: {
+        persistAuthorization: true,
+      },
     })
   );
 }
