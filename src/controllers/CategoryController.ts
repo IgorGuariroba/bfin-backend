@@ -1,5 +1,6 @@
 import type { Response } from 'express';
-import { ValidationError, ForbiddenError } from '../middlewares/errorHandler';
+import prisma from '../lib/prisma';
+import { ValidationError, ForbiddenError, NotFoundError } from '../middlewares/errorHandler';
 import { AccountMemberService } from '../services/AccountMemberService';
 import { CategoryService } from '../services/CategoryService';
 import type { AuthRequest } from '../types';
@@ -87,6 +88,15 @@ export class CategoryController {
     const userId = req.user?.userId;
     if (!userId) {
       throw new ValidationError('User not authenticated');
+    }
+
+    // Verificar se a conta existe primeiro
+    const account = await prisma.account.findUnique({
+      where: { id: account_id },
+    });
+
+    if (!account) {
+      throw new NotFoundError(`Account with ID ${account_id} not found`);
     }
 
     // Verificar se o usuário tem acesso à conta

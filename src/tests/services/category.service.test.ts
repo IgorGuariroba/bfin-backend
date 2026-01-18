@@ -175,4 +175,286 @@ describe('CategoryService', () => {
       expect(category.type).toBe('expense');
     });
   });
+
+  describe('getById', () => {
+    it('should get category by ID', async () => {
+      const user = await prisma.user.create({
+        data: {
+          email: `test${Date.now()}@example.com`,
+          password_hash: 'hashed',
+          full_name: 'Test User',
+        },
+      });
+
+      const account = await prisma.account.create({
+        data: {
+          user_id: user.id,
+          account_name: 'Test Account',
+        },
+      });
+
+      const createdCategory = await categoryService.create({
+        name: 'Category to Find',
+        type: 'expense',
+        account_id: account.id,
+      });
+
+      const foundCategory = await categoryService.getById(createdCategory.id);
+
+      expect(foundCategory.id).toBe(createdCategory.id);
+      expect(foundCategory.name).toBe('Category to Find');
+    });
+
+    it('should throw NotFoundError for non-existent category', async () => {
+      await expect(categoryService.getById('00000000-0000-0000-0000-000000000000')).rejects.toThrow(
+        'Category not found'
+      );
+    });
+
+    it('should return created_at field', async () => {
+      const user = await prisma.user.create({
+        data: {
+          email: `test${Date.now()}@example.com`,
+          password_hash: 'hashed',
+          full_name: 'Test User',
+        },
+      });
+
+      const account = await prisma.account.create({
+        data: {
+          user_id: user.id,
+          account_name: 'Test Account',
+        },
+      });
+
+      const createdCategory = await categoryService.create({
+        name: 'Category with Date',
+        type: 'income',
+        account_id: account.id,
+      });
+
+      const foundCategory = await categoryService.getById(createdCategory.id);
+
+      expect(foundCategory).toHaveProperty('created_at');
+      expect(foundCategory.created_at).toBeInstanceOf(Date);
+    });
+  });
+
+  describe('update', () => {
+    it('should update category name', async () => {
+      const user = await prisma.user.create({
+        data: {
+          email: `test${Date.now()}@example.com`,
+          password_hash: 'hashed',
+          full_name: 'Test User',
+        },
+      });
+
+      const account = await prisma.account.create({
+        data: {
+          user_id: user.id,
+          account_name: 'Test Account',
+        },
+      });
+
+      const createdCategory = await categoryService.create({
+        name: 'Original Name',
+        type: 'expense',
+        account_id: account.id,
+      });
+
+      const updatedCategory = await categoryService.update(createdCategory.id, {
+        name: 'Updated Name',
+      });
+
+      expect(updatedCategory.name).toBe('Updated Name');
+      expect(updatedCategory.type).toBe('expense');
+    });
+
+    it('should update category color and icon', async () => {
+      const user = await prisma.user.create({
+        data: {
+          email: `test${Date.now()}@example.com`,
+          password_hash: 'hashed',
+          full_name: 'Test User',
+        },
+      });
+
+      const account = await prisma.account.create({
+        data: {
+          user_id: user.id,
+          account_name: 'Test Account',
+        },
+      });
+
+      const createdCategory = await categoryService.create({
+        name: 'Category',
+        type: 'expense',
+        account_id: account.id,
+      });
+
+      const updatedCategory = await categoryService.update(createdCategory.id, {
+        color: '#123456',
+        icon: '🚀',
+      });
+
+      expect(updatedCategory.color).toBe('#123456');
+      expect(updatedCategory.icon).toBe('🚀');
+    });
+
+    it('should update category type', async () => {
+      const user = await prisma.user.create({
+        data: {
+          email: `test${Date.now()}@example.com`,
+          password_hash: 'hashed',
+          full_name: 'Test User',
+        },
+      });
+
+      const account = await prisma.account.create({
+        data: {
+          user_id: user.id,
+          account_name: 'Test Account',
+        },
+      });
+
+      const createdCategory = await categoryService.create({
+        name: 'Flexible Category',
+        type: 'expense',
+        account_id: account.id,
+      });
+
+      const updatedCategory = await categoryService.update(createdCategory.id, {
+        type: 'income',
+      });
+
+      expect(updatedCategory.type).toBe('income');
+    });
+
+    it('should throw NotFoundError when updating non-existent category', async () => {
+      await expect(
+        categoryService.update('00000000-0000-0000-0000-000000000000', {
+          name: 'New Name',
+        })
+      ).rejects.toThrow('Category not found');
+    });
+  });
+
+  describe('delete', () => {
+    it('should delete category successfully', async () => {
+      const user = await prisma.user.create({
+        data: {
+          email: `test${Date.now()}@example.com`,
+          password_hash: 'hashed',
+          full_name: 'Test User',
+        },
+      });
+
+      const account = await prisma.account.create({
+        data: {
+          user_id: user.id,
+          account_name: 'Test Account',
+        },
+      });
+
+      const createdCategory = await categoryService.create({
+        name: 'Category to Delete',
+        type: 'expense',
+        account_id: account.id,
+      });
+
+      const result = await categoryService.delete(createdCategory.id);
+
+      expect(result.message).toBe('Category deleted successfully');
+
+      // Verificar que foi deletada
+      await expect(categoryService.getById(createdCategory.id)).rejects.toThrow(
+        'Category not found'
+      );
+    });
+
+    it('should throw NotFoundError when deleting non-existent category', async () => {
+      await expect(categoryService.delete('00000000-0000-0000-0000-000000000000')).rejects.toThrow(
+        'Category not found'
+      );
+    });
+  });
+
+  describe('list with account_id', () => {
+    it('should return system categories and account categories', async () => {
+      const user = await prisma.user.create({
+        data: {
+          email: `test${Date.now()}@example.com`,
+          password_hash: 'hashed',
+          full_name: 'Test User',
+        },
+      });
+
+      const account = await prisma.account.create({
+        data: {
+          user_id: user.id,
+          account_name: 'Test Account',
+        },
+      });
+
+      // Criar categoria do sistema
+      await prisma.category.create({
+        data: {
+          name: 'System Category List Test',
+          type: 'expense',
+          is_system: true,
+        },
+      });
+
+      // Criar categoria personalizada
+      await categoryService.create({
+        name: 'Custom Category',
+        type: 'expense',
+        account_id: account.id,
+      });
+
+      const categories = await categoryService.list(undefined, account.id);
+
+      const systemCategory = categories.find((c) => c.name === 'System Category List Test');
+      const customCategory = categories.find((c) => c.name === 'Custom Category');
+
+      expect(systemCategory).toBeDefined();
+      expect(customCategory).toBeDefined();
+    });
+
+    it('should filter by type when account_id is provided', async () => {
+      const user = await prisma.user.create({
+        data: {
+          email: `test${Date.now()}@example.com`,
+          password_hash: 'hashed',
+          full_name: 'Test User',
+        },
+      });
+
+      const account = await prisma.account.create({
+        data: {
+          user_id: user.id,
+          account_name: 'Test Account',
+        },
+      });
+
+      await categoryService.create({
+        name: 'Expense Category',
+        type: 'expense',
+        account_id: account.id,
+      });
+
+      await categoryService.create({
+        name: 'Income Category',
+        type: 'income',
+        account_id: account.id,
+      });
+
+      const expenseCategories = await categoryService.list('expense', account.id);
+      const incomeCategories = await categoryService.list('income', account.id);
+
+      expect(expenseCategories.every((c) => c.type === 'expense')).toBe(true);
+      expect(incomeCategories.every((c) => c.type === 'income')).toBe(true);
+    });
+  });
 });

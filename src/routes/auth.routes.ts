@@ -13,6 +13,7 @@ const authController = new AuthController();
  *     tags: [Authentication]
  *     summary: Registrar novo usuário
  *     description: Cria uma nova conta de usuário no sistema
+ *     security: []
  *     requestBody:
  *       required: true
  *       content:
@@ -27,12 +28,12 @@ const authController = new AuthController();
  *               email:
  *                 type: string
  *                 format: email
- *                 example: user@example.com
+ *                 example: test@gmail.com
  *               password:
  *                 type: string
  *                 format: password
  *                 minLength: 6
- *                 example: mySecurePassword123
+ *                 example: 123456
  *               full_name:
  *                 type: string
  *                 example: João Silva
@@ -76,6 +77,7 @@ router.post('/register', authRateLimiter, (req, res, next) => {
  *     tags: [Authentication]
  *     summary: Fazer login
  *     description: Autentica um usuário e retorna tokens de acesso
+ *     security: []
  *     requestBody:
  *       required: true
  *       content:
@@ -89,11 +91,11 @@ router.post('/register', authRateLimiter, (req, res, next) => {
  *               email:
  *                 type: string
  *                 format: email
- *                 example: user@example.com
+ *                 example: test@gmail.com
  *               password:
  *                 type: string
  *                 format: password
- *                 example: mySecurePassword123
+ *                 example: 123456
  *     responses:
  *       200:
  *         description: Login realizado com sucesso
@@ -131,6 +133,7 @@ router.post('/login', authRateLimiter, (req, res, next) => {
  *     tags: [Authentication]
  *     summary: Renovar token de acesso
  *     description: Gera um novo access token usando o refresh token
+ *     security: []
  *     requestBody:
  *       required: true
  *       content:
