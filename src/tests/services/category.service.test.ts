@@ -2,6 +2,25 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import prisma from '../../lib/prisma';
 import { CategoryService } from '../../services/CategoryService';
 
+async function createTestUserAndAccount() {
+  const user = await prisma.user.create({
+    data: {
+      email: `test${Date.now()}${Math.random()}@example.com`,
+      password_hash: 'test_hash_value',
+      full_name: 'Test User',
+    },
+  });
+
+  const account = await prisma.account.create({
+    data: {
+      user_id: user.id,
+      account_name: 'Test Account',
+    },
+  });
+
+  return { user, account };
+}
+
 describe('CategoryService', () => {
   let categoryService: CategoryService;
 
@@ -64,21 +83,7 @@ describe('CategoryService', () => {
 
   describe('create', () => {
     it('should create a new category', async () => {
-      // Criar usuário e conta
-      const user = await prisma.user.create({
-        data: {
-          email: `test${Date.now()}@example.com`,
-          password_hash: 'hashed',
-          full_name: 'Test User',
-        },
-      });
-
-      const account = await prisma.account.create({
-        data: {
-          user_id: user.id,
-          account_name: 'Test Account',
-        },
-      });
+      const { account } = await createTestUserAndAccount();
 
       const categoryData = {
         name: 'Alimentação',
@@ -99,20 +104,7 @@ describe('CategoryService', () => {
     });
 
     it('should create category without optional fields', async () => {
-      const user = await prisma.user.create({
-        data: {
-          email: `test${Date.now()}@example.com`,
-          password_hash: 'hashed',
-          full_name: 'Test User',
-        },
-      });
-
-      const account = await prisma.account.create({
-        data: {
-          user_id: user.id,
-          account_name: 'Test Account',
-        },
-      });
+      const { account } = await createTestUserAndAccount();
 
       const category = await categoryService.create({
         name: 'Simple Category',
@@ -126,20 +118,7 @@ describe('CategoryService', () => {
     });
 
     it('should create income category', async () => {
-      const user = await prisma.user.create({
-        data: {
-          email: `test${Date.now()}@example.com`,
-          password_hash: 'hashed',
-          full_name: 'Test User',
-        },
-      });
-
-      const account = await prisma.account.create({
-        data: {
-          user_id: user.id,
-          account_name: 'Test Account',
-        },
-      });
+      const { account } = await createTestUserAndAccount();
 
       const category = await categoryService.create({
         name: 'Salário',
@@ -151,20 +130,7 @@ describe('CategoryService', () => {
     });
 
     it('should create expense category', async () => {
-      const user = await prisma.user.create({
-        data: {
-          email: `test${Date.now()}@example.com`,
-          password_hash: 'hashed',
-          full_name: 'Test User',
-        },
-      });
-
-      const account = await prisma.account.create({
-        data: {
-          user_id: user.id,
-          account_name: 'Test Account',
-        },
-      });
+      const { account } = await createTestUserAndAccount();
 
       const category = await categoryService.create({
         name: 'Transporte',
@@ -178,20 +144,7 @@ describe('CategoryService', () => {
 
   describe('getById', () => {
     it('should get category by ID', async () => {
-      const user = await prisma.user.create({
-        data: {
-          email: `test${Date.now()}@example.com`,
-          password_hash: 'hashed',
-          full_name: 'Test User',
-        },
-      });
-
-      const account = await prisma.account.create({
-        data: {
-          user_id: user.id,
-          account_name: 'Test Account',
-        },
-      });
+      const { account } = await createTestUserAndAccount();
 
       const createdCategory = await categoryService.create({
         name: 'Category to Find',
@@ -212,20 +165,7 @@ describe('CategoryService', () => {
     });
 
     it('should return created_at field', async () => {
-      const user = await prisma.user.create({
-        data: {
-          email: `test${Date.now()}@example.com`,
-          password_hash: 'hashed',
-          full_name: 'Test User',
-        },
-      });
-
-      const account = await prisma.account.create({
-        data: {
-          user_id: user.id,
-          account_name: 'Test Account',
-        },
-      });
+      const { account } = await createTestUserAndAccount();
 
       const createdCategory = await categoryService.create({
         name: 'Category with Date',
@@ -242,20 +182,7 @@ describe('CategoryService', () => {
 
   describe('update', () => {
     it('should update category name', async () => {
-      const user = await prisma.user.create({
-        data: {
-          email: `test${Date.now()}@example.com`,
-          password_hash: 'hashed',
-          full_name: 'Test User',
-        },
-      });
-
-      const account = await prisma.account.create({
-        data: {
-          user_id: user.id,
-          account_name: 'Test Account',
-        },
-      });
+      const { account } = await createTestUserAndAccount();
 
       const createdCategory = await categoryService.create({
         name: 'Original Name',
@@ -272,20 +199,7 @@ describe('CategoryService', () => {
     });
 
     it('should update category color and icon', async () => {
-      const user = await prisma.user.create({
-        data: {
-          email: `test${Date.now()}@example.com`,
-          password_hash: 'hashed',
-          full_name: 'Test User',
-        },
-      });
-
-      const account = await prisma.account.create({
-        data: {
-          user_id: user.id,
-          account_name: 'Test Account',
-        },
-      });
+      const { account } = await createTestUserAndAccount();
 
       const createdCategory = await categoryService.create({
         name: 'Category',
@@ -303,20 +217,7 @@ describe('CategoryService', () => {
     });
 
     it('should update category type', async () => {
-      const user = await prisma.user.create({
-        data: {
-          email: `test${Date.now()}@example.com`,
-          password_hash: 'hashed',
-          full_name: 'Test User',
-        },
-      });
-
-      const account = await prisma.account.create({
-        data: {
-          user_id: user.id,
-          account_name: 'Test Account',
-        },
-      });
+      const { account } = await createTestUserAndAccount();
 
       const createdCategory = await categoryService.create({
         name: 'Flexible Category',
@@ -342,20 +243,7 @@ describe('CategoryService', () => {
 
   describe('delete', () => {
     it('should delete category successfully', async () => {
-      const user = await prisma.user.create({
-        data: {
-          email: `test${Date.now()}@example.com`,
-          password_hash: 'hashed',
-          full_name: 'Test User',
-        },
-      });
-
-      const account = await prisma.account.create({
-        data: {
-          user_id: user.id,
-          account_name: 'Test Account',
-        },
-      });
+      const { account } = await createTestUserAndAccount();
 
       const createdCategory = await categoryService.create({
         name: 'Category to Delete',
@@ -382,20 +270,7 @@ describe('CategoryService', () => {
 
   describe('list with account_id', () => {
     it('should return system categories and account categories', async () => {
-      const user = await prisma.user.create({
-        data: {
-          email: `test${Date.now()}@example.com`,
-          password_hash: 'hashed',
-          full_name: 'Test User',
-        },
-      });
-
-      const account = await prisma.account.create({
-        data: {
-          user_id: user.id,
-          account_name: 'Test Account',
-        },
-      });
+      const { account } = await createTestUserAndAccount();
 
       // Criar categoria do sistema
       await prisma.category.create({
@@ -423,20 +298,7 @@ describe('CategoryService', () => {
     });
 
     it('should filter by type when account_id is provided', async () => {
-      const user = await prisma.user.create({
-        data: {
-          email: `test${Date.now()}@example.com`,
-          password_hash: 'hashed',
-          full_name: 'Test User',
-        },
-      });
-
-      const account = await prisma.account.create({
-        data: {
-          user_id: user.id,
-          account_name: 'Test Account',
-        },
-      });
+      const { account } = await createTestUserAndAccount();
 
       await categoryService.create({
         name: 'Expense Category',

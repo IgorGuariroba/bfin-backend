@@ -52,6 +52,31 @@ describe('Categories', () => {
       expect(customCategory).toBeDefined();
     });
 
+    it('should not list account categories if account_id is not provided', async () => {
+      const { user, tokens } = await createTestUser();
+      const account = await createTestAccount(user.id);
+
+      // Criar categoria personalizada
+      await testRequest
+        .post('/api/v1/categories')
+        .set(getAuthHeader(tokens.access_token))
+        .send({
+          name: 'Hidden Category',
+          type: 'expense',
+          account_id: account.id,
+        })
+        .expect(201);
+
+      // Listar sem account_id - não deve incluir categorias de conta
+      const response = await testRequest
+        .get('/api/v1/categories')
+        .set(getAuthHeader(tokens.access_token))
+        .expect(200);
+
+      const hiddenCategory = response.body.find((c: any) => c.name === 'Hidden Category');
+      expect(hiddenCategory).toBeUndefined();
+    });
+
     it('should not list categories with account_id without authentication', async () => {
       const { user } = await createTestUser();
       const account = await createTestAccount(user.id);
