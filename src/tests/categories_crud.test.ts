@@ -54,11 +54,14 @@ describe('Categories CRUD', () => {
     });
 
     it('should NOT list account categories if account_id is NOT provided', async () => {
-      const { user } = await createTestUser();
+      const { user, tokens } = await createTestUser();
       const account = await createTestAccount(user.id);
       const customCategory = await createTestCategory(account.id, 'Hidden Custom Cat');
 
-      const response = await testRequest.get('/api/v1/categories').expect(200);
+      const response = await testRequest
+        .get('/api/v1/categories')
+        .set(getAuthHeader(tokens.access_token))
+        .expect(200);
 
       const ids = response.body.map((c: any) => c.id);
       expect(ids).not.toContain(customCategory.id);
@@ -78,8 +81,13 @@ describe('Categories CRUD', () => {
   });
 
   describe('GET /api/v1/categories/:id', () => {
-    it('should get system category details (public)', async () => {
-      const response = await testRequest.get(`/api/v1/categories/${systemCategory.id}`).expect(200);
+    it('should get system category details with authentication', async () => {
+      const { tokens } = await createTestUser();
+
+      const response = await testRequest
+        .get(`/api/v1/categories/${systemCategory.id}`)
+        .set(getAuthHeader(tokens.access_token))
+        .expect(200);
 
       expect(response.body.id).toBe(systemCategory.id);
     });

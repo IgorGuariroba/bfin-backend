@@ -4,14 +4,24 @@ import prisma from '../lib/prisma';
 
 describe('Categories', () => {
   describe('GET /api/v1/categories', () => {
-    it('should list categories without authentication', async () => {
-      const response = await testRequest.get('/api/v1/categories').expect(200);
+    it('should list categories with authentication', async () => {
+      const { tokens } = await createTestUser();
+
+      const response = await testRequest
+        .get('/api/v1/categories')
+        .set(getAuthHeader(tokens.access_token))
+        .expect(200);
 
       expect(Array.isArray(response.body)).toBe(true);
     });
 
     it('should filter categories by type', async () => {
-      const response = await testRequest.get('/api/v1/categories?type=expense').expect(200);
+      const { tokens } = await createTestUser();
+
+      const response = await testRequest
+        .get('/api/v1/categories?type=expense')
+        .set(getAuthHeader(tokens.access_token))
+        .expect(200);
 
       expect(Array.isArray(response.body)).toBe(true);
     });
@@ -48,7 +58,7 @@ describe('Categories', () => {
 
       const response = await testRequest
         .get(`/api/v1/categories?account_id=${account.id}`)
-        .expect(400);
+        .expect(401);
 
       expect(response.body).toHaveProperty('error');
     });
@@ -68,7 +78,9 @@ describe('Categories', () => {
   });
 
   describe('GET /api/v1/categories/:id', () => {
-    it('should get system category by ID without authentication', async () => {
+    it('should get system category by ID with authentication', async () => {
+      const { tokens } = await createTestUser();
+
       // Criar categoria do sistema
       const systemCategory = await prisma.category.create({
         data: {
@@ -78,7 +90,10 @@ describe('Categories', () => {
         },
       });
 
-      const response = await testRequest.get(`/api/v1/categories/${systemCategory.id}`).expect(200);
+      const response = await testRequest
+        .get(`/api/v1/categories/${systemCategory.id}`)
+        .set(getAuthHeader(tokens.access_token))
+        .expect(200);
 
       expect(response.body.id).toBe(systemCategory.id);
       expect(response.body.is_system).toBe(true);
@@ -123,7 +138,7 @@ describe('Categories', () => {
 
       const response = await testRequest
         .get(`/api/v1/categories/${createResponse.body.id}`)
-        .expect(400);
+        .expect(401);
 
       expect(response.body).toHaveProperty('error');
     });
