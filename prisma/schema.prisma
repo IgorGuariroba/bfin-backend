@@ -187,6 +187,14 @@ model Transaction {
   @@index([status])
   @@index([type])
   @@index([category_id])
+
+  // Índices para performance do calendário
+  @@index([account_id, due_date])
+  @@index([type, due_date])
+  @@index([status, due_date])
+  @@index([category_id, due_date])
+  @@index([due_date, account_id, type, status])
+  @@index([due_date, amount])
   @@map("transactions")
 }
 

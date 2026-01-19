@@ -43,7 +43,15 @@ const createVariableExpenseSchema = z.object({
 const listTransactionsSchema = z.object({
   accountId: z.string().uuid().optional(),
   type: z.enum(['income', 'fixed_expense', 'variable_expense']).optional(),
+  types: z
+    .string()
+    .optional()
+    .transform((val) => (val ? val.split(',') : undefined)),
   status: z.enum(['pending', 'executed', 'cancelled', 'locked']).optional(),
+  statuses: z
+    .string()
+    .optional()
+    .transform((val) => (val ? val.split(',') : undefined)),
   startDate: z
     .string()
     .datetime()
@@ -55,6 +63,10 @@ const listTransactionsSchema = z.object({
     .optional()
     .transform((val) => (val ? new Date(val) : undefined)),
   categoryId: z.string().uuid().optional(),
+  categories: z
+    .string()
+    .optional()
+    .transform((val) => (val ? val.split(',') : undefined)),
   page: z
     .string()
     .optional()
@@ -135,8 +147,20 @@ export class TransactionController {
       return;
     }
 
-    const filters = listTransactionsSchema.parse(req.query);
-    const result = await transactionService.list(req.user.userId, filters);
+    const { type, types, status, statuses, categoryId, categories, ...otherFilters } =
+      listTransactionsSchema.parse(req.query);
+
+    // Merge singular and plural filters
+    const finalTypes = types || (type ? [type] : undefined);
+    const finalStatuses = statuses || (status ? [status] : undefined);
+    const finalCategories = categories || (categoryId ? [categoryId] : undefined);
+
+    const result = await transactionService.list(req.user.userId, {
+      ...otherFilters,
+      types: finalTypes,
+      statuses: finalStatuses,
+      categoryIds: finalCategories,
+    });
 
     res.json(result);
   }

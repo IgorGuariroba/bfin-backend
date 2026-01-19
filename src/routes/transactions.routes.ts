@@ -255,17 +255,20 @@ router.post('/variable-expense', (req, res, next) => {
  *           format: uuid
  *         description: Filtrar por ID da conta
  *       - in: query
- *         name: type
+ *         name: types
  *         schema:
  *           type: string
- *           enum: [income, fixed_expense, variable_expense]
- *         description: Filtrar por tipo de transação
+ *         description: Tipos de transação separados por vírgula (income,fixed_expense,variable_expense)
  *       - in: query
- *         name: status
+ *         name: statuses
  *         schema:
  *           type: string
- *           enum: [pending, executed, cancelled, locked]
- *         description: Filtrar por status
+ *         description: Status das transações separados por vírgula (pending,overdue,paid,locked,cancelled)
+ *       - in: query
+ *         name: categories
+ *         schema:
+ *           type: string
+ *         description: IDs das categorias separados por vírgula
  *       - in: query
  *         name: startDate
  *         schema:
@@ -278,12 +281,6 @@ router.post('/variable-expense', (req, res, next) => {
  *           type: string
  *           format: date-time
  *         description: Data final para filtrar transações
- *       - in: query
- *         name: categoryId
- *         schema:
- *           type: string
- *           format: uuid
- *         description: Filtrar por ID da categoria
  *       - in: query
  *         name: page
  *         schema:
