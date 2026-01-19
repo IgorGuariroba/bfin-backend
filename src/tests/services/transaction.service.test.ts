@@ -5,7 +5,7 @@ import { TransactionService } from '../../services/TransactionService';
 async function createTestUserAndAccount() {
   const user = await prisma.user.create({
     data: {
-      email: `test_txn_${Date.now()}${Math.random()}@example.com`,
+      email: `test_txn_${Date.now()}${Math.random()}@example.com`, // NOSONAR - not for security, just test uniqueness
       password_hash: 'test_hash_value', // NOSONAR - not a real password, test fixture only
       full_name: 'Test Transaction User',
     },
