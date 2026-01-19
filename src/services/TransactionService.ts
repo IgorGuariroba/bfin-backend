@@ -1,6 +1,7 @@
 import { AccountMemberService } from './AccountMemberService';
 import { SuggestionEngine } from './SuggestionEngine';
 import prisma from '../lib/prisma';
+import redis from '../lib/redis';
 import {
   ValidationError,
   InsufficientBalanceError,
@@ -38,6 +39,25 @@ interface CreateVariableExpenseDTO {
 }
 
 export class TransactionService {
+  /**
+   * Invalida o cache do calendário para uma conta específica
+   */
+  private async invalidateCalendarCache(accountId: string): Promise<void> {
+    const stream = redis.scanStream({
+      match: `calendar:${accountId}:*`,
+    });
+
+    stream.on('data', (keys) => {
+      if (keys.length) {
+        const pipeline = redis.pipeline();
+        keys.forEach((key: string) => {
+          pipeline.del(key);
+        });
+        pipeline.exec();
+      }
+    });
+  }
+
   /**
    * Processa uma receita aplicando regras automáticas (30/70)
    */
@@ -121,6 +141,7 @@ export class TransactionService {
 
       // 7. Invalidar cache de sugestão
       await SuggestionEngine.invalidateCache(data.accountId);
+      this.invalidateCalendarCache(data.accountId);
 
       return {
         transaction,
@@ -219,6 +240,7 @@ export class TransactionService {
 
       // 6. Invalidar cache de sugestão
       await SuggestionEngine.invalidateCache(data.accountId);
+      this.invalidateCalendarCache(data.accountId);
 
       return {
         transaction,
@@ -302,6 +324,7 @@ export class TransactionService {
 
       // 6. Invalidar cache de sugestão
       await SuggestionEngine.invalidateCache(data.accountId);
+      this.invalidateCalendarCache(data.accountId);
 
       return {
         transaction,
@@ -320,15 +343,35 @@ export class TransactionService {
     userId: string,
     filters: {
       accountId?: string;
-      type?: string;
-      status?: string;
+      types?: string[];
+      statuses?: string[];
       startDate?: Date;
       endDate?: Date;
-      categoryId?: string;
+      categoryIds?: string[];
       page?: number;
       limit?: number;
     }
   ) {
+    // Tentar buscar do cache se accountId estiver presente
+    let cacheKey = '';
+    if (filters.accountId) {
+      // Remover propriedades undefined para criar hash consistente
+      const cleanFilters = JSON.parse(JSON.stringify(filters));
+      cacheKey = `calendar:${filters.accountId}:${JSON.stringify(cleanFilters)}`;
+
+      const cached = await redis.get(cacheKey);
+      if (cached) {
+        const parsed = JSON.parse(cached, (key, value) => {
+          // Reviver datas
+          if (['due_date', 'executed_date', 'created_at', 'updated_at'].includes(key) && value) {
+            return new Date(value);
+          }
+          return value;
+        });
+        return parsed;
+      }
+    }
+
     const page = filters.page || 1;
     const limit = filters.limit || 50;
     const skip = (page - 1) * limit;
@@ -376,20 +419,54 @@ export class TransactionService {
       };
     }
 
-    if (filters.type) {
-      where.type = filters.type;
+    if (filters.types && filters.types.length > 0) {
+      where.type = { in: filters.types };
     }
 
-    if (filters.status) {
-      where.status = filters.status;
+    if (filters.categoryIds && filters.categoryIds.length > 0) {
+      where.category_id = { in: filters.categoryIds };
     }
 
-    if (filters.categoryId) {
-      where.category_id = filters.categoryId;
+    if (filters.statuses && filters.statuses.length > 0) {
+      const statusConditions: any[] = [];
+      const now = new Date();
+
+      if (filters.statuses.includes('paid')) {
+        statusConditions.push({ status: 'executed' });
+      }
+
+      if (filters.statuses.includes('pending')) {
+        statusConditions.push({
+          status: 'pending',
+          due_date: { gte: now },
+        });
+      }
+
+      if (filters.statuses.includes('overdue')) {
+        statusConditions.push({
+          status: 'pending',
+          due_date: { lt: now },
+        });
+      }
+
+      // Outros status diretos (cancelled, locked)
+      const otherStatuses = filters.statuses.filter(
+        (s) => !['paid', 'pending', 'overdue'].includes(s)
+      );
+      if (otherStatuses.length > 0) {
+        statusConditions.push({ status: { in: otherStatuses } });
+      }
+
+      if (statusConditions.length > 0) {
+        where.OR = statusConditions;
+      }
     }
 
     if (filters.startDate || filters.endDate) {
-      where.due_date = {};
+      where.due_date = {
+        ...where.due_date, // preserve existing conditions if any (though status logic adds condition on due_date inside OR, not here)
+      };
+
       if (filters.startDate) {
         where.due_date.gte = filters.startDate;
       }
@@ -426,7 +503,7 @@ export class TransactionService {
       prisma.transaction.count({ where }),
     ]);
 
-    return {
+    const result = {
       transactions,
       pagination: {
         current_page: page,
@@ -435,6 +512,13 @@ export class TransactionService {
         items_per_page: limit,
       },
     };
+
+    // Salvar no cache se cacheKey existe (apenas para consultas por conta)
+    if (cacheKey) {
+      await redis.set(cacheKey, JSON.stringify(result), 'EX', 300); // 5 minutos
+    }
+
+    return result;
   }
 
   /**
@@ -543,6 +627,7 @@ export class TransactionService {
       if (amountDiff !== 0) {
         await SuggestionEngine.invalidateCache(transaction.account_id);
       }
+      this.invalidateCalendarCache(transaction.account_id);
 
       return {
         transaction: updatedTransaction,
@@ -655,6 +740,7 @@ export class TransactionService {
 
       // Invalidar cache de sugestões
       await SuggestionEngine.invalidateCache(transaction.account_id);
+      this.invalidateCalendarCache(transaction.account_id);
 
       return {
         transaction: updatedTransaction,
@@ -716,6 +802,7 @@ export class TransactionService {
 
       // Invalidar cache de sugestões
       await SuggestionEngine.invalidateCache(transaction.account_id);
+      this.invalidateCalendarCache(transaction.account_id);
 
       return { message: 'Transaction deleted successfully' };
     });
