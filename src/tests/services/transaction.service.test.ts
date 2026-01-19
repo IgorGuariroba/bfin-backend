@@ -110,7 +110,7 @@ describe('TransactionService', () => {
         statuses: ['pending', 'overdue'],
       });
       expect(combinedResult.transactions).toHaveLength(2);
-      const descriptions = combinedResult.transactions.map((t) => t.description);
+      const descriptions = combinedResult.transactions.map((t: any) => t.description);
       expect(descriptions).toContain('Future Pending');
       expect(descriptions).toContain('Past Overdue');
       expect(descriptions).not.toContain('Paid Expense');
@@ -161,7 +161,7 @@ describe('TransactionService', () => {
         types: ['fixed_expense', 'variable_expense'],
       });
       expect(expenseResult.transactions).toHaveLength(2);
-      expect(expenseResult.transactions.every((t) => t.type.includes('expense'))).toBe(true);
+      expect(expenseResult.transactions.every((t: any) => t.type.includes('expense'))).toBe(true);
     });
 
     it('should filter by categories', async () => {
