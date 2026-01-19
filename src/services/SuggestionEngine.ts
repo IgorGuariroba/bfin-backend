@@ -1,7 +1,18 @@
 import Redis from 'ioredis';
 import prisma from '../lib/prisma';
 
-const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
+const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
+
+const redis = new Redis(redisUrl, {
+  tls: redisUrl.startsWith('rediss://') ? { rejectUnauthorized: false } : undefined,
+  maxRetriesPerRequest: 3,
+  retryStrategy: (times) => Math.min(times * 50, 2000),
+  lazyConnect: true,
+});
+
+redis.on('error', (err) => {
+  console.error('[Redis] Connection error:', err.message);
+});
 
 interface DailyLimitSuggestion {
   accountId: string;
