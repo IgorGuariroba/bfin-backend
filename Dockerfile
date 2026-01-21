@@ -11,10 +11,10 @@ RUN npm run build
 FROM node:20-alpine
 RUN addgroup -g 1001 -S nodejs && adduser -S nodejs -u 1001
 WORKDIR /app
-COPY --from=builder --chown=nodejs:nodejs /app/dist ./dist
-COPY --from=builder --chown=nodejs:nodejs /app/node_modules ./node_modules
-COPY --from=builder --chown=nodejs:nodejs /app/package*.json ./
-COPY --from=builder --chown=nodejs:nodejs /app/prisma ./prisma
+COPY --from=builder --chown=root:root --chmod=755 /app/dist ./dist
+COPY --from=builder --chown=root:root --chmod=755 /app/node_modules ./node_modules
+COPY --from=builder --chown=root:root --chmod=644 /app/package*.json ./
+COPY --from=builder --chown=root:root --chmod=755 /app/prisma ./prisma
 USER nodejs
 EXPOSE 3000
 CMD ["node", "dist/main.js"]
