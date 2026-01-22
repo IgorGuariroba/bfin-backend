@@ -7,7 +7,6 @@ export const rateLimiter = rateLimit({
   windowMs: Number(process.env.RATE_LIMIT_WINDOW_MS) || 60000,
   max: Number(process.env.RATE_LIMIT_MAX_REQUESTS) || 100,
   skip: () => isTest,
-  trustProxy: true, // ← ADICIONE ESTA LINHA
   message: {
     error: 'TooManyRequestsError',
     message: 'Too many requests, please try again later',
@@ -23,7 +22,6 @@ export const authRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 5,
   skip: () => isTest,
-  trustProxy: true, // ← ADICIONE ESTA LINHA
   message: {
     error: 'TooManyRequestsError',
     message: 'Too many login attempts, please try again after 15 minutes',
@@ -37,7 +35,6 @@ export const transactionRateLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 20,
   skip: () => isTest,
-  trustProxy: true, // ← ADICIONE ESTA LINHA
   message: {
     error: 'TooManyRequestsError',
     message: 'Too many transactions, please try again later',

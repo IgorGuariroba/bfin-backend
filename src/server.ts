@@ -13,6 +13,8 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const DOCS_ENABLED = process.env.NODE_ENV !== 'production';
 
+app.set('trust proxy', 1);
+
 // Middlewares globais
 // Middlewares globais
 app.use(helmet());
