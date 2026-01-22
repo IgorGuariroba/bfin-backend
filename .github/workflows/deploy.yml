@@ -45,5 +45,5 @@ jobs:
             cd ~/bfin
             echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             docker pull ghcr.io/igorguariroba/bfin-backend:latest
-            docker compose up -d backend
+            docker compose up -d --force-recreate backend
             docker logout ghcr.io
