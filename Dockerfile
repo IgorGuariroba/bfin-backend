@@ -21,5 +21,4 @@ COPY --from=builder --chown=root:root --chmod=644 /app/package*.json ./
 COPY --from=builder --chown=root:root --chmod=755 /app/prisma ./prisma
 USER nodejs
 EXPOSE 3000
-# ← MUDAR ESTA LINHA:
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/server.js"]
+ENTRYPOINT ["/docker-entrypoint.sh"]
