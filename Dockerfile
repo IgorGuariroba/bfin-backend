@@ -1,4 +1,8 @@
 FROM node:20-alpine AS builder
+
+ARG DATABASE_URL
+ENV DATABASE_URL=${DATABASE_URL}
+
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci
@@ -16,11 +20,11 @@ RUN npm run build
 FROM node:20-alpine
 RUN addgroup -g 1001 -S nodejs && adduser -S nodejs -u 1001
 WORKDIR /app
-COPY --from=builder --chown=root:root --chmod=755 /app/dist ./dist
-COPY --from=builder --chown=root:root --chmod=755 /app/node_modules ./node_modules
-COPY --from=builder --chown=root:root --chmod=644 /app/package*.json ./
-COPY --from=builder --chown=root:root --chmod=755 /app/prisma ./prisma
-COPY --from=builder --chown=root:root --chmod=644 /app/prisma.config.ts ./
+COPY --from=builder --chown=nodejs:nodejs /app/dist ./dist
+COPY --from=builder --chown=nodejs:nodejs /app/node_modules ./node_modules
+COPY --from=builder --chown=nodejs:nodejs /app/package*.json ./
+COPY --from=builder --chown=nodejs:nodejs /app/prisma ./prisma
+COPY --from=builder --chown=nodejs:nodejs /app/prisma.config.ts ./
 COPY --chmod=755 docker-entrypoint.sh /docker-entrypoint.sh
 USER nodejs
 EXPOSE 3000
