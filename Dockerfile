@@ -11,6 +11,7 @@ COPY orval.config.ts ./
 RUN npx prisma generate
 RUN npm run build
 
+
 FROM node:20-alpine
 RUN addgroup -g 1001 -S nodejs && adduser -S nodejs -u 1001
 WORKDIR /app
@@ -20,4 +21,5 @@ COPY --from=builder --chown=root:root --chmod=644 /app/package*.json ./
 COPY --from=builder --chown=root:root --chmod=755 /app/prisma ./prisma
 USER nodejs
 EXPOSE 3000
-CMD ["node", "dist/server.js"]
+# ← MUDAR ESTA LINHA:
+CMD ["sh", "-c", "npx prisma migrate deploy && node dist/server.js"]
