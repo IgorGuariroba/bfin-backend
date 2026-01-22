@@ -34,6 +34,8 @@ jobs:
           tags: ghcr.io/igorguariroba/bfin-backend:latest
           cache-from: type=registry,ref=ghcr.io/igorguariroba/bfin-backend:buildcache
           cache-to: type=registry,ref=ghcr.io/igorguariroba/bfin-backend:buildcache,mode=max
+          build-args: |
+            DATABASE_URL=postgresql://placeholder:placeholder@localhost:5432/db
 
       - name: Deploy to VPS
         uses: appleboy/ssh-action@029f5b4aeeeb58fdfe1410a5d17f967dacf36262  # v1.2.0
@@ -44,6 +46,6 @@ jobs:
           script: |
             cd ~/bfin
             echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-            docker pull ghcr.io/igorguariroba/bfin-backend:latest
-            docker compose up -d --force-recreate backend
+            docker compose up -d --pull always --force-recreate backend
+            docker image prune -f
             docker logout ghcr.io
