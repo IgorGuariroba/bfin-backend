@@ -4,7 +4,9 @@ COPY package*.json ./
 RUN npm ci
 COPY prisma ./prisma
 COPY src ./src
+COPY scripts ./scripts
 COPY tsconfig*.json ./
+COPY orval.config.ts ./
 RUN npx prisma generate
 RUN npm run build
 
@@ -17,4 +19,4 @@ COPY --from=builder --chown=root:root --chmod=644 /app/package*.json ./
 COPY --from=builder --chown=root:root --chmod=755 /app/prisma ./prisma
 USER nodejs
 EXPOSE 3000
-CMD ["node", "dist/main.js"]
+CMD ["node", "dist/server.js"]
