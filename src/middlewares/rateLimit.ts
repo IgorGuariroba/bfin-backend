@@ -4,40 +4,37 @@ import rateLimit from 'express-rate-limit';
 const isTest = process.env.NODE_ENV === 'test';
 
 export const rateLimiter = rateLimit({
-  windowMs: Number(process.env.RATE_LIMIT_WINDOW_MS) || 60000, // 1 minuto
-  max: Number(process.env.RATE_LIMIT_MAX_REQUESTS) || 100, // 100 requests por minuto
-  skip: () => isTest, // Pular rate limiting em testes
+  windowMs: Number(process.env.RATE_LIMIT_WINDOW_MS) || 60000,
+  max: Number(process.env.RATE_LIMIT_MAX_REQUESTS) || 100,
+  skip: () => isTest,
   message: {
     error: 'TooManyRequestsError',
     message: 'Too many requests, please try again later',
   },
-  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-  // Usar IP do usuário como identificador
+  standardHeaders: true,
+  legacyHeaders: false,
   keyGenerator: (req) => {
     return req.ip || 'unknown';
   },
 });
 
-// Rate limiter mais restritivo para autenticação
 export const authRateLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutos
-  max: 5, // 5 tentativas de login
-  skip: () => isTest, // Pular rate limiting em testes
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  skip: () => isTest,
   message: {
     error: 'TooManyRequestsError',
     message: 'Too many login attempts, please try again after 15 minutes',
   },
   standardHeaders: true,
   legacyHeaders: false,
-  skipSuccessfulRequests: true, // Não contar requests bem-sucedidos
+  skipSuccessfulRequests: true,
 });
 
-// Rate limiter para operações financeiras críticas
 export const transactionRateLimiter = rateLimit({
-  windowMs: 60 * 1000, // 1 minuto
-  max: 20, // 20 transações por minuto
-  skip: () => isTest, // Pular rate limiting em testes
+  windowMs: 60 * 1000,
+  max: 20,
+  skip: () => isTest,
   message: {
     error: 'TooManyRequestsError',
     message: 'Too many transactions, please try again later',
