@@ -5,6 +5,7 @@ RUN npm ci
 COPY prisma ./prisma
 COPY src ./src
 COPY scripts ./scripts
+COPY sdk ./sdk
 COPY tsconfig*.json ./
 COPY orval.config.ts ./
 RUN npx prisma generate
