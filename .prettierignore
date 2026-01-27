@@ -20,6 +20,7 @@ sdk/react-query/categories/
 sdk/swr/authentication/
 sdk/swr/accounts/
 sdk/swr/categories/
+src/generated/prisma/
 
 # Coverage
 coverage/
