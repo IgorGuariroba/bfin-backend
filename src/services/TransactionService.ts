@@ -1,4 +1,4 @@
-import type { Prisma } from '@prisma/client';
+import type { Prisma } from '../generated/prisma/client';
 import { AccountMemberService } from './AccountMemberService';
 import { SuggestionEngine } from './SuggestionEngine';
 import prisma from '../lib/prisma';
