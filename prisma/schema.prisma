@@ -29,6 +29,8 @@ model User {
   account_members     AccountMember[]
   account_invitations AccountInvitation[]
   notifications       Notification[]
+  loan_simulations    LoanSimulation[]
+  audit_events        AuditEvent[]
 
   @@map("users")
 }
@@ -67,6 +69,8 @@ model Account {
   members              AccountMember[]
   invitations          AccountInvitation[]
   categories           Category[]
+  loan_simulations     LoanSimulation[]
+  audit_events         AuditEvent[]
 
   @@index([user_id])
   @@index([user_id, is_default])
@@ -312,4 +316,83 @@ model Notification {
   @@index([user_id, is_read])
   @@index([created_at])
   @@map("notifications")
+}
+
+// ====================================
+// SIMULAÇÕES DE EMPRÉSTIMO (RESERVA)
+// ====================================
+
+model LoanSimulation {
+  id         String  @id @default(uuid())
+  user_id    String
+  user       User    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  account_id String
+  account    Account @relation(fields: [account_id], references: [id], onDelete: Cascade)
+
+  principal_amount       Decimal @db.Decimal(15, 2)
+  term_months            Int
+  interest_rate_monthly  Decimal @db.Decimal(7, 4)
+  amortization_type      String  @default("PRICE")
+  total_interest         Decimal @db.Decimal(15, 2)
+  total_cost             Decimal @db.Decimal(15, 2)
+  installment_amount     Decimal @db.Decimal(15, 2)
+  reserve_usage_percent  Decimal @db.Decimal(5, 2)
+  reserve_remaining_amount Decimal @db.Decimal(15, 2)
+  monthly_cashflow_impact Decimal @db.Decimal(15, 2)
+
+  installments   InstallmentPlan[]
+  cash_flow      CashFlowImpact?
+  audit_events   AuditEvent[]
+
+  created_at DateTime @default(now())
+
+  @@index([user_id, created_at])
+  @@index([account_id, created_at])
+  @@map("loan_simulations")
+}
+
+model InstallmentPlan {
+  id            String         @id @default(uuid())
+  simulation_id String
+  simulation    LoanSimulation @relation(fields: [simulation_id], references: [id], onDelete: Cascade)
+
+  installment_number Int
+  principal_component Decimal @db.Decimal(15, 2)
+  interest_component  Decimal @db.Decimal(15, 2)
+  total_payment       Decimal @db.Decimal(15, 2)
+  remaining_balance   Decimal @db.Decimal(15, 2)
+
+  @@unique([simulation_id, installment_number])
+  @@index([simulation_id])
+  @@map("installment_plans")
+}
+
+model CashFlowImpact {
+  id            String         @id @default(uuid())
+  simulation_id String         @unique
+  simulation    LoanSimulation @relation(fields: [simulation_id], references: [id], onDelete: Cascade)
+
+  monthly_outflow Decimal @db.Decimal(15, 2)
+  created_at      DateTime @default(now())
+
+  @@map("cash_flow_impacts")
+}
+
+model AuditEvent {
+  id         String  @id @default(uuid())
+  user_id    String
+  user       User    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  account_id String
+  account    Account @relation(fields: [account_id], references: [id], onDelete: Cascade)
+  simulation_id String?
+  simulation    LoanSimulation? @relation(fields: [simulation_id], references: [id], onDelete: SetNull)
+
+  event_type String
+  payload    Json?
+  created_at DateTime @default(now())
+
+  @@index([user_id, created_at])
+  @@index([account_id, created_at])
+  @@index([simulation_id])
+  @@map("audit_events")
 }

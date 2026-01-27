@@ -58,6 +58,23 @@ export function errorHandler(error: Error, _req: Request, res: Response, _next: 
     });
   }
 
+  const rateLimitStatus =
+    (error as { status?: number; statusCode?: number }).status ??
+    (error as { statusCode?: number }).statusCode;
+  if (rateLimitStatus === 429) {
+    return res.status(429).json({
+      error: 'RateLimitError',
+      message: error.message || 'Too many requests',
+    });
+  }
+
+  if (error instanceof SyntaxError && error.message.toLowerCase().includes('json')) {
+    return res.status(400).json({
+      error: 'ValidationError',
+      message: 'Invalid JSON payload',
+    });
+  }
+
   // Zod validation error
   if (error instanceof ZodError) {
     return res.status(400).json({
