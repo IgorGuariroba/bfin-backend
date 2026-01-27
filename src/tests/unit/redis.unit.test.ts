@@ -8,6 +8,7 @@ type RedisOptions = {
 type RedisInstance = {
   url: string;
   options: RedisOptions;
+  handlers: Map<string, (payload?: unknown) => void>;
   on: ReturnType<typeof vi.fn>;
   emit: (event: string, payload?: unknown) => void;
 };
@@ -18,7 +19,7 @@ vi.mock('ioredis', () => {
   class RedisMock {
     public url: string;
     public options: RedisOptions;
-    private handlers = new Map<string, (payload?: unknown) => void>();
+    public handlers = new Map<string, (payload?: unknown) => void>();
 
     constructor(url: string, options: RedisOptions) {
       this.url = url;
@@ -32,6 +33,7 @@ vi.mock('ioredis', () => {
       const instance: RedisInstance = {
         url,
         options,
+        handlers: this.handlers,
         on,
         emit: (event: string, payload?: unknown) => {
           const handler = this.handlers.get(event);
