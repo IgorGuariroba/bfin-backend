@@ -26,4 +26,7 @@ TypeScript 5.3 (Node.js 20): Follow standard conventions
 - 001-simulacao-emprestimo-reserva: Added TypeScript 5.3 (Node.js 20) + Express.js, Prisma ORM, Zod
 
 <!-- MANUAL ADDITIONS START -->
+## Documentation Rule (Context7)
+
+Sempre que eu precisar de documentação de biblioteca/API, exemplos de código, passos de setup ou configuração envolvendo Express.js, Prisma ORM, Zod, TypeScript, Node.js 20 (ou dependências relacionadas), devo usar automaticamente o Context7 MCP para buscar fontes oficiais e atualizadas, sem você precisar pedir explicitamente.
 <!-- MANUAL ADDITIONS END -->
