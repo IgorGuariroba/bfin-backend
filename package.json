@@ -29,7 +29,7 @@
     "format": "prettier --write \"src/**/*.ts\"",
     "format:check": "prettier --check \"src/**/*.ts\"",
     "format:all": "prettier --write \"**/*.{ts,json,md}\"",
-    "type-check": "tsc --noEmit",
+    "type-check": "tsc -p tsconfig.typecheck.json",
     "check": "npm run type-check && npm run lint && npm run format:check",
     "cron:execute-expenses": "tsx src/jobs/ExecuteScheduledExpenses.ts",
     "prepare": "husky"
