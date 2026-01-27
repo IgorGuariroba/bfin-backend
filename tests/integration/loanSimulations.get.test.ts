@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
 import request from 'supertest';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import prisma from '../../src/lib/prisma';
 import app from '../../src/server';
 import { loanSimulationService } from '../../src/services/loanSimulationService';
@@ -11,7 +11,7 @@ describe('GET /api/v1/loan-simulations/:simulationId', () => {
   let token = '';
   let simulationId = '';
 
-  beforeAll(async () => {
+  beforeEach(async () => {
     const email = `loan-sim-get-${Date.now()}@example.com`;
     const user = await prisma.user.create({
       data: {
