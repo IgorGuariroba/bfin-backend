@@ -75,13 +75,19 @@ jobs:
           REDIS_URL: redis://localhost:6379
 
       - name: SonarCloud Scan
-        uses: SonarSource/sonarqube-scan-action@v5.0.0        env:
+        uses: SonarSource/sonarqube-scan-action@v5.0.0
+        env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:
           args: >
             -Dsonar.projectKey=IgorGuariroba_bfin-backend
             -Dsonar.organization=igorguariroba
+            -Dsonar.sources=src
+            -Dsonar.tests=tests
+            -Dsonar.exclusions=**/node_modules/**,**/dist/**,**/build/**,**/coverage/**,**/openapi/**,**/sdk/**,**/scripts/**,**/*.spec.ts,**/*.test.ts,**/tests/**/*
+            -Dsonar.coverage.exclusions=**/node_modules/**,**/dist/**,**/build/**,**/coverage/**,**/openapi/**,**/sdk/**,**/scripts/**,**/*.spec.ts,**/*.test.ts,**/tests/**/*,**/*.config.ts,**/server.ts,**/prisma/**,**/types/**,**/jobs/**
+            -Dsonar.cpd.exclusions=**/*.spec.ts,**/*.test.ts,**/tests/**/*,**/openapi/**,**/sdk/**,**/scripts/**
 
       - name: Check Quality Gate
         id: quality-gate
