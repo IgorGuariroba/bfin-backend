@@ -8,7 +8,7 @@
     "dev:services": "docker-compose up -d",
     "dev:down": "docker-compose down",
     "prebuild": "npm run generate:openapi",
-    "build": "npm run generate:sdk && tsc",
+    "build": "npm run generate:sdk && tsc -p tsconfig.build.json",
     "vercel-build": "prisma generate && prisma migrate deploy && npm run build",
     "start": "node dist/server.js",
     "generate:openapi": "tsx scripts/generate-openapi-spec.ts",

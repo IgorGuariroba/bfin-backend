@@ -12,10 +12,18 @@ export class AuthService {
   private readonly JWT_REFRESH_EXPIRES_IN: string;
 
   constructor() {
-    this.JWT_SECRET = process.env.JWT_SECRET!;
-    this.JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET!;
+    this.JWT_SECRET = this.requireEnvVar('JWT_SECRET');
+    this.JWT_REFRESH_SECRET = this.requireEnvVar('JWT_REFRESH_SECRET');
     this.JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '15m';
     this.JWT_REFRESH_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || '7d';
+  }
+
+  private requireEnvVar(name: 'JWT_SECRET' | 'JWT_REFRESH_SECRET'): string {
+    const value = process.env[name];
+    if (!value) {
+      throw new Error(`${name} is required`);
+    }
+    return value;
   }
 
   /**

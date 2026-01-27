@@ -1,3 +1,4 @@
+import type { Prisma } from '@prisma/client';
 import { AccountMemberService } from './AccountMemberService';
 import { SuggestionEngine } from './SuggestionEngine';
 import prisma from '../lib/prisma';
@@ -377,7 +378,7 @@ export class TransactionService {
     const skip = (page - 1) * limit;
 
     // Construir where clause
-    const where: any = {};
+    const where: Prisma.TransactionWhereInput = {};
 
     // Se accountId fornecido, verificar acesso
     if (filters.accountId) {
@@ -428,7 +429,7 @@ export class TransactionService {
     }
 
     if (filters.statuses && filters.statuses.length > 0) {
-      const statusConditions: any[] = [];
+      const statusConditions: Prisma.TransactionWhereInput[] = [];
       const now = new Date();
 
       if (filters.statuses.includes('paid')) {
@@ -463,16 +464,19 @@ export class TransactionService {
     }
 
     if (filters.startDate || filters.endDate) {
-      where.due_date = {
-        ...where.due_date, // preserve existing conditions if any (though status logic adds condition on due_date inside OR, not here)
-      };
+      const dueDateFilter: Prisma.DateTimeFilter = {};
+      if (where.due_date && typeof where.due_date === 'object' && !Array.isArray(where.due_date)) {
+        Object.assign(dueDateFilter, where.due_date as Prisma.DateTimeFilter);
+      }
 
       if (filters.startDate) {
-        where.due_date.gte = filters.startDate;
+        dueDateFilter.gte = filters.startDate;
       }
       if (filters.endDate) {
-        where.due_date.lte = filters.endDate;
+        dueDateFilter.lte = filters.endDate;
       }
+
+      where.due_date = dueDateFilter;
     }
 
     // Buscar transações
@@ -725,15 +729,19 @@ export class TransactionService {
         },
       });
 
+      if (!updatedAccount) {
+        throw new NotFoundError('Account not found');
+      }
+
       // Criar snapshot de histórico
       await tx.balanceHistory.create({
         data: {
           account_id: transaction.account_id,
           transaction_id: transactionId,
-          total_balance: updatedAccount!.total_balance,
-          available_balance: updatedAccount!.available_balance,
-          locked_balance: updatedAccount!.locked_balance,
-          emergency_reserve: updatedAccount!.emergency_reserve,
+          total_balance: updatedAccount.total_balance,
+          available_balance: updatedAccount.available_balance,
+          locked_balance: updatedAccount.locked_balance,
+          emergency_reserve: updatedAccount.emergency_reserve,
           change_reason: 'fixed_expense_paid',
         },
       });

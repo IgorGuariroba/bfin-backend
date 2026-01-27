@@ -1,3 +1,4 @@
+import type { Prisma } from '@prisma/client';
 import prisma from '../lib/prisma';
 import { NotFoundError } from '../middlewares/errorHandler';
 
@@ -6,7 +7,7 @@ export class CategoryService {
    * List categories, optionally filter by type and account
    */
   async list(type?: 'income' | 'expense', account_id?: string) {
-    const where: any = {};
+    const where: Prisma.CategoryWhereInput = {};
 
     if (account_id) {
       where.OR = [{ is_system: true }, { account_id }];

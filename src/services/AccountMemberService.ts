@@ -82,6 +82,10 @@ export class AccountMemberService {
       select: { user_id: true },
     });
 
+    if (!account) {
+      throw new NotFoundError('Account not found');
+    }
+
     // Buscar todos os membros (incluindo owners)
     const members = await prisma.accountMember.findMany({
       where: { account_id: accountId },
@@ -101,7 +105,7 @@ export class AccountMemberService {
     });
 
     return {
-      original_owner_id: account!.user_id,
+      original_owner_id: account.user_id,
       members,
     };
   }
