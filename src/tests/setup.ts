@@ -2,20 +2,7 @@ import 'dotenv/config';
 import { beforeAll, afterAll, beforeEach } from 'vitest';
 import prisma from '../lib/prisma';
 
-beforeAll(async () => {
-  // Setup: garantir que o banco está conectado
-  await prisma.$connect();
-});
-
-afterAll(async () => {
-  // Cleanup: desconectar do banco
-  await prisma.$disconnect();
-});
-
-beforeEach(async () => {
-  // Limpar dados antes de cada teste
-  await cleanDatabase();
-});
+const skipDbSetup = process.env.SKIP_DB_SETUP === 'true';
 
 async function cleanDatabase() {
   // Deletar em ordem devido às foreign keys
@@ -29,4 +16,21 @@ async function cleanDatabase() {
   await prisma.accountMember.deleteMany();
   await prisma.account.deleteMany();
   await prisma.user.deleteMany();
+}
+
+if (!skipDbSetup) {
+  beforeAll(async () => {
+    // Setup: garantir que o banco está conectado
+    await prisma.$connect();
+  });
+
+  afterAll(async () => {
+    // Cleanup: desconectar do banco
+    await prisma.$disconnect();
+  });
+
+  beforeEach(async () => {
+    // Limpar dados antes de cada teste
+    await cleanDatabase();
+  });
 }
