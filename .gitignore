@@ -50,5 +50,13 @@ Thumbs.db
 logs/
 *.log
 
-# Codex (local tooling artifacts)
+# Generated Prisma client
+src/generated/prisma/
+prisma/generated/client/
+
+# Local tooling
+.gemini/
 .codex/
+
+# Reports
+zap_report.html
