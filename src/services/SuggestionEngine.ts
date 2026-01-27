@@ -1,4 +1,5 @@
 import Redis from 'ioredis';
+import type { Prisma } from '../generated/prisma/client';
 import prisma from '../lib/prisma';
 
 const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
@@ -198,7 +199,9 @@ export class SuggestionEngine {
     startDate.setHours(0, 0, 0, 0);
 
     // Query 1: Agregar gastos diários
-    const dailyExpenses = await prisma.$queryRaw<Array<{ date: Date; spent: any }>>`
+    const dailyExpenses = await prisma.$queryRaw<
+      Array<{ date: Date; spent: Prisma.Decimal | number | string }>
+    >`
       SELECT
         DATE(executed_date) as date,
         SUM(amount) as spent

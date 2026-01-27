@@ -68,9 +68,7 @@
     "prefer-arrow-callback": "warn",
     "no-throw-literal": "error",
     "eqeqeq": ["error", "always"],
-    "curly": ["error", "all"],
-    "brace-style": "off",
-    "@typescript-eslint/brace-style": ["error", "1tbs"]
+    "curly": ["error", "all"]
   },
   "overrides": [
     {

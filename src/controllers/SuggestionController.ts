@@ -41,10 +41,12 @@ export class SuggestionController {
         exceeded: limitStatus.exceeded,
         calculatedAt: suggestion.calculatedAt,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error getting daily limit:', error);
 
-      if (error.message === 'Account not found') {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+
+      if (message === 'Account not found') {
         return res.status(404).json({
           error: 'NotFound',
           message: 'Account not found',
@@ -82,10 +84,12 @@ export class SuggestionController {
         availableBalance: suggestion.availableBalance,
         calculatedAt: suggestion.calculatedAt,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error recalculating daily limit:', error);
 
-      if (error.message === 'Account not found') {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+
+      if (message === 'Account not found') {
         return res.status(404).json({
           error: 'NotFound',
           message: 'Account not found',
@@ -161,20 +165,22 @@ export class SuggestionController {
       const history = await SuggestionEngine.getSpendingHistory(account_id, daysNumber);
 
       return res.status(200).json(history);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error getting spending history:', error);
 
-      if (error.message === 'Account not found') {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+
+      if (message === 'Account not found') {
         return res.status(404).json({
           error: 'NotFound',
           message: 'Account not found',
         });
       }
 
-      if (error.message === 'Days must be between 1 and 30') {
+      if (message === 'Days must be between 1 and 30') {
         return res.status(400).json({
           error: 'BadRequest',
-          message: error.message,
+          message,
         });
       }
 

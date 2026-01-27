@@ -49,3 +49,14 @@ Thumbs.db
 # Logs
 logs/
 *.log
+
+# Generated Prisma client
+src/generated/prisma/
+prisma/generated/client/
+
+# Local tooling
+.gemini/
+.codex/
+
+# Reports
+zap_report.html

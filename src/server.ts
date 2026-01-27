@@ -86,6 +86,7 @@ import accountRoutes from './routes/accounts.routes';
 import authRoutes from './routes/auth.routes';
 import categoryRoutes from './routes/categories.routes';
 import invitationRoutes from './routes/invitations.routes';
+import loanSimulationRoutes from './routes/loanSimulations.routes';
 import suggestionRoutes from './routes/suggestions.routes';
 import transactionRoutes from './routes/transactions.routes';
 
@@ -95,6 +96,7 @@ app.use('/api/v1/transactions', transactionRoutes);
 app.use('/api/v1/categories', categoryRoutes);
 app.use('/api/v1/suggestions', suggestionRoutes);
 app.use('/api/v1/invitations', invitationRoutes);
+app.use('/api/v1/loan-simulations', loanSimulationRoutes);
 
 // 404 Handler
 app.use((_req, res) => {

@@ -1,0 +1,169 @@
+openapi: 3.0.3
+info:
+  title: Loan Simulation API
+  version: 1.0.0
+  description: Internal endpoints for loan simulation using emergency reserve.
+servers:
+  - url: /api/v1
+paths:
+  /loan-simulations:
+    post:
+      summary: Create loan simulation
+      operationId: createLoanSimulation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoanSimulationCreateRequest'
+      responses:
+        '201':
+          description: Simulation created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoanSimulation'
+        '400':
+          description: Validation error
+        '404':
+          description: Emergency reserve not found
+    get:
+      summary: List loan simulations
+      operationId: listLoanSimulations
+      parameters:
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+        - in: query
+          name: offset
+          schema:
+            type: integer
+            minimum: 0
+      responses:
+        '200':
+          description: List of simulations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LoanSimulationSummary'
+  /loan-simulations/{simulationId}:
+    get:
+      summary: Get loan simulation by id
+      operationId: getLoanSimulation
+      parameters:
+        - in: path
+          name: simulationId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Simulation details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoanSimulation'
+        '404':
+          description: Simulation not found
+components:
+  schemas:
+    LoanSimulationCreateRequest:
+      type: object
+      required:
+        - amount
+        - termMonths
+      properties:
+        amount:
+          type: number
+          format: decimal
+          minimum: 0.01
+        termMonths:
+          type: integer
+          minimum: 6
+          maximum: 30
+        interestRateMonthly:
+          type: number
+          format: decimal
+          description: Optional; defaults to 2.5% monthly.
+    LoanSimulationSummary:
+      type: object
+      properties:
+        id:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        amount:
+          type: number
+          format: decimal
+        termMonths:
+          type: integer
+        interestRateMonthly:
+          type: number
+          format: decimal
+        installmentAmount:
+          type: number
+          format: decimal
+    LoanSimulation:
+      type: object
+      properties:
+        id:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        amount:
+          type: number
+          format: decimal
+        termMonths:
+          type: integer
+        interestRateMonthly:
+          type: number
+          format: decimal
+        amortizationType:
+          type: string
+          enum: [PRICE]
+        installmentAmount:
+          type: number
+          format: decimal
+        totalInterest:
+          type: number
+          format: decimal
+        totalCost:
+          type: number
+          format: decimal
+        reserveUsagePercent:
+          type: number
+          format: decimal
+        reserveRemainingAmount:
+          type: number
+          format: decimal
+        monthlyCashflowImpact:
+          type: number
+          format: decimal
+        installmentPlan:
+          type: array
+          items:
+            $ref: '#/components/schemas/Installment'
+    Installment:
+      type: object
+      properties:
+        installmentNumber:
+          type: integer
+        principalComponent:
+          type: number
+          format: decimal
+        interestComponent:
+          type: number
+          format: decimal
+        totalPayment:
+          type: number
+          format: decimal
+        remainingBalance:
+          type: number
+          format: decimal

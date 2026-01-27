@@ -1,7 +1,15 @@
 import prisma from '../lib/prisma';
 import { ValidationError, ForbiddenError, NotFoundError } from '../middlewares/errorHandler';
 
+const VALID_MEMBER_ROLES = ['owner', 'member', 'viewer'] as const;
+
 export class AccountMemberService {
+  private ensureValidRole(role: string) {
+    if (!VALID_MEMBER_ROLES.includes(role as (typeof VALID_MEMBER_ROLES)[number])) {
+      throw new ValidationError('Invalid role. Must be: owner, member, or viewer');
+    }
+  }
+
   /**
    * Verifica se o usuário tem acesso à conta (owner ou member)
    */
@@ -60,7 +68,7 @@ export class AccountMemberService {
         },
       });
 
-      if (!member || member.role !== 'owner') {
+      if (member?.role !== 'owner') {
         throw new ForbiddenError('Only account owners can perform this action');
       }
     }
@@ -82,6 +90,10 @@ export class AccountMemberService {
       select: { user_id: true },
     });
 
+    if (!account) {
+      throw new NotFoundError('Account not found');
+    }
+
     // Buscar todos os membros (incluindo owners)
     const members = await prisma.accountMember.findMany({
       where: { account_id: accountId },
@@ -101,7 +113,7 @@ export class AccountMemberService {
     });
 
     return {
-      original_owner_id: account!.user_id,
+      original_owner_id: account.user_id,
       members,
     };
   }
@@ -121,9 +133,7 @@ export class AccountMemberService {
     await this.checkOwnerPermission(accountId, requestUserId);
 
     // Validar role
-    if (!['owner', 'member', 'viewer'].includes(data.role)) {
-      throw new ValidationError('Invalid role. Must be: owner, member, or viewer');
-    }
+    this.ensureValidRole(data.role);
 
     // Normalizar email
     const email = data.email.toLowerCase().trim();
@@ -212,9 +222,7 @@ export class AccountMemberService {
     await this.checkOwnerPermission(accountId, requestUserId);
 
     // Validar role
-    if (!['owner', 'member', 'viewer'].includes(newRole)) {
-      throw new ValidationError('Invalid role. Must be: owner, member, or viewer');
-    }
+    this.ensureValidRole(newRole);
 
     // Não pode alterar o role do dono original
     const account = await prisma.account.findUnique({
@@ -396,7 +404,7 @@ export class AccountMemberService {
       where: { id: userId },
     });
 
-    if (!user || user.email.toLowerCase() !== invitation.invited_email.toLowerCase()) {
+    if (user?.email.toLowerCase() !== invitation.invited_email.toLowerCase()) {
       throw new ForbiddenError('You are not authorized to accept this invitation');
     }
 
@@ -483,7 +491,7 @@ export class AccountMemberService {
       where: { id: userId },
     });
 
-    if (!user || user.email.toLowerCase() !== invitation.invited_email.toLowerCase()) {
+    if (user?.email.toLowerCase() !== invitation.invited_email.toLowerCase()) {
       throw new ForbiddenError('You are not authorized to reject this invitation');
     }
 

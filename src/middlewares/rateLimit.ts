@@ -1,9 +1,9 @@
-import rateLimit from 'express-rate-limit';
+import rateLimitMiddleware from 'express-rate-limit';
 
 // Desabilitar rate limiting em ambiente de teste
 const isTest = process.env.NODE_ENV === 'test';
 
-export const rateLimiter = rateLimit({
+export const rateLimiter = rateLimitMiddleware({
   windowMs: Number(process.env.RATE_LIMIT_WINDOW_MS) || 60000,
   max: Number(process.env.RATE_LIMIT_MAX_REQUESTS) || 100,
   skip: () => isTest,
@@ -18,7 +18,7 @@ export const rateLimiter = rateLimit({
   },
 });
 
-export const authRateLimiter = rateLimit({
+export const authRateLimiter = rateLimitMiddleware({
   windowMs: 15 * 60 * 1000,
   max: 5,
   skip: () => isTest,
@@ -31,7 +31,7 @@ export const authRateLimiter = rateLimit({
   skipSuccessfulRequests: true,
 });
 
-export const transactionRateLimiter = rateLimit({
+export const transactionRateLimiter = rateLimitMiddleware({
   windowMs: 60 * 1000,
   max: 20,
   skip: () => isTest,

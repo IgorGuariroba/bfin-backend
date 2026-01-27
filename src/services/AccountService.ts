@@ -1,11 +1,17 @@
+import type { Prisma, PrismaClient } from '../generated/prisma/client';
 import prisma from '../lib/prisma';
 import { ValidationError, ForbiddenError, NotFoundError } from '../middlewares/errorHandler';
-import type { CreateAccountDTO, UpdateAccountDTO } from '../types';
+import type { CreateAccountDTO, EmergencyReserveContext, UpdateAccountDTO } from '../types';
 import { AccountMemberService } from './AccountMemberService';
 
 const accountMemberService = new AccountMemberService();
+type PrismaLikeClient = PrismaClient | Prisma.TransactionClient;
 
 export class AccountService {
+  private getClient(client?: PrismaLikeClient): PrismaLikeClient {
+    return client ?? prisma;
+  }
+
   /**
    * Lista todas as contas de um usuário (próprias + compartilhadas)
    */
@@ -231,5 +237,41 @@ export class AccountService {
     }
 
     return account;
+  }
+
+  /**
+   * Busca a reserva de emergência da conta padrão do usuário
+   */
+  async getDefaultEmergencyReserve(
+    userId: string,
+    client?: PrismaLikeClient
+  ): Promise<EmergencyReserveContext> {
+    const db = this.getClient(client);
+
+    const defaultAccount =
+      (await db.account.findFirst({
+        where: { user_id: userId, is_default: true },
+        orderBy: { created_at: 'asc' },
+      })) ??
+      (await db.account.findFirst({
+        where: { user_id: userId },
+        orderBy: [{ is_default: 'desc' }, { created_at: 'asc' }],
+      }));
+
+    if (!defaultAccount) {
+      throw new NotFoundError('Default account not found');
+    }
+
+    const emergencyReserveAmount = Number(defaultAccount.emergency_reserve);
+
+    if (emergencyReserveAmount <= 0) {
+      throw new ValidationError('Emergency reserve is required to simulate a loan');
+    }
+
+    return {
+      accountId: defaultAccount.id,
+      currency: defaultAccount.currency,
+      emergencyReserveAmount,
+    };
   }
 }

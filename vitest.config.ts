@@ -6,7 +6,12 @@ export default defineConfig({
     environment: 'node',
     setupFiles: ['./src/tests/setup.ts'],
     // Evita executar arquivos gerados pelo build (ex: dist/tests/*.test.js)
-    include: ['src/tests/**/*.test.ts', 'src/tests/**/*.spec.ts'],
+    include: [
+      'src/tests/**/*.test.ts',
+      'src/tests/**/*.spec.ts',
+      'tests/**/*.test.ts',
+      'tests/**/*.spec.ts',
+    ],
     exclude: ['node_modules/**', 'dist/**'],
     env: {
       NODE_ENV: 'test',

@@ -1,6 +1,6 @@
-import { Prisma } from '@prisma/client';
 import type { Request, Response, NextFunction } from 'express';
 import { ZodError } from 'zod';
+import { Prisma } from '../generated/prisma/client';
 
 export class AppError extends Error {
   constructor(
@@ -55,6 +55,23 @@ export function errorHandler(error: Error, _req: Request, res: Response, _next: 
     return res.status(error.statusCode).json({
       error: error.name,
       message: error.message,
+    });
+  }
+
+  const rateLimitStatus =
+    (error as { status?: number; statusCode?: number }).status ??
+    (error as { statusCode?: number }).statusCode;
+  if (rateLimitStatus === 429) {
+    return res.status(429).json({
+      error: 'RateLimitError',
+      message: error.message || 'Too many requests',
+    });
+  }
+
+  if (error instanceof SyntaxError && error.message.toLowerCase().includes('json')) {
+    return res.status(400).json({
+      error: 'ValidationError',
+      message: 'Invalid JSON payload',
     });
   }
 

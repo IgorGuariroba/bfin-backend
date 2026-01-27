@@ -12,10 +12,18 @@ export class AuthService {
   private readonly JWT_REFRESH_EXPIRES_IN: string;
 
   constructor() {
-    this.JWT_SECRET = process.env.JWT_SECRET!;
-    this.JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET!;
+    this.JWT_SECRET = this.requireEnvVar('JWT_SECRET');
+    this.JWT_REFRESH_SECRET = this.requireEnvVar('JWT_REFRESH_SECRET');
     this.JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '15m';
     this.JWT_REFRESH_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || '7d';
+  }
+
+  private requireEnvVar(name: 'JWT_SECRET' | 'JWT_REFRESH_SECRET'): string {
+    const value = process.env[name];
+    if (!value) {
+      throw new Error(`${name} is required`);
+    }
+    return value;
   }
 
   /**
@@ -192,7 +200,7 @@ export class AuthService {
         where: { id: payload.userId },
       });
 
-      if (!user || !user.is_active) {
+      if (!user?.is_active) {
         throw new UnauthorizedError('Invalid refresh token');
       }
 
@@ -210,7 +218,7 @@ export class AuthService {
         },
         tokens,
       };
-    } catch (error) {
+    } catch (_error) {
       throw new UnauthorizedError('Invalid or expired refresh token');
     }
   }
@@ -291,7 +299,7 @@ export class AuthService {
   verifyToken(token: string): JWTPayload {
     try {
       return jwt.verify(token, this.JWT_SECRET) as JWTPayload;
-    } catch (error) {
+    } catch (_error) {
       throw new UnauthorizedError('Invalid or expired token');
     }
   }
