@@ -1,10 +1,29 @@
 import type { Response } from 'express';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AccountMemberController } from '../../src/controllers/AccountMemberController';
-import { AccountMemberService } from '../../src/services/AccountMemberService';
 import type { AuthRequest } from '../../src/types';
 
-vi.mock('../../src/services/AccountMemberService');
+const accountMemberServiceMock = vi.hoisted(() => ({
+  listMembers: vi.fn(),
+  createInvitation: vi.fn(),
+  listInvitations: vi.fn(),
+  listMyInvitations: vi.fn(),
+  acceptInvitation: vi.fn(),
+  rejectInvitation: vi.fn(),
+  updateMemberRole: vi.fn(),
+  removeMember: vi.fn(),
+}));
+
+const AccountMemberServiceMock = vi.hoisted(
+  () =>
+    function AccountMemberServiceMock() {
+      return accountMemberServiceMock;
+    }
+);
+
+vi.mock('../../src/services/AccountMemberService', () => ({
+  AccountMemberService: AccountMemberServiceMock,
+}));
 
 describe('AccountMemberController Unit Tests', () => {
   let controller: AccountMemberController;
@@ -12,7 +31,7 @@ describe('AccountMemberController Unit Tests', () => {
   let res: Partial<Response>;
   let json: ReturnType<typeof vi.fn>;
   let status: ReturnType<typeof vi.fn>;
-  let mockService: ReturnType<typeof vi.mocked<typeof AccountMemberService>>['prototype'];
+  let mockService: typeof accountMemberServiceMock;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -31,7 +50,7 @@ describe('AccountMemberController Unit Tests', () => {
     } as unknown as AuthRequest;
 
     controller = new AccountMemberController();
-    mockService = vi.mocked(AccountMemberService).prototype;
+    mockService = accountMemberServiceMock;
   });
 
   describe('authorization checks', () => {

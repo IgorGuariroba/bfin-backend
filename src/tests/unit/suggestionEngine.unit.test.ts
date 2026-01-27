@@ -196,4 +196,143 @@ describe('SuggestionEngine (unit)', () => {
       expect.any(String)
     );
   });
+
+  it('recalculates daily limit by invalidating cache', async () => {
+    const SuggestionEngine = await loadEngine();
+
+    prismaMock.account.findUnique.mockResolvedValue({
+      id: 'acc-6',
+      available_balance: 90,
+      locked_balance: 0,
+      user_id: 'user-3',
+    });
+    prismaMock.spendingSuggestion.create.mockResolvedValue({ id: 'sug-3' });
+
+    const result = await SuggestionEngine.recalculateDailyLimit('acc-6');
+
+    expect(redisInstance.del).toHaveBeenCalledWith('daily-limit:acc-6');
+    expect(prismaMock.account.findUnique).toHaveBeenCalled();
+    expect(result.dailyLimit).toBeCloseTo(3);
+  });
+
+  it('maps suggestion history results', async () => {
+    const SuggestionEngine = await loadEngine();
+
+    prismaMock.spendingSuggestion.findMany.mockResolvedValue([
+      {
+        id: 's1',
+        daily_limit: 12.5,
+        available_balance_snapshot: 250,
+        created_at: new Date('2026-01-05T10:00:00.000Z'),
+      },
+    ]);
+
+    const history = await SuggestionEngine.getHistory('acc-7', 5);
+
+    expect(prismaMock.spendingSuggestion.findMany).toHaveBeenCalledWith({
+      where: { account_id: 'acc-7' },
+      select: {
+        id: true,
+        daily_limit: true,
+        available_balance_snapshot: true,
+        created_at: true,
+      },
+      orderBy: { created_at: 'desc' },
+      take: 5,
+    });
+    expect(history).toEqual([
+      {
+        id: 's1',
+        dailyLimit: 12.5,
+        availableBalance: 250,
+        createdAt: new Date('2026-01-05T10:00:00.000Z'),
+      },
+    ]);
+  });
+
+  it('uses current limit as fallback and reports warning status', async () => {
+    const SuggestionEngine = await loadEngine();
+
+    prismaMock.$queryRaw.mockResolvedValue([
+      { date: new Date('2026-01-12T12:00:00.000Z'), spent: 80 },
+      { date: new Date('2026-01-11T12:00:00.000Z'), spent: 0 },
+    ]);
+    prismaMock.spendingSuggestion.findMany.mockResolvedValue([]);
+
+    prismaMock.account.findUnique.mockResolvedValue({
+      id: 'acc-8',
+      available_balance: 3000,
+      locked_balance: 0,
+      user_id: 'user-4',
+    });
+    prismaMock.spendingSuggestion.create.mockResolvedValue({ id: 'sug-4' });
+
+    const result = await SuggestionEngine.getSpendingHistory('acc-8', 7);
+
+    expect(result.history).toHaveLength(1);
+    expect(result.history[0].status).toBe('warning');
+    expect(result.history[0].percentageUsed).toBeCloseTo(80);
+  });
+
+  it('returns zero for negative available balance', async () => {
+    const SuggestionEngine = await loadEngine();
+
+    prismaMock.account.findUnique.mockResolvedValue({
+      id: 'acc-9',
+      available_balance: -150,
+      locked_balance: 0,
+      user_id: 'user-5',
+    });
+    prismaMock.spendingSuggestion.create.mockResolvedValue({ id: 'sug-5' });
+
+    const result = await SuggestionEngine.calculateDailyLimit('acc-9');
+
+    expect(result.dailyLimit).toBe(0);
+  });
+
+  it('computes spent today and limit exceeded summary', async () => {
+    const SuggestionEngine = await loadEngine();
+
+    const dailyLimitSpy = vi.spyOn(SuggestionEngine, 'getDailyLimit').mockResolvedValue({
+      accountId: 'acc-10',
+      dailyLimit: 100,
+      availableBalance: 100,
+      daysConsidered: 30,
+      calculatedAt: new Date('2026-01-01T00:00:00.000Z'),
+    });
+    const spentSpy = vi.spyOn(SuggestionEngine, 'getSpentToday').mockResolvedValue(120);
+
+    const result = await SuggestionEngine.isLimitExceeded('acc-10');
+
+    expect(dailyLimitSpy).toHaveBeenCalled();
+    expect(spentSpy).toHaveBeenCalled();
+    expect(result).toEqual({
+      exceeded: true,
+      dailyLimit: 100,
+      spentToday: 120,
+      remaining: 0,
+      percentageUsed: 100,
+    });
+  });
+
+  it('aggregates spent today from transactions', async () => {
+    const SuggestionEngine = await loadEngine();
+
+    prismaMock.transaction.aggregate.mockResolvedValue({
+      _sum: { amount: 55.5 },
+    });
+
+    const spent = await SuggestionEngine.getSpentToday('acc-12');
+
+    expect(prismaMock.transaction.aggregate).toHaveBeenCalled();
+    expect(spent).toBe(55.5);
+  });
+
+  it('invalidates daily limit cache', async () => {
+    const SuggestionEngine = await loadEngine();
+
+    await SuggestionEngine.invalidateCache('acc-11');
+
+    expect(redisInstance.del).toHaveBeenCalledWith('daily-limit:acc-11');
+  });
 });

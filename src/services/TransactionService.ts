@@ -1,6 +1,6 @@
-import type { Prisma } from '../generated/prisma/client';
 import { AccountMemberService } from './AccountMemberService';
 import { SuggestionEngine } from './SuggestionEngine';
+import type { Prisma } from '../generated/prisma/client';
 import prisma from '../lib/prisma';
 import redis from '../lib/redis';
 import {

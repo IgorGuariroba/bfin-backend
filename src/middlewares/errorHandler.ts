@@ -1,6 +1,6 @@
-import { Prisma } from '../generated/prisma/client';
 import type { Request, Response, NextFunction } from 'express';
 import { ZodError } from 'zod';
+import { Prisma } from '../generated/prisma/client';
 
 export class AppError extends Error {
   constructor(

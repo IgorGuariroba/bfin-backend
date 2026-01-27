@@ -1,5 +1,5 @@
-import type { Prisma } from '../generated/prisma/client';
 import Redis from 'ioredis';
+import type { Prisma } from '../generated/prisma/client';
 import prisma from '../lib/prisma';
 
 const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';

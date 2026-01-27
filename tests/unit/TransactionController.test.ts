@@ -1,10 +1,30 @@
 import type { Response } from 'express';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { TransactionController } from '../../src/controllers/TransactionController';
-import { TransactionService } from '../../src/services/TransactionService';
 import type { AuthRequest } from '../../src/types';
 
-vi.mock('../../src/services/TransactionService');
+const transactionServiceMock = vi.hoisted(() => ({
+  processIncome: vi.fn(),
+  createFixedExpense: vi.fn(),
+  createVariableExpense: vi.fn(),
+  list: vi.fn(),
+  getById: vi.fn(),
+  update: vi.fn(),
+  markFixedExpenseAsPaid: vi.fn(),
+  duplicate: vi.fn(),
+  delete: vi.fn(),
+}));
+
+const TransactionServiceMock = vi.hoisted(
+  () =>
+    function TransactionServiceMock() {
+      return transactionServiceMock;
+    }
+);
+
+vi.mock('../../src/services/TransactionService', () => ({
+  TransactionService: TransactionServiceMock,
+}));
 
 describe('TransactionController Unit Tests', () => {
   const userId = '11111111-1111-1111-1111-111111111111';
@@ -17,7 +37,7 @@ describe('TransactionController Unit Tests', () => {
   let res: Response;
   let json: ReturnType<typeof vi.fn>;
   let status: ReturnType<typeof vi.fn>;
-  let mockService: ReturnType<typeof vi.mocked<typeof TransactionService>>['prototype'];
+  let mockService: typeof transactionServiceMock;
 
   const buildResponse = (): Response => {
     json = vi.fn();
@@ -29,7 +49,7 @@ describe('TransactionController Unit Tests', () => {
     vi.clearAllMocks();
 
     controller = new TransactionController();
-    mockService = vi.mocked(TransactionService).prototype;
+    mockService = transactionServiceMock;
 
     req = {
       params: { id: transactionId },

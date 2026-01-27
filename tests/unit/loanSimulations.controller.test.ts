@@ -1,8 +1,8 @@
 import type { Response } from 'express';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type {
-  AuthRequest,
+import {
   LOAN_SIMULATION_DEFAULT_INTEREST_RATE_MONTHLY,
+  type AuthRequest,
   type LoanSimulationDetails,
   type LoanSimulationSummary,
 } from '../../src/types';
@@ -138,7 +138,7 @@ describe('LoanSimulationsController', () => {
   describe('getById', () => {
     it('returns 401 when user is not authenticated', async () => {
       const { res, json } = createMockResponse();
-      const req = { params: { simulationId: 'sim-1' } } as AuthRequest;
+      const req = { params: { simulationId: 'sim-1' } } as unknown as AuthRequest;
 
       await loanSimulationsController.getById(req, res);
 
