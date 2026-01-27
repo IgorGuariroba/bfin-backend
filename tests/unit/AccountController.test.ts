@@ -1,14 +1,15 @@
-import type { Request, Response } from 'express';
+import type { Response } from 'express';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { AccountController } from '../../src/controllers/AccountController';
 import { AccountService } from '../../src/services/AccountService';
+import type { AuthRequest } from '../../src/types';
 
 // Mock AccountService
 vi.mock('../../src/services/AccountService');
 
 describe('AccountController Unit Tests', () => {
   let controller: AccountController;
-  let req: Partial<Request>;
+  let req: Partial<AuthRequest>;
   let res: Partial<Response>;
   let json: any;
   let status: any;
@@ -31,7 +32,7 @@ describe('AccountController Unit Tests', () => {
       params: {},
       body: {},
       user: { userId: 'user123' },
-    } as unknown as Request;
+    } as unknown as AuthRequest;
 
     // Get the mocked instance of AccountService
     // Since AccountController instantiates AccountService internally,
@@ -51,7 +52,7 @@ describe('AccountController Unit Tests', () => {
   describe('list', () => {
     it('should return 401 if user is not authenticated', async () => {
       req.user = undefined;
-      await controller.list(req as Request, res as Response);
+      await controller.list(req as AuthRequest, res as Response);
       expect(status).toHaveBeenCalledWith(401);
     });
 
@@ -129,32 +130,32 @@ describe('AccountController Unit Tests', () => {
   describe('Authorization checks', () => {
     it('list should return 401 if no user', async () => {
       req.user = undefined;
-      await controller.list(req as Request, res as Response);
+      await controller.list(req as AuthRequest, res as Response);
       expect(status).toHaveBeenCalledWith(401);
       expect(json).toHaveBeenCalledWith({ error: 'Unauthorized' });
     });
 
     it('getById should return 401 if no user', async () => {
       req.user = undefined;
-      await controller.getById(req as Request, res as Response);
+      await controller.getById(req as AuthRequest, res as Response);
       expect(status).toHaveBeenCalledWith(401);
     });
 
     it('create should return 401 if no user', async () => {
       req.user = undefined;
-      await controller.create(req as Request, res as Response);
+      await controller.create(req as AuthRequest, res as Response);
       expect(status).toHaveBeenCalledWith(401);
     });
 
     it('update should return 401 if no user', async () => {
       req.user = undefined;
-      await controller.update(req as Request, res as Response);
+      await controller.update(req as AuthRequest, res as Response);
       expect(status).toHaveBeenCalledWith(401);
     });
 
     it('delete should return 401 if no user', async () => {
       req.user = undefined;
-      await controller.delete(req as Request, res as Response);
+      await controller.delete(req as AuthRequest, res as Response);
       expect(status).toHaveBeenCalledWith(401);
     });
   });
