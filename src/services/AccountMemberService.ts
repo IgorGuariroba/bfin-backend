@@ -60,7 +60,7 @@ export class AccountMemberService {
         },
       });
 
-      if (!member || member.role !== 'owner') {
+      if (member?.role !== 'owner') {
         throw new ForbiddenError('Only account owners can perform this action');
       }
     }
@@ -400,7 +400,7 @@ export class AccountMemberService {
       where: { id: userId },
     });
 
-    if (!user || user.email.toLowerCase() !== invitation.invited_email.toLowerCase()) {
+    if (user?.email.toLowerCase() !== invitation.invited_email.toLowerCase()) {
       throw new ForbiddenError('You are not authorized to accept this invitation');
     }
 
@@ -487,7 +487,7 @@ export class AccountMemberService {
       where: { id: userId },
     });
 
-    if (!user || user.email.toLowerCase() !== invitation.invited_email.toLowerCase()) {
+    if (user?.email.toLowerCase() !== invitation.invited_email.toLowerCase()) {
       throw new ForbiddenError('You are not authorized to reject this invitation');
     }
 

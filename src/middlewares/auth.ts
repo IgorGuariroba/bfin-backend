@@ -62,7 +62,7 @@ export function optionalAuthenticate(req: AuthRequest, _res: Response, next: Nex
     }
 
     next();
-  } catch (error) {
+  } catch (_error) {
     // Ignorar erros de token inválido no modo opcional
     next();
   }
