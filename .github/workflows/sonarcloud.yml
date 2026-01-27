@@ -84,7 +84,7 @@ jobs:
             -Dsonar.projectKey=IgorGuariroba_bfin-backend
             -Dsonar.organization=igorguariroba
             -Dsonar.sources=src
-            -Dsonar.tests=tests
+            -Dsonar.tests=src/tests
             -Dsonar.exclusions=**/node_modules/**,**/dist/**,**/build/**,**/coverage/**,**/openapi/**,**/sdk/**,**/scripts/**,**/*.spec.ts,**/*.test.ts,**/tests/**/*
             -Dsonar.coverage.exclusions=**/node_modules/**,**/dist/**,**/build/**,**/coverage/**,**/openapi/**,**/sdk/**,**/scripts/**,**/*.spec.ts,**/*.test.ts,**/tests/**/*,**/*.config.ts,**/server.ts,**/prisma/**,**/types/**,**/jobs/**
             -Dsonar.cpd.exclusions=**/*.spec.ts,**/*.test.ts,**/tests/**/*,**/openapi/**,**/sdk/**,**/scripts/**
