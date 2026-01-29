@@ -64,6 +64,9 @@ export type LoanSimulationMinAggregateOutputType = {
   reserve_usage_percent: runtime.Decimal | null
   reserve_remaining_amount: runtime.Decimal | null
   monthly_cashflow_impact: runtime.Decimal | null
+  status: $Enums.LoanSimulationStatus | null
+  approved_at: Date | null
+  withdrawn_at: Date | null
   created_at: Date | null
 }
 
@@ -81,6 +84,9 @@ export type LoanSimulationMaxAggregateOutputType = {
   reserve_usage_percent: runtime.Decimal | null
   reserve_remaining_amount: runtime.Decimal | null
   monthly_cashflow_impact: runtime.Decimal | null
+  status: $Enums.LoanSimulationStatus | null
+  approved_at: Date | null
+  withdrawn_at: Date | null
   created_at: Date | null
 }
 
@@ -98,6 +104,9 @@ export type LoanSimulationCountAggregateOutputType = {
   reserve_usage_percent: number
   reserve_remaining_amount: number
   monthly_cashflow_impact: number
+  status: number
+  approved_at: number
+  withdrawn_at: number
   created_at: number
   _all: number
 }
@@ -141,6 +150,9 @@ export type LoanSimulationMinAggregateInputType = {
   reserve_usage_percent?: true
   reserve_remaining_amount?: true
   monthly_cashflow_impact?: true
+  status?: true
+  approved_at?: true
+  withdrawn_at?: true
   created_at?: true
 }
 
@@ -158,6 +170,9 @@ export type LoanSimulationMaxAggregateInputType = {
   reserve_usage_percent?: true
   reserve_remaining_amount?: true
   monthly_cashflow_impact?: true
+  status?: true
+  approved_at?: true
+  withdrawn_at?: true
   created_at?: true
 }
 
@@ -175,6 +190,9 @@ export type LoanSimulationCountAggregateInputType = {
   reserve_usage_percent?: true
   reserve_remaining_amount?: true
   monthly_cashflow_impact?: true
+  status?: true
+  approved_at?: true
+  withdrawn_at?: true
   created_at?: true
   _all?: true
 }
@@ -279,6 +297,9 @@ export type LoanSimulationGroupByOutputType = {
   reserve_usage_percent: runtime.Decimal
   reserve_remaining_amount: runtime.Decimal
   monthly_cashflow_impact: runtime.Decimal
+  status: $Enums.LoanSimulationStatus
+  approved_at: Date | null
+  withdrawn_at: Date | null
   created_at: Date
   _count: LoanSimulationCountAggregateOutputType | null
   _avg: LoanSimulationAvgAggregateOutputType | null
@@ -319,6 +340,9 @@ export type LoanSimulationWhereInput = {
   reserve_usage_percent?: Prisma.DecimalFilter<"LoanSimulation"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   reserve_remaining_amount?: Prisma.DecimalFilter<"LoanSimulation"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   monthly_cashflow_impact?: Prisma.DecimalFilter<"LoanSimulation"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: Prisma.EnumLoanSimulationStatusFilter<"LoanSimulation"> | $Enums.LoanSimulationStatus
+  approved_at?: Prisma.DateTimeNullableFilter<"LoanSimulation"> | Date | string | null
+  withdrawn_at?: Prisma.DateTimeNullableFilter<"LoanSimulation"> | Date | string | null
   created_at?: Prisma.DateTimeFilter<"LoanSimulation"> | Date | string
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
   account?: Prisma.XOR<Prisma.AccountScalarRelationFilter, Prisma.AccountWhereInput>
@@ -341,6 +365,9 @@ export type LoanSimulationOrderByWithRelationInput = {
   reserve_usage_percent?: Prisma.SortOrder
   reserve_remaining_amount?: Prisma.SortOrder
   monthly_cashflow_impact?: Prisma.SortOrder
+  status?: Prisma.SortOrder
+  approved_at?: Prisma.SortOrderInput | Prisma.SortOrder
+  withdrawn_at?: Prisma.SortOrderInput | Prisma.SortOrder
   created_at?: Prisma.SortOrder
   user?: Prisma.UserOrderByWithRelationInput
   account?: Prisma.AccountOrderByWithRelationInput
@@ -366,6 +393,9 @@ export type LoanSimulationWhereUniqueInput = Prisma.AtLeast<{
   reserve_usage_percent?: Prisma.DecimalFilter<"LoanSimulation"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   reserve_remaining_amount?: Prisma.DecimalFilter<"LoanSimulation"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   monthly_cashflow_impact?: Prisma.DecimalFilter<"LoanSimulation"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: Prisma.EnumLoanSimulationStatusFilter<"LoanSimulation"> | $Enums.LoanSimulationStatus
+  approved_at?: Prisma.DateTimeNullableFilter<"LoanSimulation"> | Date | string | null
+  withdrawn_at?: Prisma.DateTimeNullableFilter<"LoanSimulation"> | Date | string | null
   created_at?: Prisma.DateTimeFilter<"LoanSimulation"> | Date | string
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
   account?: Prisma.XOR<Prisma.AccountScalarRelationFilter, Prisma.AccountWhereInput>
@@ -388,6 +418,9 @@ export type LoanSimulationOrderByWithAggregationInput = {
   reserve_usage_percent?: Prisma.SortOrder
   reserve_remaining_amount?: Prisma.SortOrder
   monthly_cashflow_impact?: Prisma.SortOrder
+  status?: Prisma.SortOrder
+  approved_at?: Prisma.SortOrderInput | Prisma.SortOrder
+  withdrawn_at?: Prisma.SortOrderInput | Prisma.SortOrder
   created_at?: Prisma.SortOrder
   _count?: Prisma.LoanSimulationCountOrderByAggregateInput
   _avg?: Prisma.LoanSimulationAvgOrderByAggregateInput
@@ -413,6 +446,9 @@ export type LoanSimulationScalarWhereWithAggregatesInput = {
   reserve_usage_percent?: Prisma.DecimalWithAggregatesFilter<"LoanSimulation"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   reserve_remaining_amount?: Prisma.DecimalWithAggregatesFilter<"LoanSimulation"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   monthly_cashflow_impact?: Prisma.DecimalWithAggregatesFilter<"LoanSimulation"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: Prisma.EnumLoanSimulationStatusWithAggregatesFilter<"LoanSimulation"> | $Enums.LoanSimulationStatus
+  approved_at?: Prisma.DateTimeNullableWithAggregatesFilter<"LoanSimulation"> | Date | string | null
+  withdrawn_at?: Prisma.DateTimeNullableWithAggregatesFilter<"LoanSimulation"> | Date | string | null
   created_at?: Prisma.DateTimeWithAggregatesFilter<"LoanSimulation"> | Date | string
 }
 
@@ -428,6 +464,9 @@ export type LoanSimulationCreateInput = {
   reserve_usage_percent: runtime.Decimal | runtime.DecimalJsLike | number | string
   reserve_remaining_amount: runtime.Decimal | runtime.DecimalJsLike | number | string
   monthly_cashflow_impact: runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: $Enums.LoanSimulationStatus
+  approved_at?: Date | string | null
+  withdrawn_at?: Date | string | null
   created_at?: Date | string
   user: Prisma.UserCreateNestedOneWithoutLoan_simulationsInput
   account: Prisma.AccountCreateNestedOneWithoutLoan_simulationsInput
@@ -450,6 +489,9 @@ export type LoanSimulationUncheckedCreateInput = {
   reserve_usage_percent: runtime.Decimal | runtime.DecimalJsLike | number | string
   reserve_remaining_amount: runtime.Decimal | runtime.DecimalJsLike | number | string
   monthly_cashflow_impact: runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: $Enums.LoanSimulationStatus
+  approved_at?: Date | string | null
+  withdrawn_at?: Date | string | null
   created_at?: Date | string
   installments?: Prisma.InstallmentPlanUncheckedCreateNestedManyWithoutSimulationInput
   cash_flow?: Prisma.CashFlowImpactUncheckedCreateNestedOneWithoutSimulationInput
@@ -468,6 +510,9 @@ export type LoanSimulationUpdateInput = {
   reserve_usage_percent?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   reserve_remaining_amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   monthly_cashflow_impact?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: Prisma.EnumLoanSimulationStatusFieldUpdateOperationsInput | $Enums.LoanSimulationStatus
+  approved_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  withdrawn_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutLoan_simulationsNestedInput
   account?: Prisma.AccountUpdateOneRequiredWithoutLoan_simulationsNestedInput
@@ -490,6 +535,9 @@ export type LoanSimulationUncheckedUpdateInput = {
   reserve_usage_percent?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   reserve_remaining_amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   monthly_cashflow_impact?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: Prisma.EnumLoanSimulationStatusFieldUpdateOperationsInput | $Enums.LoanSimulationStatus
+  approved_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  withdrawn_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   installments?: Prisma.InstallmentPlanUncheckedUpdateManyWithoutSimulationNestedInput
   cash_flow?: Prisma.CashFlowImpactUncheckedUpdateOneWithoutSimulationNestedInput
@@ -510,6 +558,9 @@ export type LoanSimulationCreateManyInput = {
   reserve_usage_percent: runtime.Decimal | runtime.DecimalJsLike | number | string
   reserve_remaining_amount: runtime.Decimal | runtime.DecimalJsLike | number | string
   monthly_cashflow_impact: runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: $Enums.LoanSimulationStatus
+  approved_at?: Date | string | null
+  withdrawn_at?: Date | string | null
   created_at?: Date | string
 }
 
@@ -525,6 +576,9 @@ export type LoanSimulationUpdateManyMutationInput = {
   reserve_usage_percent?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   reserve_remaining_amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   monthly_cashflow_impact?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: Prisma.EnumLoanSimulationStatusFieldUpdateOperationsInput | $Enums.LoanSimulationStatus
+  approved_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  withdrawn_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -542,6 +596,9 @@ export type LoanSimulationUncheckedUpdateManyInput = {
   reserve_usage_percent?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   reserve_remaining_amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   monthly_cashflow_impact?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: Prisma.EnumLoanSimulationStatusFieldUpdateOperationsInput | $Enums.LoanSimulationStatus
+  approved_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  withdrawn_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -569,6 +626,9 @@ export type LoanSimulationCountOrderByAggregateInput = {
   reserve_usage_percent?: Prisma.SortOrder
   reserve_remaining_amount?: Prisma.SortOrder
   monthly_cashflow_impact?: Prisma.SortOrder
+  status?: Prisma.SortOrder
+  approved_at?: Prisma.SortOrder
+  withdrawn_at?: Prisma.SortOrder
   created_at?: Prisma.SortOrder
 }
 
@@ -598,6 +658,9 @@ export type LoanSimulationMaxOrderByAggregateInput = {
   reserve_usage_percent?: Prisma.SortOrder
   reserve_remaining_amount?: Prisma.SortOrder
   monthly_cashflow_impact?: Prisma.SortOrder
+  status?: Prisma.SortOrder
+  approved_at?: Prisma.SortOrder
+  withdrawn_at?: Prisma.SortOrder
   created_at?: Prisma.SortOrder
 }
 
@@ -615,6 +678,9 @@ export type LoanSimulationMinOrderByAggregateInput = {
   reserve_usage_percent?: Prisma.SortOrder
   reserve_remaining_amount?: Prisma.SortOrder
   monthly_cashflow_impact?: Prisma.SortOrder
+  status?: Prisma.SortOrder
+  approved_at?: Prisma.SortOrder
+  withdrawn_at?: Prisma.SortOrder
   created_at?: Prisma.SortOrder
 }
 
@@ -724,6 +790,10 @@ export type LoanSimulationUncheckedUpdateManyWithoutAccountNestedInput = {
   deleteMany?: Prisma.LoanSimulationScalarWhereInput | Prisma.LoanSimulationScalarWhereInput[]
 }
 
+export type EnumLoanSimulationStatusFieldUpdateOperationsInput = {
+  set?: $Enums.LoanSimulationStatus
+}
+
 export type LoanSimulationCreateNestedOneWithoutInstallmentsInput = {
   create?: Prisma.XOR<Prisma.LoanSimulationCreateWithoutInstallmentsInput, Prisma.LoanSimulationUncheckedCreateWithoutInstallmentsInput>
   connectOrCreate?: Prisma.LoanSimulationCreateOrConnectWithoutInstallmentsInput
@@ -780,6 +850,9 @@ export type LoanSimulationCreateWithoutUserInput = {
   reserve_usage_percent: runtime.Decimal | runtime.DecimalJsLike | number | string
   reserve_remaining_amount: runtime.Decimal | runtime.DecimalJsLike | number | string
   monthly_cashflow_impact: runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: $Enums.LoanSimulationStatus
+  approved_at?: Date | string | null
+  withdrawn_at?: Date | string | null
   created_at?: Date | string
   account: Prisma.AccountCreateNestedOneWithoutLoan_simulationsInput
   installments?: Prisma.InstallmentPlanCreateNestedManyWithoutSimulationInput
@@ -800,6 +873,9 @@ export type LoanSimulationUncheckedCreateWithoutUserInput = {
   reserve_usage_percent: runtime.Decimal | runtime.DecimalJsLike | number | string
   reserve_remaining_amount: runtime.Decimal | runtime.DecimalJsLike | number | string
   monthly_cashflow_impact: runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: $Enums.LoanSimulationStatus
+  approved_at?: Date | string | null
+  withdrawn_at?: Date | string | null
   created_at?: Date | string
   installments?: Prisma.InstallmentPlanUncheckedCreateNestedManyWithoutSimulationInput
   cash_flow?: Prisma.CashFlowImpactUncheckedCreateNestedOneWithoutSimulationInput
@@ -849,6 +925,9 @@ export type LoanSimulationScalarWhereInput = {
   reserve_usage_percent?: Prisma.DecimalFilter<"LoanSimulation"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   reserve_remaining_amount?: Prisma.DecimalFilter<"LoanSimulation"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   monthly_cashflow_impact?: Prisma.DecimalFilter<"LoanSimulation"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: Prisma.EnumLoanSimulationStatusFilter<"LoanSimulation"> | $Enums.LoanSimulationStatus
+  approved_at?: Prisma.DateTimeNullableFilter<"LoanSimulation"> | Date | string | null
+  withdrawn_at?: Prisma.DateTimeNullableFilter<"LoanSimulation"> | Date | string | null
   created_at?: Prisma.DateTimeFilter<"LoanSimulation"> | Date | string
 }
 
@@ -864,6 +943,9 @@ export type LoanSimulationCreateWithoutAccountInput = {
   reserve_usage_percent: runtime.Decimal | runtime.DecimalJsLike | number | string
   reserve_remaining_amount: runtime.Decimal | runtime.DecimalJsLike | number | string
   monthly_cashflow_impact: runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: $Enums.LoanSimulationStatus
+  approved_at?: Date | string | null
+  withdrawn_at?: Date | string | null
   created_at?: Date | string
   user: Prisma.UserCreateNestedOneWithoutLoan_simulationsInput
   installments?: Prisma.InstallmentPlanCreateNestedManyWithoutSimulationInput
@@ -884,6 +966,9 @@ export type LoanSimulationUncheckedCreateWithoutAccountInput = {
   reserve_usage_percent: runtime.Decimal | runtime.DecimalJsLike | number | string
   reserve_remaining_amount: runtime.Decimal | runtime.DecimalJsLike | number | string
   monthly_cashflow_impact: runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: $Enums.LoanSimulationStatus
+  approved_at?: Date | string | null
+  withdrawn_at?: Date | string | null
   created_at?: Date | string
   installments?: Prisma.InstallmentPlanUncheckedCreateNestedManyWithoutSimulationInput
   cash_flow?: Prisma.CashFlowImpactUncheckedCreateNestedOneWithoutSimulationInput
@@ -928,6 +1013,9 @@ export type LoanSimulationCreateWithoutInstallmentsInput = {
   reserve_usage_percent: runtime.Decimal | runtime.DecimalJsLike | number | string
   reserve_remaining_amount: runtime.Decimal | runtime.DecimalJsLike | number | string
   monthly_cashflow_impact: runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: $Enums.LoanSimulationStatus
+  approved_at?: Date | string | null
+  withdrawn_at?: Date | string | null
   created_at?: Date | string
   user: Prisma.UserCreateNestedOneWithoutLoan_simulationsInput
   account: Prisma.AccountCreateNestedOneWithoutLoan_simulationsInput
@@ -949,6 +1037,9 @@ export type LoanSimulationUncheckedCreateWithoutInstallmentsInput = {
   reserve_usage_percent: runtime.Decimal | runtime.DecimalJsLike | number | string
   reserve_remaining_amount: runtime.Decimal | runtime.DecimalJsLike | number | string
   monthly_cashflow_impact: runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: $Enums.LoanSimulationStatus
+  approved_at?: Date | string | null
+  withdrawn_at?: Date | string | null
   created_at?: Date | string
   cash_flow?: Prisma.CashFlowImpactUncheckedCreateNestedOneWithoutSimulationInput
   audit_events?: Prisma.AuditEventUncheckedCreateNestedManyWithoutSimulationInput
@@ -982,6 +1073,9 @@ export type LoanSimulationUpdateWithoutInstallmentsInput = {
   reserve_usage_percent?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   reserve_remaining_amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   monthly_cashflow_impact?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: Prisma.EnumLoanSimulationStatusFieldUpdateOperationsInput | $Enums.LoanSimulationStatus
+  approved_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  withdrawn_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutLoan_simulationsNestedInput
   account?: Prisma.AccountUpdateOneRequiredWithoutLoan_simulationsNestedInput
@@ -1003,6 +1097,9 @@ export type LoanSimulationUncheckedUpdateWithoutInstallmentsInput = {
   reserve_usage_percent?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   reserve_remaining_amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   monthly_cashflow_impact?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: Prisma.EnumLoanSimulationStatusFieldUpdateOperationsInput | $Enums.LoanSimulationStatus
+  approved_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  withdrawn_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   cash_flow?: Prisma.CashFlowImpactUncheckedUpdateOneWithoutSimulationNestedInput
   audit_events?: Prisma.AuditEventUncheckedUpdateManyWithoutSimulationNestedInput
@@ -1020,6 +1117,9 @@ export type LoanSimulationCreateWithoutCash_flowInput = {
   reserve_usage_percent: runtime.Decimal | runtime.DecimalJsLike | number | string
   reserve_remaining_amount: runtime.Decimal | runtime.DecimalJsLike | number | string
   monthly_cashflow_impact: runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: $Enums.LoanSimulationStatus
+  approved_at?: Date | string | null
+  withdrawn_at?: Date | string | null
   created_at?: Date | string
   user: Prisma.UserCreateNestedOneWithoutLoan_simulationsInput
   account: Prisma.AccountCreateNestedOneWithoutLoan_simulationsInput
@@ -1041,6 +1141,9 @@ export type LoanSimulationUncheckedCreateWithoutCash_flowInput = {
   reserve_usage_percent: runtime.Decimal | runtime.DecimalJsLike | number | string
   reserve_remaining_amount: runtime.Decimal | runtime.DecimalJsLike | number | string
   monthly_cashflow_impact: runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: $Enums.LoanSimulationStatus
+  approved_at?: Date | string | null
+  withdrawn_at?: Date | string | null
   created_at?: Date | string
   installments?: Prisma.InstallmentPlanUncheckedCreateNestedManyWithoutSimulationInput
   audit_events?: Prisma.AuditEventUncheckedCreateNestedManyWithoutSimulationInput
@@ -1074,6 +1177,9 @@ export type LoanSimulationUpdateWithoutCash_flowInput = {
   reserve_usage_percent?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   reserve_remaining_amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   monthly_cashflow_impact?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: Prisma.EnumLoanSimulationStatusFieldUpdateOperationsInput | $Enums.LoanSimulationStatus
+  approved_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  withdrawn_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutLoan_simulationsNestedInput
   account?: Prisma.AccountUpdateOneRequiredWithoutLoan_simulationsNestedInput
@@ -1095,6 +1201,9 @@ export type LoanSimulationUncheckedUpdateWithoutCash_flowInput = {
   reserve_usage_percent?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   reserve_remaining_amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   monthly_cashflow_impact?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: Prisma.EnumLoanSimulationStatusFieldUpdateOperationsInput | $Enums.LoanSimulationStatus
+  approved_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  withdrawn_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   installments?: Prisma.InstallmentPlanUncheckedUpdateManyWithoutSimulationNestedInput
   audit_events?: Prisma.AuditEventUncheckedUpdateManyWithoutSimulationNestedInput
@@ -1112,6 +1221,9 @@ export type LoanSimulationCreateWithoutAudit_eventsInput = {
   reserve_usage_percent: runtime.Decimal | runtime.DecimalJsLike | number | string
   reserve_remaining_amount: runtime.Decimal | runtime.DecimalJsLike | number | string
   monthly_cashflow_impact: runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: $Enums.LoanSimulationStatus
+  approved_at?: Date | string | null
+  withdrawn_at?: Date | string | null
   created_at?: Date | string
   user: Prisma.UserCreateNestedOneWithoutLoan_simulationsInput
   account: Prisma.AccountCreateNestedOneWithoutLoan_simulationsInput
@@ -1133,6 +1245,9 @@ export type LoanSimulationUncheckedCreateWithoutAudit_eventsInput = {
   reserve_usage_percent: runtime.Decimal | runtime.DecimalJsLike | number | string
   reserve_remaining_amount: runtime.Decimal | runtime.DecimalJsLike | number | string
   monthly_cashflow_impact: runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: $Enums.LoanSimulationStatus
+  approved_at?: Date | string | null
+  withdrawn_at?: Date | string | null
   created_at?: Date | string
   installments?: Prisma.InstallmentPlanUncheckedCreateNestedManyWithoutSimulationInput
   cash_flow?: Prisma.CashFlowImpactUncheckedCreateNestedOneWithoutSimulationInput
@@ -1166,6 +1281,9 @@ export type LoanSimulationUpdateWithoutAudit_eventsInput = {
   reserve_usage_percent?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   reserve_remaining_amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   monthly_cashflow_impact?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: Prisma.EnumLoanSimulationStatusFieldUpdateOperationsInput | $Enums.LoanSimulationStatus
+  approved_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  withdrawn_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutLoan_simulationsNestedInput
   account?: Prisma.AccountUpdateOneRequiredWithoutLoan_simulationsNestedInput
@@ -1187,6 +1305,9 @@ export type LoanSimulationUncheckedUpdateWithoutAudit_eventsInput = {
   reserve_usage_percent?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   reserve_remaining_amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   monthly_cashflow_impact?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: Prisma.EnumLoanSimulationStatusFieldUpdateOperationsInput | $Enums.LoanSimulationStatus
+  approved_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  withdrawn_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   installments?: Prisma.InstallmentPlanUncheckedUpdateManyWithoutSimulationNestedInput
   cash_flow?: Prisma.CashFlowImpactUncheckedUpdateOneWithoutSimulationNestedInput
@@ -1205,6 +1326,9 @@ export type LoanSimulationCreateManyUserInput = {
   reserve_usage_percent: runtime.Decimal | runtime.DecimalJsLike | number | string
   reserve_remaining_amount: runtime.Decimal | runtime.DecimalJsLike | number | string
   monthly_cashflow_impact: runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: $Enums.LoanSimulationStatus
+  approved_at?: Date | string | null
+  withdrawn_at?: Date | string | null
   created_at?: Date | string
 }
 
@@ -1220,6 +1344,9 @@ export type LoanSimulationUpdateWithoutUserInput = {
   reserve_usage_percent?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   reserve_remaining_amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   monthly_cashflow_impact?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: Prisma.EnumLoanSimulationStatusFieldUpdateOperationsInput | $Enums.LoanSimulationStatus
+  approved_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  withdrawn_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   account?: Prisma.AccountUpdateOneRequiredWithoutLoan_simulationsNestedInput
   installments?: Prisma.InstallmentPlanUpdateManyWithoutSimulationNestedInput
@@ -1240,6 +1367,9 @@ export type LoanSimulationUncheckedUpdateWithoutUserInput = {
   reserve_usage_percent?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   reserve_remaining_amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   monthly_cashflow_impact?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: Prisma.EnumLoanSimulationStatusFieldUpdateOperationsInput | $Enums.LoanSimulationStatus
+  approved_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  withdrawn_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   installments?: Prisma.InstallmentPlanUncheckedUpdateManyWithoutSimulationNestedInput
   cash_flow?: Prisma.CashFlowImpactUncheckedUpdateOneWithoutSimulationNestedInput
@@ -1259,6 +1389,9 @@ export type LoanSimulationUncheckedUpdateManyWithoutUserInput = {
   reserve_usage_percent?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   reserve_remaining_amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   monthly_cashflow_impact?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: Prisma.EnumLoanSimulationStatusFieldUpdateOperationsInput | $Enums.LoanSimulationStatus
+  approved_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  withdrawn_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -1275,6 +1408,9 @@ export type LoanSimulationCreateManyAccountInput = {
   reserve_usage_percent: runtime.Decimal | runtime.DecimalJsLike | number | string
   reserve_remaining_amount: runtime.Decimal | runtime.DecimalJsLike | number | string
   monthly_cashflow_impact: runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: $Enums.LoanSimulationStatus
+  approved_at?: Date | string | null
+  withdrawn_at?: Date | string | null
   created_at?: Date | string
 }
 
@@ -1290,6 +1426,9 @@ export type LoanSimulationUpdateWithoutAccountInput = {
   reserve_usage_percent?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   reserve_remaining_amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   monthly_cashflow_impact?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: Prisma.EnumLoanSimulationStatusFieldUpdateOperationsInput | $Enums.LoanSimulationStatus
+  approved_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  withdrawn_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutLoan_simulationsNestedInput
   installments?: Prisma.InstallmentPlanUpdateManyWithoutSimulationNestedInput
@@ -1310,6 +1449,9 @@ export type LoanSimulationUncheckedUpdateWithoutAccountInput = {
   reserve_usage_percent?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   reserve_remaining_amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   monthly_cashflow_impact?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: Prisma.EnumLoanSimulationStatusFieldUpdateOperationsInput | $Enums.LoanSimulationStatus
+  approved_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  withdrawn_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   installments?: Prisma.InstallmentPlanUncheckedUpdateManyWithoutSimulationNestedInput
   cash_flow?: Prisma.CashFlowImpactUncheckedUpdateOneWithoutSimulationNestedInput
@@ -1329,6 +1471,9 @@ export type LoanSimulationUncheckedUpdateManyWithoutAccountInput = {
   reserve_usage_percent?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   reserve_remaining_amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   monthly_cashflow_impact?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: Prisma.EnumLoanSimulationStatusFieldUpdateOperationsInput | $Enums.LoanSimulationStatus
+  approved_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  withdrawn_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -1386,6 +1531,9 @@ export type LoanSimulationSelect<ExtArgs extends runtime.Types.Extensions.Intern
   reserve_usage_percent?: boolean
   reserve_remaining_amount?: boolean
   monthly_cashflow_impact?: boolean
+  status?: boolean
+  approved_at?: boolean
+  withdrawn_at?: boolean
   created_at?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   account?: boolean | Prisma.AccountDefaultArgs<ExtArgs>
@@ -1409,6 +1557,9 @@ export type LoanSimulationSelectCreateManyAndReturn<ExtArgs extends runtime.Type
   reserve_usage_percent?: boolean
   reserve_remaining_amount?: boolean
   monthly_cashflow_impact?: boolean
+  status?: boolean
+  approved_at?: boolean
+  withdrawn_at?: boolean
   created_at?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   account?: boolean | Prisma.AccountDefaultArgs<ExtArgs>
@@ -1428,6 +1579,9 @@ export type LoanSimulationSelectUpdateManyAndReturn<ExtArgs extends runtime.Type
   reserve_usage_percent?: boolean
   reserve_remaining_amount?: boolean
   monthly_cashflow_impact?: boolean
+  status?: boolean
+  approved_at?: boolean
+  withdrawn_at?: boolean
   created_at?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   account?: boolean | Prisma.AccountDefaultArgs<ExtArgs>
@@ -1447,10 +1601,13 @@ export type LoanSimulationSelectScalar = {
   reserve_usage_percent?: boolean
   reserve_remaining_amount?: boolean
   monthly_cashflow_impact?: boolean
+  status?: boolean
+  approved_at?: boolean
+  withdrawn_at?: boolean
   created_at?: boolean
 }
 
-export type LoanSimulationOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "user_id" | "account_id" | "principal_amount" | "term_months" | "interest_rate_monthly" | "amortization_type" | "total_interest" | "total_cost" | "installment_amount" | "reserve_usage_percent" | "reserve_remaining_amount" | "monthly_cashflow_impact" | "created_at", ExtArgs["result"]["loanSimulation"]>
+export type LoanSimulationOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "user_id" | "account_id" | "principal_amount" | "term_months" | "interest_rate_monthly" | "amortization_type" | "total_interest" | "total_cost" | "installment_amount" | "reserve_usage_percent" | "reserve_remaining_amount" | "monthly_cashflow_impact" | "status" | "approved_at" | "withdrawn_at" | "created_at", ExtArgs["result"]["loanSimulation"]>
 export type LoanSimulationInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   account?: boolean | Prisma.AccountDefaultArgs<ExtArgs>
@@ -1491,6 +1648,9 @@ export type $LoanSimulationPayload<ExtArgs extends runtime.Types.Extensions.Inte
     reserve_usage_percent: runtime.Decimal
     reserve_remaining_amount: runtime.Decimal
     monthly_cashflow_impact: runtime.Decimal
+    status: $Enums.LoanSimulationStatus
+    approved_at: Date | null
+    withdrawn_at: Date | null
     created_at: Date
   }, ExtArgs["result"]["loanSimulation"]>
   composites: {}
@@ -1933,6 +2093,9 @@ export interface LoanSimulationFieldRefs {
   readonly reserve_usage_percent: Prisma.FieldRef<"LoanSimulation", 'Decimal'>
   readonly reserve_remaining_amount: Prisma.FieldRef<"LoanSimulation", 'Decimal'>
   readonly monthly_cashflow_impact: Prisma.FieldRef<"LoanSimulation", 'Decimal'>
+  readonly status: Prisma.FieldRef<"LoanSimulation", 'LoanSimulationStatus'>
+  readonly approved_at: Prisma.FieldRef<"LoanSimulation", 'DateTime'>
+  readonly withdrawn_at: Prisma.FieldRef<"LoanSimulation", 'DateTime'>
   readonly created_at: Prisma.FieldRef<"LoanSimulation", 'DateTime'>
 }
     

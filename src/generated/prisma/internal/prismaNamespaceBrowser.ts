@@ -261,6 +261,9 @@ export const LoanSimulationScalarFieldEnum = {
   reserve_usage_percent: 'reserve_usage_percent',
   reserve_remaining_amount: 'reserve_remaining_amount',
   monthly_cashflow_impact: 'monthly_cashflow_impact',
+  status: 'status',
+  approved_at: 'approved_at',
+  withdrawn_at: 'withdrawn_at',
   created_at: 'created_at'
 } as const
 

@@ -1670,6 +1670,9 @@ export const LoanSimulationScalarFieldEnum = {
   reserve_usage_percent: 'reserve_usage_percent',
   reserve_remaining_amount: 'reserve_remaining_amount',
   monthly_cashflow_impact: 'monthly_cashflow_impact',
+  status: 'status',
+  approved_at: 'approved_at',
+  withdrawn_at: 'withdrawn_at',
   created_at: 'created_at'
 } as const
 
@@ -1833,6 +1836,20 @@ export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'In
  * Reference to a field of type 'Int[]'
  */
 export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
+    
+
+
+/**
+ * Reference to a field of type 'LoanSimulationStatus'
+ */
+export type EnumLoanSimulationStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'LoanSimulationStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'LoanSimulationStatus[]'
+ */
+export type ListEnumLoanSimulationStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'LoanSimulationStatus[]'>
     
 
 

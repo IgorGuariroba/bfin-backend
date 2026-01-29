@@ -5,6 +5,12 @@ export const LOAN_SIMULATION_MAX_TERM_MONTHS = 30;
 
 export type AmortizationType = 'PRICE';
 
+export enum LoanSimulationStatus {
+  PENDING = 'PENDING',
+  APPROVED = 'APPROVED',
+  COMPLETED = 'COMPLETED',
+}
+
 export interface LoanSimulationCreateInput {
   amount: number;
   termMonths: number;
@@ -40,15 +46,39 @@ export interface LoanSimulationSummary {
   termMonths: number;
   interestRateMonthly: number;
   installmentAmount: number;
+  status: LoanSimulationStatus;
+  approvedAt: Date | null;
+  withdrawnAt: Date | null;
 }
 
 export interface LoanSimulationDetails extends LoanSimulationResult {
   id: string;
   createdAt: Date;
+  status: LoanSimulationStatus;
+  approvedAt: Date | null;
+  withdrawnAt: Date | null;
 }
 
 export interface EmergencyReserveContext {
   accountId: string;
   currency: string;
   emergencyReserveAmount: number;
+}
+
+export interface ApprovalResponse {
+  simulation: LoanSimulationDetails;
+  message: string;
+}
+
+export interface BalanceSnapshot {
+  emergencyReserveBefore: number;
+  emergencyReserveAfter: number;
+  availableBalanceBefore: number;
+  availableBalanceAfter: number;
+}
+
+export interface WithdrawalResponse {
+  simulation: LoanSimulationDetails;
+  balances: BalanceSnapshot;
+  message: string;
 }
