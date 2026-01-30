@@ -5,6 +5,8 @@ import {
   createLoanSimulationSchema,
   getLoanSimulationParamsSchema,
   listLoanSimulationsQuerySchema,
+  approveSimulationParamsSchema,
+  withdrawSimulationParamsSchema,
 } from '../validators/loanSimulationSchemas';
 
 export class LoanSimulationsController {
@@ -29,7 +31,8 @@ export class LoanSimulationsController {
     const simulations = await loanSimulationService.listSimulations(
       req.user.userId,
       query.limit,
-      query.offset
+      query.offset,
+      query.status
     );
     res.json(simulations);
   }
@@ -46,6 +49,28 @@ export class LoanSimulationsController {
       params.simulationId
     );
     res.json(simulation);
+  }
+
+  async approve(req: AuthRequest, res: Response): Promise<void> {
+    if (!req.user) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+
+    const params = approveSimulationParamsSchema.parse(req.params);
+    const result = await loanSimulationService.approveSimulation(req.user.userId, params.id);
+    res.json(result);
+  }
+
+  async withdraw(req: AuthRequest, res: Response): Promise<void> {
+    if (!req.user) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+
+    const params = withdrawSimulationParamsSchema.parse(req.params);
+    const result = await loanSimulationService.withdrawFunds(req.user.userId, params.id);
+    res.json(result);
   }
 }
 

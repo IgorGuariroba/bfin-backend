@@ -204,6 +204,85 @@ const options: swaggerJsdoc.Options = {
             },
           },
         },
+        LoanSimulation: {
+          type: 'object',
+          properties: {
+            id: {
+              type: 'string',
+              format: 'uuid',
+            },
+            createdAt: {
+              type: 'string',
+              format: 'date-time',
+            },
+            amount: {
+              type: 'number',
+              format: 'decimal',
+            },
+            termMonths: {
+              type: 'integer',
+            },
+            interestRateMonthly: {
+              type: 'number',
+              format: 'decimal',
+            },
+            amortizationType: {
+              type: 'string',
+              enum: ['PRICE'],
+            },
+            installmentAmount: {
+              type: 'number',
+              format: 'decimal',
+            },
+            totalInterest: {
+              type: 'number',
+              format: 'decimal',
+            },
+            totalCost: {
+              type: 'number',
+              format: 'decimal',
+            },
+            reserveUsagePercent: {
+              type: 'number',
+              format: 'decimal',
+            },
+            reserveRemainingAmount: {
+              type: 'number',
+              format: 'decimal',
+            },
+            monthlyCashflowImpact: {
+              type: 'number',
+              format: 'decimal',
+            },
+            status: {
+              type: 'string',
+              enum: ['PENDING', 'APPROVED', 'COMPLETED'],
+            },
+            approvedAt: {
+              type: 'string',
+              format: 'date-time',
+              nullable: true,
+            },
+            withdrawnAt: {
+              type: 'string',
+              format: 'date-time',
+              nullable: true,
+            },
+            installmentPlan: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  installmentNumber: { type: 'integer' },
+                  principalComponent: { type: 'number', format: 'decimal' },
+                  interestComponent: { type: 'number', format: 'decimal' },
+                  totalPayment: { type: 'number', format: 'decimal' },
+                  remainingBalance: { type: 'number', format: 'decimal' },
+                },
+              },
+            },
+          },
+        },
       },
     },
     tags: [
@@ -230,6 +309,10 @@ const options: swaggerJsdoc.Options = {
       {
         name: 'Invitations',
         description: 'Convites para contas compartilhadas',
+      },
+      {
+        name: 'LoanSimulations',
+        description: 'Simulações de empréstimo com reserva de emergência',
       },
     ],
   },
