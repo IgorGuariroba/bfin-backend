@@ -157,6 +157,9 @@ export class LoanSimulationService {
         reserveRemainingAmount: Number(simulation.reserve_remaining_amount),
         monthlyCashflowImpact: Number(simulation.monthly_cashflow_impact),
         installmentPlan,
+        status: simulation.status,
+        approvedAt: simulation.approved_at,
+        withdrawnAt: simulation.withdrawn_at,
       };
 
       return details;

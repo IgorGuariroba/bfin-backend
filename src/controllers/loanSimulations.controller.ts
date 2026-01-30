@@ -30,8 +30,8 @@ export class LoanSimulationsController {
     const query = listLoanSimulationsQuerySchema.parse(req.query);
     const simulations = await loanSimulationService.listSimulations(
       req.user.userId,
-      query.limit,
-      query.offset,
+      query.limit as number | undefined,
+      query.offset as number | undefined,
       query.status
     );
     res.json(simulations);

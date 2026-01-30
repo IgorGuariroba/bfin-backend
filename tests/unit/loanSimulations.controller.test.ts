@@ -2,6 +2,7 @@ import type { Response } from 'express';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   LOAN_SIMULATION_DEFAULT_INTEREST_RATE_MONTHLY,
+  LoanSimulationStatus,
   type AuthRequest,
   type LoanSimulationDetails,
   type LoanSimulationSummary,
@@ -53,6 +54,9 @@ function buildLoanSimulationDetails(
       totalPayment: 47.86,
       remainingBalance: Math.max(0, 500 - (index + 1) * 40),
     })),
+    status: LoanSimulationStatus.PENDING,
+    approvedAt: null,
+    withdrawnAt: null,
   };
 
   return { ...base, ...overrides };
@@ -125,6 +129,9 @@ describe('LoanSimulationsController', () => {
           termMonths: 10,
           interestRateMonthly: LOAN_SIMULATION_DEFAULT_INTEREST_RATE_MONTHLY,
           installmentAmount: 34.12,
+          status: LoanSimulationStatus.PENDING,
+          approvedAt: null,
+          withdrawnAt: null,
         },
       ];
 
@@ -194,7 +201,7 @@ describe('LoanSimulationsController', () => {
       const response = {
         simulation: buildLoanSimulationDetails({
           id: '123e4567-e89b-12d3-a456-426614174000',
-          status: 'APPROVED',
+          status: LoanSimulationStatus.APPROVED,
         }),
         message: 'Approved',
       };
@@ -234,7 +241,7 @@ describe('LoanSimulationsController', () => {
       const response = {
         simulation: buildLoanSimulationDetails({
           id: '123e4567-e89b-12d3-a456-426614174000',
-          status: 'COMPLETED',
+          status: LoanSimulationStatus.COMPLETED,
         }),
         balances: {
           emergencyReserveBefore: 1000,
