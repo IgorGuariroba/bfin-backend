@@ -2,6 +2,7 @@ import type { Response } from 'express';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   LOAN_SIMULATION_DEFAULT_INTEREST_RATE_MONTHLY,
+  LoanSimulationStatus,
   type AuthRequest,
   type LoanSimulationDetails,
   type LoanSimulationSummary,
@@ -12,6 +13,8 @@ vi.mock('../../src/services/loanSimulationService', () => ({
     createSimulation: vi.fn(),
     listSimulations: vi.fn(),
     getSimulation: vi.fn(),
+    approveSimulation: vi.fn(),
+    withdrawFunds: vi.fn(),
   },
 }));
 
@@ -51,6 +54,9 @@ function buildLoanSimulationDetails(
       totalPayment: 47.86,
       remainingBalance: Math.max(0, 500 - (index + 1) * 40),
     })),
+    status: LoanSimulationStatus.PENDING,
+    approvedAt: null,
+    withdrawnAt: null,
   };
 
   return { ...base, ...overrides };
@@ -123,6 +129,9 @@ describe('LoanSimulationsController', () => {
           termMonths: 10,
           interestRateMonthly: LOAN_SIMULATION_DEFAULT_INTEREST_RATE_MONTHLY,
           installmentAmount: 34.12,
+          status: LoanSimulationStatus.PENDING,
+          approvedAt: null,
+          withdrawnAt: null,
         },
       ];
 
@@ -130,7 +139,7 @@ describe('LoanSimulationsController', () => {
 
       await loanSimulationsController.list(req, res);
 
-      expect(mockedService.listSimulations).toHaveBeenCalledWith('user-1', 10, 5);
+      expect(mockedService.listSimulations).toHaveBeenCalledWith('user-1', 10, 5, undefined);
       expect(json).toHaveBeenCalledWith(simulations);
     });
   });
@@ -138,7 +147,9 @@ describe('LoanSimulationsController', () => {
   describe('getById', () => {
     it('returns 401 when user is not authenticated', async () => {
       const { res, json } = createMockResponse();
-      const req = { params: { simulationId: 'sim-1' } } as unknown as AuthRequest;
+      const req = {
+        params: { simulationId: '123e4567-e89b-12d3-a456-426614174000' },
+      } as unknown as AuthRequest;
 
       await loanSimulationsController.getById(req, res);
 
@@ -151,16 +162,105 @@ describe('LoanSimulationsController', () => {
       const { res, json } = createMockResponse();
       const req = {
         user: { userId: 'user-1', email: 'user@example.com' },
-        params: { simulationId: 'sim-1' },
+        params: { simulationId: '123e4567-e89b-12d3-a456-426614174000' },
       } as unknown as AuthRequest;
-      const simulation = buildLoanSimulationDetails({ id: 'sim-1' });
+      const simulation = buildLoanSimulationDetails({ id: '123e4567-e89b-12d3-a456-426614174000' });
 
       mockedService.getSimulation.mockResolvedValueOnce(simulation);
 
       await loanSimulationsController.getById(req, res);
 
-      expect(mockedService.getSimulation).toHaveBeenCalledWith('user-1', 'sim-1');
+      expect(mockedService.getSimulation).toHaveBeenCalledWith(
+        'user-1',
+        '123e4567-e89b-12d3-a456-426614174000'
+      );
       expect(json).toHaveBeenCalledWith(simulation);
+    });
+  });
+
+  describe('approve', () => {
+    it('returns 401 when user is not authenticated', async () => {
+      const { res, json } = createMockResponse();
+      const req = {
+        params: { id: '123e4567-e89b-12d3-a456-426614174000' },
+      } as unknown as AuthRequest;
+
+      await loanSimulationsController.approve(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(json).toHaveBeenCalledWith({ error: 'Unauthorized' });
+      expect(mockedService.approveSimulation).not.toHaveBeenCalled();
+    });
+
+    it('parses params and calls service with correct arguments', async () => {
+      const { res, json } = createMockResponse();
+      const req = {
+        user: { userId: 'user-1', email: 'user@example.com' },
+        params: { id: '123e4567-e89b-12d3-a456-426614174000' },
+      } as unknown as AuthRequest;
+      const response = {
+        simulation: buildLoanSimulationDetails({
+          id: '123e4567-e89b-12d3-a456-426614174000',
+          status: LoanSimulationStatus.APPROVED,
+        }),
+        message: 'Approved',
+      };
+
+      mockedService.approveSimulation.mockResolvedValueOnce(response);
+
+      await loanSimulationsController.approve(req, res);
+
+      expect(mockedService.approveSimulation).toHaveBeenCalledWith(
+        'user-1',
+        '123e4567-e89b-12d3-a456-426614174000'
+      );
+      expect(json).toHaveBeenCalledWith(response);
+    });
+  });
+
+  describe('withdraw', () => {
+    it('returns 401 when user is not authenticated', async () => {
+      const { res, json } = createMockResponse();
+      const req = {
+        params: { id: '123e4567-e89b-12d3-a456-426614174000' },
+      } as unknown as AuthRequest;
+
+      await loanSimulationsController.withdraw(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(json).toHaveBeenCalledWith({ error: 'Unauthorized' });
+      expect(mockedService.withdrawFunds).not.toHaveBeenCalled();
+    });
+
+    it('parses params and calls service with correct arguments', async () => {
+      const { res, json } = createMockResponse();
+      const req = {
+        user: { userId: 'user-1', email: 'user@example.com' },
+        params: { id: '123e4567-e89b-12d3-a456-426614174000' },
+      } as unknown as AuthRequest;
+      const response = {
+        simulation: buildLoanSimulationDetails({
+          id: '123e4567-e89b-12d3-a456-426614174000',
+          status: LoanSimulationStatus.COMPLETED,
+        }),
+        balances: {
+          emergencyReserveBefore: 1000,
+          availableBalanceBefore: 100,
+          emergencyReserveAfter: 500,
+          availableBalanceAfter: 600,
+        },
+        message: 'Withdrawn',
+      };
+
+      mockedService.withdrawFunds.mockResolvedValueOnce(response);
+
+      await loanSimulationsController.withdraw(req, res);
+
+      expect(mockedService.withdrawFunds).toHaveBeenCalledWith(
+        'user-1',
+        '123e4567-e89b-12d3-a456-426614174000'
+      );
+      expect(json).toHaveBeenCalledWith(response);
     });
   });
 });

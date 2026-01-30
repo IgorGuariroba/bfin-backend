@@ -11,6 +11,9 @@ import type {
   LoanSimulationCreateInput,
   LoanSimulationDetails,
   LoanSimulationSummary,
+  LoanSimulationStatus,
+  ApprovalResponse,
+  WithdrawalResponse,
 } from '../types';
 import { AccountService } from './AccountService';
 import { auditEventService } from './AuditEventService';
@@ -154,6 +157,9 @@ export class LoanSimulationService {
         reserveRemainingAmount: Number(simulation.reserve_remaining_amount),
         monthlyCashflowImpact: Number(simulation.monthly_cashflow_impact),
         installmentPlan,
+        status: simulation.status,
+        approvedAt: simulation.approved_at,
+        withdrawnAt: simulation.withdrawn_at,
       };
 
       return details;
@@ -162,9 +168,17 @@ export class LoanSimulationService {
     return result;
   }
 
-  async listSimulations(userId: string, limit = 50, offset = 0): Promise<LoanSimulationSummary[]> {
+  async listSimulations(
+    userId: string,
+    limit = 50,
+    offset = 0,
+    status?: LoanSimulationStatus
+  ): Promise<LoanSimulationSummary[]> {
     const simulations = await prisma.loanSimulation.findMany({
-      where: { user_id: userId },
+      where: {
+        user_id: userId,
+        ...(status && { status }),
+      },
       orderBy: { created_at: 'desc' },
       take: limit,
       skip: offset,
@@ -177,6 +191,9 @@ export class LoanSimulationService {
       termMonths: simulation.term_months,
       interestRateMonthly: Number(simulation.interest_rate_monthly),
       installmentAmount: Number(simulation.installment_amount),
+      status: simulation.status,
+      approvedAt: simulation.approved_at,
+      withdrawnAt: simulation.withdrawn_at,
     }));
   }
 
@@ -214,7 +231,304 @@ export class LoanSimulationService {
         totalPayment: Number(installment.total_payment),
         remainingBalance: Number(installment.remaining_balance),
       })),
+      status: simulation.status,
+      approvedAt: simulation.approved_at,
+      withdrawnAt: simulation.withdrawn_at,
     };
+  }
+
+  async approveSimulation(userId: string, simulationId: string): Promise<ApprovalResponse> {
+    const result = await prisma.$transaction(async (tx) => {
+      // 1. Validate simulation exists and belongs to user
+      const simulation = await tx.loanSimulation.findFirst({
+        where: { id: simulationId, user_id: userId },
+        include: {
+          installments: {
+            orderBy: { installment_number: 'asc' },
+          },
+        },
+      });
+
+      if (!simulation) {
+        throw new NotFoundError('Loan simulation not found');
+      }
+
+      // 2. Check status is PENDING
+      if (simulation.status !== 'PENDING') {
+        throw new ValidationError(
+          `Cannot approve simulation with status ${simulation.status}. Only PENDING simulations can be approved.`
+        );
+      }
+
+      // 3. Validate 30-day expiration
+      const now = new Date();
+      const createdAt = new Date(simulation.created_at);
+      const daysSinceCreation = Math.floor(
+        (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24)
+      );
+
+      if (daysSinceCreation > 30) {
+        throw new ValidationError(
+          'Simulation has expired. Simulations are only valid for 30 days after creation.'
+        );
+      }
+
+      // 4. Get emergency reserve context
+      const reserveContext = await accountService.getDefaultEmergencyReserve(userId, tx);
+      const reserveAmount = reserveContext.emergencyReserveAmount;
+
+      // 5. Calculate sum of active loans (APPROVED + COMPLETED)
+      const activeLoansAggregate = await tx.loanSimulation.aggregate({
+        where: {
+          user_id: userId,
+          account_id: reserveContext.accountId,
+          status: { in: ['APPROVED', 'COMPLETED'] },
+        },
+        _sum: {
+          principal_amount: true,
+        },
+      });
+
+      const activeLoansTotal = Number(activeLoansAggregate._sum.principal_amount ?? 0);
+      const currentSimulationAmount = Number(simulation.principal_amount);
+      const totalUsage = activeLoansTotal + currentSimulationAmount;
+
+      // 6. Validate 70% reserve limit
+      const maxAllowedAmount = reserveAmount * (LOAN_SIMULATION_MAX_RESERVE_USAGE_PERCENT / 100);
+
+      if (totalUsage > maxAllowedAmount) {
+        throw new ValidationError(
+          `Approval would exceed reserve limit. Current active loans: ${activeLoansTotal.toFixed(2)}, ` +
+            `requested amount: ${currentSimulationAmount.toFixed(2)}, ` +
+            `total: ${totalUsage.toFixed(2)}, ` +
+            `maximum allowed (70% of ${reserveAmount.toFixed(2)}): ${maxAllowedAmount.toFixed(2)}`
+        );
+      }
+
+      // 7. Update simulation: status=APPROVED, approved_at=now()
+      const approvedSimulation = await tx.loanSimulation.update({
+        where: { id: simulationId },
+        data: {
+          status: 'APPROVED',
+          approved_at: now,
+        },
+        include: {
+          installments: {
+            orderBy: { installment_number: 'asc' },
+          },
+        },
+      });
+
+      // 8. Create audit event
+      await auditEventService.writeEvent(
+        {
+          userId,
+          accountId: reserveContext.accountId,
+          simulationId,
+          eventType: 'loan_simulation_approved',
+          payload: {
+            amount: currentSimulationAmount,
+            termMonths: simulation.term_months,
+            activeLoansTotal,
+            totalUsage,
+            reserveLimit: maxAllowedAmount,
+          },
+        },
+        tx
+      );
+
+      // 9. Return LoanSimulationDetails
+      const details: LoanSimulationDetails = {
+        id: approvedSimulation.id,
+        createdAt: approvedSimulation.created_at,
+        amount: Number(approvedSimulation.principal_amount),
+        termMonths: approvedSimulation.term_months,
+        interestRateMonthly: Number(approvedSimulation.interest_rate_monthly),
+        amortizationType: 'PRICE',
+        installmentAmount: Number(approvedSimulation.installment_amount),
+        totalInterest: Number(approvedSimulation.total_interest),
+        totalCost: Number(approvedSimulation.total_cost),
+        reserveUsagePercent: Number(approvedSimulation.reserve_usage_percent),
+        reserveRemainingAmount: Number(approvedSimulation.reserve_remaining_amount),
+        monthlyCashflowImpact: Number(approvedSimulation.monthly_cashflow_impact),
+        installmentPlan: approvedSimulation.installments.map((installment) => ({
+          installmentNumber: installment.installment_number,
+          principalComponent: Number(installment.principal_component),
+          interestComponent: Number(installment.interest_component),
+          totalPayment: Number(installment.total_payment),
+          remainingBalance: Number(installment.remaining_balance),
+        })),
+        status: approvedSimulation.status,
+        approvedAt: approvedSimulation.approved_at,
+        withdrawnAt: approvedSimulation.withdrawn_at,
+      };
+
+      return {
+        simulation: details,
+        message: 'Loan simulation approved successfully',
+      };
+    });
+
+    return result;
+  }
+
+  async withdrawFunds(userId: string, simulationId: string): Promise<WithdrawalResponse> {
+    const result = await prisma.$transaction(async (tx) => {
+      // 1. Get simulation with account relation
+      const simulation = await tx.loanSimulation.findFirst({
+        where: { id: simulationId, user_id: userId },
+        include: {
+          account: true,
+          installments: {
+            orderBy: { installment_number: 'asc' },
+          },
+        },
+      });
+
+      if (!simulation) {
+        throw new NotFoundError('Loan simulation not found');
+      }
+
+      // 2. Validate status is APPROVED
+      if (simulation.status !== 'APPROVED') {
+        throw new ValidationError(
+          `Cannot withdraw from simulation with status ${simulation.status}. Only APPROVED simulations can be withdrawn.`
+        );
+      }
+
+      // 3. Get current account balances
+      const account = simulation.account;
+      const currentReserve = Number(account.emergency_reserve);
+      const currentAvailable = Number(account.available_balance);
+      const principalAmount = Number(simulation.principal_amount);
+
+      // 4. Validate reserve balance is sufficient
+      if (currentReserve < principalAmount) {
+        throw new ValidationError(
+          `Insufficient emergency reserve. Available reserve: ${currentReserve.toFixed(2)}, ` +
+            `required: ${principalAmount.toFixed(2)}`
+        );
+      }
+
+      // 5. Calculate active loans total for revalidation
+      const activeLoansAggregate = await tx.loanSimulation.aggregate({
+        where: {
+          user_id: userId,
+          account_id: account.id,
+          status: { in: ['APPROVED', 'COMPLETED'] },
+          id: { not: simulationId }, // Exclude current simulation
+        },
+        _sum: {
+          principal_amount: true,
+        },
+      });
+
+      const activeLoansTotal = Number(activeLoansAggregate._sum.principal_amount ?? 0);
+      const totalUsage = activeLoansTotal + principalAmount;
+
+      // 6. Revalidate 70% limit with current reserve
+      const maxAllowedAmount = currentReserve * (LOAN_SIMULATION_MAX_RESERVE_USAGE_PERCENT / 100);
+
+      if (totalUsage > maxAllowedAmount) {
+        throw new ValidationError(
+          `Withdrawal would exceed reserve limit. Current active loans: ${activeLoansTotal.toFixed(2)}, ` +
+            `requested amount: ${principalAmount.toFixed(2)}, ` +
+            `total: ${totalUsage.toFixed(2)}, ` +
+            `maximum allowed (70% of current reserve ${currentReserve.toFixed(2)}): ${maxAllowedAmount.toFixed(2)}`
+        );
+      }
+
+      // 7. Capture balances before
+      const balancesBefore = {
+        emergencyReserveBefore: currentReserve,
+        availableBalanceBefore: currentAvailable,
+      };
+
+      // 8. Update account balances atomically
+      const updatedAccount = await tx.account.update({
+        where: { id: account.id },
+        data: {
+          emergency_reserve: { decrement: principalAmount },
+          available_balance: { increment: principalAmount },
+        },
+      });
+
+      // 9. Update simulation status to COMPLETED
+      const now = new Date();
+      const completedSimulation = await tx.loanSimulation.update({
+        where: { id: simulationId },
+        data: {
+          status: 'COMPLETED',
+          withdrawn_at: now,
+        },
+        include: {
+          installments: {
+            orderBy: { installment_number: 'asc' },
+          },
+        },
+      });
+
+      // 10. Capture balances after
+      const balancesAfter = {
+        emergencyReserveAfter: Number(updatedAccount.emergency_reserve),
+        availableBalanceAfter: Number(updatedAccount.available_balance),
+      };
+
+      // 11. Create audit event
+      await auditEventService.writeEvent(
+        {
+          userId,
+          accountId: account.id,
+          simulationId,
+          eventType: 'loan_simulation_withdrawn',
+          payload: {
+            amount: principalAmount,
+            balanceSnapshot: {
+              ...balancesBefore,
+              ...balancesAfter,
+            },
+          },
+        },
+        tx
+      );
+
+      // 12. Build response
+      const details: LoanSimulationDetails = {
+        id: completedSimulation.id,
+        createdAt: completedSimulation.created_at,
+        amount: Number(completedSimulation.principal_amount),
+        termMonths: completedSimulation.term_months,
+        interestRateMonthly: Number(completedSimulation.interest_rate_monthly),
+        amortizationType: 'PRICE',
+        installmentAmount: Number(completedSimulation.installment_amount),
+        totalInterest: Number(completedSimulation.total_interest),
+        totalCost: Number(completedSimulation.total_cost),
+        reserveUsagePercent: Number(completedSimulation.reserve_usage_percent),
+        reserveRemainingAmount: Number(completedSimulation.reserve_remaining_amount),
+        monthlyCashflowImpact: Number(completedSimulation.monthly_cashflow_impact),
+        installmentPlan: completedSimulation.installments.map((installment) => ({
+          installmentNumber: installment.installment_number,
+          principalComponent: Number(installment.principal_component),
+          interestComponent: Number(installment.interest_component),
+          totalPayment: Number(installment.total_payment),
+          remainingBalance: Number(installment.remaining_balance),
+        })),
+        status: completedSimulation.status,
+        approvedAt: completedSimulation.approved_at,
+        withdrawnAt: completedSimulation.withdrawn_at,
+      };
+
+      return {
+        simulation: details,
+        balances: {
+          ...balancesBefore,
+          ...balancesAfter,
+        },
+        message: 'Funds withdrawn successfully from emergency reserve',
+      };
+    });
+
+    return result;
   }
 }
 

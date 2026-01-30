@@ -323,6 +323,12 @@ model Notification {
 // SIMULAÇÕES DE EMPRÉSTIMO (RESERVA)
 // ====================================
 
+enum LoanSimulationStatus {
+  PENDING
+  APPROVED
+  COMPLETED
+}
+
 model LoanSimulation {
   id         String  @id @default(uuid())
   user_id    String
@@ -341,6 +347,10 @@ model LoanSimulation {
   reserve_remaining_amount Decimal @db.Decimal(15, 2)
   monthly_cashflow_impact Decimal @db.Decimal(15, 2)
 
+  status       LoanSimulationStatus @default(PENDING)
+  approved_at  DateTime?
+  withdrawn_at DateTime?
+
   installments   InstallmentPlan[]
   cash_flow      CashFlowImpact?
   audit_events   AuditEvent[]
@@ -349,6 +359,8 @@ model LoanSimulation {
 
   @@index([user_id, created_at])
   @@index([account_id, created_at])
+  @@index([status])
+  @@index([user_id, status])
   @@map("loan_simulations")
 }
 

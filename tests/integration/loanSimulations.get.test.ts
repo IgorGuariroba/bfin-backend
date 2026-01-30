@@ -82,4 +82,75 @@ describe('GET /api/v1/loan-simulations/:simulationId', () => {
     expect(Array.isArray(response.body.installmentPlan)).toBe(true);
     expect(response.body.installmentPlan).toHaveLength(20);
   });
+
+  it('includes status, approvedAt, and withdrawnAt fields in response', async () => {
+    const response = await request(app)
+      .get(`/api/v1/loan-simulations/${simulationId}`)
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(response.status).toBe(200);
+    expect(response.body).toHaveProperty('status');
+    expect(response.body).toHaveProperty('approvedAt');
+    expect(response.body).toHaveProperty('withdrawnAt');
+  });
+
+  it('returns PENDING simulation with null timestamps', async () => {
+    const response = await request(app)
+      .get(`/api/v1/loan-simulations/${simulationId}`)
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(response.status).toBe(200);
+    expect(response.body.status).toBe('PENDING');
+    expect(response.body.approvedAt).toBeNull();
+    expect(response.body.withdrawnAt).toBeNull();
+  });
+
+  it('returns APPROVED simulation with approvedAt populated and withdrawnAt null', async () => {
+    // Approve the simulation
+    await request(app)
+      .post(`/api/v1/loan-simulations/${simulationId}/approve`)
+      .set('Authorization', `Bearer ${token}`);
+
+    const response = await request(app)
+      .get(`/api/v1/loan-simulations/${simulationId}`)
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(response.status).toBe(200);
+    expect(response.body.status).toBe('APPROVED');
+    expect(response.body.approvedAt).toBeTruthy();
+    expect(typeof response.body.approvedAt).toBe('string');
+    expect(response.body.withdrawnAt).toBeNull();
+
+    // Verify approvedAt is a valid date
+    const approvedDate = new Date(response.body.approvedAt);
+    expect(approvedDate.getTime()).toBeLessThanOrEqual(Date.now());
+  });
+
+  it('returns COMPLETED simulation with both timestamps populated', async () => {
+    // Approve and withdraw the simulation
+    await request(app)
+      .post(`/api/v1/loan-simulations/${simulationId}/approve`)
+      .set('Authorization', `Bearer ${token}`);
+
+    await request(app)
+      .post(`/api/v1/loan-simulations/${simulationId}/withdraw`)
+      .set('Authorization', `Bearer ${token}`);
+
+    const response = await request(app)
+      .get(`/api/v1/loan-simulations/${simulationId}`)
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(response.status).toBe(200);
+    expect(response.body.status).toBe('COMPLETED');
+    expect(response.body.approvedAt).toBeTruthy();
+    expect(response.body.withdrawnAt).toBeTruthy();
+    expect(typeof response.body.approvedAt).toBe('string');
+    expect(typeof response.body.withdrawnAt).toBe('string');
+
+    // Verify both are valid dates
+    const approvedDate = new Date(response.body.approvedAt);
+    const withdrawnDate = new Date(response.body.withdrawnAt);
+    expect(approvedDate.getTime()).toBeLessThanOrEqual(withdrawnDate.getTime());
+    expect(withdrawnDate.getTime()).toBeLessThanOrEqual(Date.now());
+  });
 });

@@ -57,6 +57,7 @@ prisma/generated/client/
 # Local tooling
 .gemini/
 .codex/
+.claude/settings.local.json
 
 # Reports
 zap_report.html
