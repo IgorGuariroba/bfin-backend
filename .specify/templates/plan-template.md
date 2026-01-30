@@ -3,8 +3,7 @@
 **Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
 **Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
 
-**Note**: This template is filled in by the planning workflow. If done manually,
-replace every placeholder and remove instructional comments.
+**Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
 
 ## Summary
 
@@ -32,11 +31,7 @@ replace every placeholder and remove instructional comments.
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-- Security and privacy controls defined for all sensitive data flows
-- Accounting invariants (ledger balance, immutability, reversals) documented
-- Audit trail events defined for every financial mutation
-- Simulated vs real data separation and labeling confirmed
-- Daily limits and reserves enforcement rules captured
+[Gates determined based on constitution file]
 
 ## Project Structure
 
@@ -44,12 +39,12 @@ replace every placeholder and remove instructional comments.
 
 ```text
 specs/[###-feature]/
-├── plan.md              # This file (planning workflow output)
-├── research.md          # Phase 0 output (planning workflow)
-├── data-model.md        # Phase 1 output (planning workflow)
-├── quickstart.md        # Phase 1 output (planning workflow)
-├── contracts/           # Phase 1 output (planning workflow)
-└── tasks.md             # Phase 2 output (tasks workflow)
+├── plan.md              # This file (/speckit.plan command output)
+├── research.md          # Phase 0 output (/speckit.plan command)
+├── data-model.md        # Phase 1 output (/speckit.plan command)
+├── quickstart.md        # Phase 1 output (/speckit.plan command)
+├── contracts/           # Phase 1 output (/speckit.plan command)
+└── tasks.md             # Phase 2 output (/speckit.tasks command - NOT created by /speckit.plan)
 ```
 
 ### Source Code (repository root)

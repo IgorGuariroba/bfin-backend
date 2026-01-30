@@ -95,14 +95,6 @@
 - **FR-006**: System MUST authenticate users via [NEEDS CLARIFICATION: auth method not specified - email/password, SSO, OAuth?]
 - **FR-007**: System MUST retain user data for [NEEDS CLARIFICATION: retention period not specified]
 
-### Constitution Alignment (mandatory)
-
-- Security and privacy controls for all sensitive data and auth flows
-- Accounting invariants defined (ledger balance, immutability, reversals)
-- Audit trail events specified for every financial mutation
-- Simulated vs real data separation and labeling clarified
-- Daily limits and reserves rules specified and testable
-
 ### Key Entities *(include if feature involves data)*
 
 - **[Entity 1]**: [What it represents, key attributes without implementation]
