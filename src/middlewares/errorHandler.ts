@@ -47,8 +47,34 @@ export class NotFoundError extends AppError {
   }
 }
 
-export function errorHandler(error: Error, _req: Request, res: Response, _next: NextFunction) {
-  console.error('Error:', error);
+export function errorHandler(error: any, _req: Request, res: Response, _next: NextFunction) {
+  // Log error safely to avoid util.inspect crashes (common in some Node.js versions with Proxies)
+  try {
+    if (error instanceof Error) {
+      // Log only strings to avoid util.inspect issues
+      const name = String(error.name || 'Error');
+      const message = String(error.message || 'No message');
+      console.error(`Error [${name}]: ${message}`);
+
+      if (error.stack) {
+        console.error(String(error.stack));
+      }
+    } else {
+      // If not an Error object, try to convert to string safely
+      try {
+        console.error('Non-Error object thrown:', String(error));
+      } catch (_innerError) {
+        console.error('Non-Error object thrown (could not be converted to string)');
+      }
+    }
+  } catch (_logError) {
+    // If we're here, even basic logging failed. Try one last time with a literal string.
+    try {
+      console.error('Failed to log original error safely');
+    } catch (_e) {
+      // Ignore
+    }
+  }
 
   // AppError (erros customizados)
   if (error instanceof AppError) {
