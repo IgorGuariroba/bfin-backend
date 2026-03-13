@@ -4,6 +4,7 @@ import cors from 'cors';
 import express from 'express';
 import helmet from 'helmet';
 import morgan from 'morgan';
+import type { OpenAPIV3 } from 'openapi-types';
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './config/swagger';
 import { errorHandler } from './middlewares/errorHandler';
@@ -22,7 +23,7 @@ app.use(helmet());
 // CORS - Aceitar apenas www
 const allowedOrigins = process.env.CORS_ORIGINS
   ? process.env.CORS_ORIGINS.split(',')
-  : ['http://localhost:5173'];
+  : ['http://localhost:5173', 'http://localhost:3000'];
 
 app.use(
   cors({
@@ -70,6 +71,18 @@ if (DOCS_ENABLED) {
       },
     })
   );
+
+  // Swagger as Markdown
+  app.get('/api-docs.md', (_req, res) => {
+    const markdown = swaggerToMarkdown(swaggerSpec as OpenAPIV3.Document);
+    res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
+    res.send(markdown);
+  });
+
+  // Raw OpenAPI JSON
+  app.get('/api-docs.json', (_req, res) => {
+    res.json(swaggerSpec);
+  });
 }
 
 // Rotas da API
@@ -89,6 +102,7 @@ import invitationRoutes from './routes/invitations.routes';
 import loanSimulationRoutes from './routes/loanSimulations.routes';
 import suggestionRoutes from './routes/suggestions.routes';
 import transactionRoutes from './routes/transactions.routes';
+import { swaggerToMarkdown } from './utils/swaggerToMarkdown';
 
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/accounts', accountRoutes);
