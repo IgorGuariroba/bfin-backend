@@ -1,4 +1,4 @@
-FROM node:20-alpine AS builder
+FROM node:24.13.0-alpine AS builder
 
 ARG DATABASE_URL
 ENV DATABASE_URL=${DATABASE_URL}
@@ -17,7 +17,7 @@ RUN npx prisma generate
 RUN npm run build
 
 
-FROM node:20-alpine
+FROM node:24.13.0-alpine
 RUN addgroup -g 1001 -S nodejs && adduser -S nodejs -u 1001
 WORKDIR /app
 COPY --from=builder --chown=root:root --chmod=755 /app/dist ./dist
