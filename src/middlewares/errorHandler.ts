@@ -47,7 +47,8 @@ export class NotFoundError extends AppError {
   }
 }
 
-export function errorHandler(error: unknown, _req: Request, res: Response, _next: NextFunction) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function errorHandler(error: any, _req: Request, res: Response, _next: NextFunction) {
   // Log error safely to avoid util.inspect crashes (common in some Node.js versions with Proxies)
   try {
     if (error instanceof Error) {
