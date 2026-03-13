@@ -44,14 +44,24 @@ const listTransactionsSchema = z.object({
   accountId: z.string().uuid().optional(),
   type: z.enum(['income', 'fixed_expense', 'variable_expense']).optional(),
   types: z
-    .string()
+    .union([z.string(), z.array(z.string())])
     .optional()
-    .transform((val) => (val ? val.split(',') : undefined)),
+    .transform((val) => {
+      if (!val) {
+        return undefined;
+      }
+      return Array.isArray(val) ? val : val.split(',');
+    }),
   status: z.enum(['pending', 'executed', 'cancelled', 'locked']).optional(),
   statuses: z
-    .string()
+    .union([z.string(), z.array(z.string())])
     .optional()
-    .transform((val) => (val ? val.split(',') : undefined)),
+    .transform((val) => {
+      if (!val) {
+        return undefined;
+      }
+      return Array.isArray(val) ? val : val.split(',');
+    }),
   startDate: z
     .string()
     .datetime()
@@ -64,9 +74,14 @@ const listTransactionsSchema = z.object({
     .transform((val) => (val ? new Date(val) : undefined)),
   categoryId: z.string().uuid().optional(),
   categories: z
-    .string()
+    .union([z.string(), z.array(z.string())])
     .optional()
-    .transform((val) => (val ? val.split(',') : undefined)),
+    .transform((val) => {
+      if (!val) {
+        return undefined;
+      }
+      return Array.isArray(val) ? val : val.split(',');
+    }),
   page: z
     .string()
     .optional()

@@ -17,6 +17,13 @@ vi.mock('../../src/lib/prisma', () => ({
     account: {
       update: vi.fn(),
     },
+    category: {
+      findFirst: vi.fn(),
+      create: vi.fn(),
+    },
+    transaction: {
+      create: vi.fn(),
+    },
   },
 }));
 

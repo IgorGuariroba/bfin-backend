@@ -125,6 +125,25 @@ describe('POST /api/v1/loan-simulations/:id/withdraw', () => {
     });
 
     expect(auditEvents.length).toBe(1);
+
+    // Verify installment transactions were created
+    const transactions = await prisma.transaction.findMany({
+      where: {
+        account_id: accountId,
+        description: { contains: 'Empréstimo Reserva' },
+      },
+    });
+
+    expect(transactions.length).toBe(12);
+    expect(transactions[0].status).toBe('pending');
+    expect(transactions[0].type).toBe('fixed_expense');
+
+    // Check if a category was created/assigned
+    const category = await prisma.category.findUnique({
+      where: { id: transactions[0].category_id as string },
+    });
+    expect(category?.name).toBe('Empréstimo (Reserva)');
+    expect(category?.is_system).toBe(true);
   });
 
   it('rejects withdrawal from PENDING simulation', async () => {

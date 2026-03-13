@@ -474,6 +474,46 @@ export class LoanSimulationService {
         availableBalanceAfter: Number(updatedAccount.available_balance),
       };
 
+      // 10.1 Create transactions for each installment to appear in the calendar
+      // Find or create a category for Loan Payments
+      let loanCategory = await tx.category.findFirst({
+        where: { name: 'Empréstimo (Reserva)', is_system: true },
+      });
+
+      if (!loanCategory) {
+        loanCategory = await tx.category.create({
+          data: {
+            name: 'Empréstimo (Reserva)',
+            type: 'expense',
+            color: '#FF9800',
+            icon: 'account_balance_wallet',
+            is_system: true,
+          },
+        });
+      }
+
+      const installmentTransactions = [];
+      const baseDueDate = new Date(now);
+
+      for (const installment of completedSimulation.installments) {
+        // Calculate due date: same day of month for each subsequent month
+        const dueDate = new Date(baseDueDate);
+        dueDate.setMonth(baseDueDate.getMonth() + installment.installment_number);
+
+        const transaction = await tx.transaction.create({
+          data: {
+            account_id: account.id,
+            category_id: loanCategory.id,
+            type: 'fixed_expense',
+            amount: installment.total_payment,
+            description: `Parcela ${installment.installment_number}/${completedSimulation.term_months} - Empréstimo Reserva`,
+            due_date: dueDate,
+            status: 'pending',
+          },
+        });
+        installmentTransactions.push(transaction);
+      }
+
       // 11. Create audit event
       await auditEventService.writeEvent(
         {
