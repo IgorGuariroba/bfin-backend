@@ -29,7 +29,10 @@ permissions:
 
 jobs:
   publish:
-    name: Publish SDK
+name: Publish SDK
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     runs-on: ubuntu-latest
 
     steps:
