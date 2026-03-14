@@ -49,6 +49,7 @@ const createFixedExpenseSchema = z.object({
   amount: z.number().positive('Amount must be positive'),
   description: z.string().min(1, 'Description is required'),
   categoryId: z.string().uuid('Invalid category ID'),
+  type: z.literal('fixed'),
   dueDate: z
     .string()
     .datetime()
@@ -72,6 +73,7 @@ const createVariableExpenseSchema = z.object({
   amount: z.number().positive('Amount must be positive'),
   description: z.string().min(1, 'Description is required'),
   categoryId: z.string().uuid('Invalid category ID'),
+  type: z.literal('variable'),
   dueDate: z
     .string()
     .datetime()

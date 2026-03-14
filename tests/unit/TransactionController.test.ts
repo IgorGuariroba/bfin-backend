@@ -183,6 +183,7 @@ describe('TransactionController Unit Tests', () => {
         amount: 200,
         description: 'Rent',
         categoryId,
+        type: 'fixed',
         dueDate: dueDateIso,
         isRecurring: true,
         recurrencePattern: 'monthly',
@@ -200,6 +201,7 @@ describe('TransactionController Unit Tests', () => {
         amount: 200,
         description: 'Rent',
         categoryId,
+        type: 'fixed',
         isRecurring: true,
         recurrencePattern: 'monthly',
       });
@@ -214,6 +216,7 @@ describe('TransactionController Unit Tests', () => {
         amount: 50,
         description: 'Groceries',
         categoryId,
+        type: 'variable',
       };
 
       const serviceResult = { ok: true };
@@ -226,6 +229,7 @@ describe('TransactionController Unit Tests', () => {
         amount: 50,
         description: 'Groceries',
         categoryId,
+        type: 'variable',
       });
       expect(status).toHaveBeenCalledWith(201);
       expect(json).toHaveBeenCalledWith(serviceResult);
