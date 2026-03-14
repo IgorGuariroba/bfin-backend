@@ -9,10 +9,8 @@ import type {
   DeleteApiV1TransactionsId200,
   GetApiV1Transactions200,
   GetApiV1TransactionsParams,
-  PostApiV1TransactionsFixedExpenseBody,
   PostApiV1TransactionsIdMarkAsPaid200,
   PostApiV1TransactionsIncomeBody,
-  PostApiV1TransactionsVariableExpenseBody,
   PutApiV1TransactionsId200,
   PutApiV1TransactionsIdBody,
   Transaction,
@@ -37,42 +35,6 @@ export const getTransactions = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         data: postApiV1TransactionsIncomeBody,
-      },
-      options
-    );
-  };
-  /**
-   * Cria uma despesa fixa com bloqueio preventivo do valor no saldo disponível
-   * @summary Criar despesa fixa
-   */
-  const postApiV1TransactionsFixedExpense = (
-    postApiV1TransactionsFixedExpenseBody: PostApiV1TransactionsFixedExpenseBody,
-    options?: SecondParameter<typeof customInstance<Transaction>>
-  ) => {
-    return customInstance<Transaction>(
-      {
-        url: `/api/v1/transactions/fixed-expense`,
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        data: postApiV1TransactionsFixedExpenseBody,
-      },
-      options
-    );
-  };
-  /**
-   * Cria uma despesa variável com débito imediato no saldo disponível
-   * @summary Criar despesa variável
-   */
-  const postApiV1TransactionsVariableExpense = (
-    postApiV1TransactionsVariableExpenseBody: PostApiV1TransactionsVariableExpenseBody,
-    options?: SecondParameter<typeof customInstance<Transaction>>
-  ) => {
-    return customInstance<Transaction>(
-      {
-        url: `/api/v1/transactions/variable-expense`,
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        data: postApiV1TransactionsVariableExpenseBody,
       },
       options
     );
@@ -163,8 +125,6 @@ export const getTransactions = () => {
   };
   return {
     postApiV1TransactionsIncome,
-    postApiV1TransactionsFixedExpense,
-    postApiV1TransactionsVariableExpense,
     getApiV1Transactions,
     getApiV1TransactionsId,
     putApiV1TransactionsId,
@@ -175,12 +135,6 @@ export const getTransactions = () => {
 };
 export type PostApiV1TransactionsIncomeResult = NonNullable<
   Awaited<ReturnType<ReturnType<typeof getTransactions>['postApiV1TransactionsIncome']>>
->;
-export type PostApiV1TransactionsFixedExpenseResult = NonNullable<
-  Awaited<ReturnType<ReturnType<typeof getTransactions>['postApiV1TransactionsFixedExpense']>>
->;
-export type PostApiV1TransactionsVariableExpenseResult = NonNullable<
-  Awaited<ReturnType<ReturnType<typeof getTransactions>['postApiV1TransactionsVariableExpense']>>
 >;
 export type GetApiV1TransactionsResult = NonNullable<
   Awaited<ReturnType<ReturnType<typeof getTransactions>['getApiV1Transactions']>>

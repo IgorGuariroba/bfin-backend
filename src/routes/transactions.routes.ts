@@ -91,11 +91,11 @@ router.post('/income', (req, res, next) => {
 
 /**
  * @swagger
- * /api/v1/transactions/fixed-expense:
+ * /api/v1/transactions/expense:
  *   post:
  *     tags: [Transactions]
- *     summary: Criar despesa fixa
- *     description: Cria uma despesa fixa com bloqueio preventivo do valor no saldo disponível
+ *     summary: Criar despesa (fixa ou variável)
+ *     description: Cria uma despesa. Tipo "fixed" bloqueia o valor no saldo (pode ser recorrente). Tipo "variable" debita imediatamente.
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -109,7 +109,7 @@ router.post('/income', (req, res, next) => {
  *               - amount
  *               - description
  *               - categoryId
- *               - dueDate
+ *               - type
  *             properties:
  *               accountId:
  *                 type: string
@@ -128,34 +128,107 @@ router.post('/income', (req, res, next) => {
  *                 type: string
  *                 format: uuid
  *                 description: ID da categoria
+ *               type:
+ *                 type: string
+ *                 enum: [fixed, variable]
+ *                 description: 'Tipo de despesa: fixed bloqueia saldo e suporta recorrência, variable debita imediatamente'
  *               dueDate:
  *                 type: string
  *                 format: date-time
- *                 description: Data de vencimento (obrigatório)
+ *                 description: Data de vencimento (obrigatório para type=fixed, opcional para type=variable)
  *               isRecurring:
  *                 type: boolean
- *                 description: Indica se é uma despesa recorrente
+ *                 description: Indica se é uma despesa recorrente (apenas para type=fixed)
  *               recurrencePattern:
  *                 type: string
  *                 enum: [monthly, weekly, yearly]
- *                 description: Padrão de recorrência (opcional)
- *           example:
- *             accountId: "123e4567-e89b-12d3-a456-426614174000"
- *             amount: 1500.00
- *             description: "Aluguel"
- *             categoryId: "123e4567-e89b-12d3-a456-426614174001"
- *             dueDate: "2024-01-10T00:00:00.000Z"
- *             isRecurring: true
- *             recurrencePattern: "monthly"
+ *                 description: Padrão de recorrência (apenas para type=fixed)
+ *               recurrenceInterval:
+ *                 type: integer
+ *                 minimum: 1
+ *                 default: 1
+ *                 description: 'Intervalo entre repetições (ex: 3 com monthly = de 3 em 3 meses). Padrão é 1.'
+ *               recurrenceCount:
+ *                 type: integer
+ *                 minimum: 1
+ *                 description: Número total de repetições. Não usar com recurrenceEndDate ou indefinite.
+ *               recurrenceEndDate:
+ *                 type: string
+ *                 format: date-time
+ *                 description: Data final da recorrência. Não usar com recurrenceCount ou indefinite.
+ *               indefinite:
+ *                 type: boolean
+ *                 description: Se true, a despesa se repete indefinidamente até ser cancelada. Não usar com recurrenceCount ou recurrenceEndDate.
+ *           examples:
+ *             Despesa fixa única:
+ *               value:
+ *                 accountId: "123e4567-e89b-12d3-a456-426614174000"
+ *                 amount: 1500.00
+ *                 description: "Conserto de eletrodoméstico"
+ *                 categoryId: "123e4567-e89b-12d3-a456-426614174001"
+ *                 type: "fixed"
+ *                 dueDate: "2024-01-10T00:00:00.000Z"
+ *             Despesa fixa recorrente temporária (5 meses):
+ *               value:
+ *                 accountId: "123e4567-e89b-12d3-a456-426614174000"
+ *                 amount: 200.00
+ *                 description: "Curso especializado"
+ *                 categoryId: "123e4567-e89b-12d3-a456-426614174001"
+ *                 type: "fixed"
+ *                 dueDate: "2024-01-10T00:00:00.000Z"
+ *                 isRecurring: true
+ *                 recurrencePattern: "monthly"
+ *                 recurrenceCount: 5
+ *             Despesa trimestral (gás de cozinha - de 3 em 3 meses):
+ *               value:
+ *                 accountId: "123e4567-e89b-12d3-a456-426614174000"
+ *                 amount: 120.00
+ *                 description: "Gás de cozinha"
+ *                 categoryId: "123e4567-e89b-12d3-a456-426614174001"
+ *                 type: "fixed"
+ *                 dueDate: "2024-01-10T00:00:00.000Z"
+ *                 isRecurring: true
+ *                 recurrencePattern: "monthly"
+ *                 recurrenceInterval: 3
+ *                 recurrenceCount: 4
+ *             Despesa fixa recorrente indefinida (aluguel):
+ *               value:
+ *                 accountId: "123e4567-e89b-12d3-a456-426614174000"
+ *                 amount: 1500.00
+ *                 description: "Aluguel"
+ *                 categoryId: "123e4567-e89b-12d3-a456-426614174001"
+ *                 type: "fixed"
+ *                 dueDate: "2024-01-10T00:00:00.000Z"
+ *                 isRecurring: true
+ *                 recurrencePattern: "monthly"
+ *                 indefinite: true
+ *             Despesa variável (débito imediato):
+ *               value:
+ *                 accountId: "123e4567-e89b-12d3-a456-426614174000"
+ *                 amount: 45.50
+ *                 description: "Supermercado"
+ *                 categoryId: "123e4567-e89b-12d3-a456-426614174001"
+ *                 type: "variable"
+ *             Despesa fixa completa (todos os campos opcionais):
+ *               value:
+ *                 accountId: "123e4567-e89b-12d3-a456-426614174000"
+ *                 amount: 1500.00
+ *                 description: "Aluguel com todos os campos"
+ *                 categoryId: "123e4567-e89b-12d3-a456-426614174001"
+ *                 type: "fixed"
+ *                 dueDate: "2024-01-10T00:00:00.000Z"
+ *                 isRecurring: true
+ *                 recurrencePattern: "monthly"
+ *                 indefinite: true
  *     responses:
  *       201:
- *         description: Despesa fixa criada com sucesso
+ *         description: Despesa criada com sucesso. Se for fixed e recorrente, parcelas futuras são geradas automaticamente.
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Transaction'
  *       400:
- *         description: Dados inválidos
+ *         description: Dados inválidos ou conflito de opções de recorrência
  *         content:
  *           application/json:
  *             schema:
@@ -167,75 +240,8 @@ router.post('/income', (req, res, next) => {
  *       404:
  *         description: Conta ou categoria não encontrada
  */
-router.post('/fixed-expense', (req, res, next) => {
-  transactionController.createFixedExpense(req, res).catch(next);
-});
-
-/**
- * @swagger
- * /api/v1/transactions/variable-expense:
- *   post:
- *     tags: [Transactions]
- *     summary: Criar despesa variável
- *     description: Cria uma despesa variável com débito imediato no saldo disponível
- *     security:
- *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - accountId
- *               - amount
- *               - description
- *               - categoryId
- *             properties:
- *               accountId:
- *                 type: string
- *                 format: uuid
- *                 description: ID da conta
- *               amount:
- *                 type: number
- *                 format: decimal
- *                 minimum: 0.01
- *                 description: Valor da despesa
- *               description:
- *                 type: string
- *                 minLength: 1
- *                 description: Descrição da despesa
- *               categoryId:
- *                 type: string
- *                 format: uuid
- *                 description: ID da categoria
- *           example:
- *             accountId: "123e4567-e89b-12d3-a456-426614174000"
- *             amount: 45.50
- *             description: "Supermercado"
- *             categoryId: "123e4567-e89b-12d3-a456-426614174001"
- *     responses:
- *       201:
- *         description: Despesa variável criada com sucesso
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Transaction'
- *       400:
- *         description: Dados inválidos
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
- *       401:
- *         description: Não autenticado
- *       403:
- *         description: Sem acesso a esta conta
- *       404:
- *         description: Conta ou categoria não encontrada
- */
-router.post('/variable-expense', (req, res, next) => {
-  transactionController.createVariableExpense(req, res).catch(next);
+router.post('/expense', (req, res, next) => {
+  transactionController.createExpense(req, res).catch(next);
 });
 
 /**

@@ -378,6 +378,7 @@ describe('TransactionService (unit)', () => {
 
     await expect(
       service.createFixedExpense('user-1', {
+        type: 'fixed',
         accountId: 'acc-1',
         amount: 100,
         description: 'Rent',
@@ -409,6 +410,7 @@ describe('TransactionService (unit)', () => {
 
     await expect(
       service.createFixedExpense('user-1', {
+        type: 'fixed',
         accountId: 'acc-1',
         amount: 100,
         description: 'Rent',
@@ -445,6 +447,7 @@ describe('TransactionService (unit)', () => {
     dueDate.setDate(dueDate.getDate() + 1);
 
     const result = await service.createFixedExpense('user-1', {
+      type: 'fixed',
       accountId: 'acc-1',
       amount: 100,
       description: 'Rent',
@@ -478,6 +481,7 @@ describe('TransactionService (unit)', () => {
 
     await expect(
       service.createVariableExpense('user-1', {
+        type: 'variable',
         accountId: 'acc-1',
         amount: 50,
         description: 'Groceries',
@@ -510,6 +514,7 @@ describe('TransactionService (unit)', () => {
     txMock.balanceHistory.create.mockResolvedValueOnce({ id: 'hist-var-1' });
 
     const result = await service.createVariableExpense('user-1', {
+      type: 'variable',
       accountId: 'acc-1',
       amount: 50,
       description: 'Groceries',

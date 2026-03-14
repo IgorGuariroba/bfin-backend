@@ -27,9 +27,14 @@ interface CreateFixedExpenseDTO {
   amount: number;
   description: string;
   categoryId: string;
-  dueDate: Date;
+  type: 'fixed';
+  dueDate?: Date;
   isRecurring?: boolean;
-  recurrencePattern?: string;
+  recurrencePattern?: 'monthly' | 'weekly' | 'yearly';
+  recurrenceInterval?: number | null; // Intervalo entre repetições (ex: 3 = de 3 em 3 meses)
+  recurrenceCount?: number | null;
+  recurrenceEndDate?: Date | null;
+  indefinite?: boolean;
 }
 
 interface CreateVariableExpenseDTO {
@@ -37,6 +42,8 @@ interface CreateVariableExpenseDTO {
   amount: number;
   description: string;
   categoryId: string;
+  type: 'variable';
+  dueDate?: Date;
 }
 
 export class TransactionService {
@@ -170,12 +177,57 @@ export class TransactionService {
       throw new ValidationError('Amount must be positive');
     }
 
-    // Validate due date is not in the past (allow today)
-    const today = new Date();
-    today.setHours(0, 0, 0, 0); // Start of today
+    // dueDate é obrigatório para despesa fixa
+    if (!data.dueDate) {
+      throw new ValidationError('dueDate is required for fixed expenses');
+    }
 
-    if (data.dueDate < today) {
+    // Validate due date is not in the past (allow today)
+    // Extrai a data do objeto Date mantendo o dia/mês/ano originais
+    const dueDateInput = data.dueDate;
+    const dueDateStart = new Date(
+      dueDateInput.getUTCFullYear(),
+      dueDateInput.getUTCMonth(),
+      dueDateInput.getUTCDate()
+    );
+
+    const today = new Date();
+    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
+    console.log(`[DEBUG] dueDate input: ${dueDateInput.toISOString()}`);
+    console.log(
+      `[DEBUG] dueDateStart: ${dueDateStart.toISOString()} (ano: ${dueDateStart.getFullYear()}, mes: ${dueDateStart.getMonth()}, dia: ${dueDateStart.getDate()})`
+    );
+    console.log(
+      `[DEBUG] todayStart: ${todayStart.toISOString()} (ano: ${todayStart.getFullYear()}, mes: ${todayStart.getMonth()}, dia: ${todayStart.getDate()})`
+    );
+    console.log(`[DEBUG] dueDateStart < todayStart: ${dueDateStart < todayStart}`);
+
+    if (dueDateStart < todayStart) {
       throw new ValidationError('Due date cannot be in the past');
+    }
+
+    // Validação de recorrência: não pode ter mais de um tipo de fim
+    if (data.isRecurring) {
+      const hasRecurrenceCount =
+        data.recurrenceCount !== undefined && data.recurrenceCount !== null;
+      const hasRecurrenceEnd =
+        data.recurrenceEndDate !== undefined && data.recurrenceEndDate !== null;
+      const hasIndefinite = data.indefinite === true;
+
+      const recurrenceOptions = [hasRecurrenceCount, hasRecurrenceEnd, hasIndefinite].filter(
+        Boolean
+      );
+      if (recurrenceOptions.length > 1) {
+        throw new ValidationError(
+          'Only one recurrence end type allowed: recurrenceCount, recurrenceEndDate, or indefinite'
+        );
+      }
+
+      // Se é recorrente mas não especificou fim, assume indefinido
+      if (recurrenceOptions.length === 0) {
+        data.indefinite = true;
+      }
     }
 
     return await prisma.$transaction(async (tx) => {
@@ -211,7 +263,7 @@ export class TransactionService {
         },
       });
 
-      // 4. Criar transação com status 'locked'
+      // 4. Criar transação principal com status 'locked'
       const transaction = await tx.transaction.create({
         data: {
           account_id: data.accountId,
@@ -219,14 +271,26 @@ export class TransactionService {
           type: 'fixed_expense',
           amount: data.amount,
           description: data.description,
-          due_date: data.dueDate,
+          due_date: data.dueDate!,
           status: 'locked',
           is_recurring: data.isRecurring || false,
           recurrence_pattern: data.recurrencePattern,
+          recurrence_interval: data.recurrenceInterval ?? undefined,
+          recurrence_count: data.recurrenceCount ?? undefined,
+          recurrence_end_date: data.recurrenceEndDate ?? undefined,
+          indefinite: data.indefinite ?? false,
         },
       });
 
-      // 5. Criar snapshot
+      // 5. Se for recorrente, gerar parcelas futuras
+      if (data.isRecurring && data.recurrencePattern) {
+        await this.generateRecurringInstallments(tx as typeof prisma, {
+          ...data,
+          parentTransactionId: transaction.id,
+        });
+      }
+
+      // 6. Criar snapshot
       await tx.balanceHistory.create({
         data: {
           account_id: data.accountId,
@@ -239,7 +303,7 @@ export class TransactionService {
         },
       });
 
-      // 6. Invalidar cache de sugestão
+      // 7. Invalidar cache de sugestão
       await SuggestionEngine.invalidateCache(data.accountId);
       this.invalidateCalendarCache(data.accountId);
 
@@ -255,6 +319,97 @@ export class TransactionService {
   }
 
   /**
+   * Gera parcelas futuras para uma despesa recorrente
+   */
+  private async generateRecurringInstallments(
+    tx: typeof prisma,
+    data: CreateFixedExpenseDTO & { parentTransactionId: string }
+  ): Promise<void> {
+    const installments: Prisma.TransactionUncheckedCreateInput[] = [];
+    const dueDate = new Date(data.dueDate!);
+
+    // Intervalo padrão é 1 (mensal, semanal, etc.)
+    const interval = data.recurrenceInterval ?? 1;
+
+    // Calcular número de parcelas
+    let totalInstallments = 0;
+
+    if (data.indefinite) {
+      // Para despesas indefinidas, gerar 12 parcelas futuras
+      totalInstallments = 12;
+    } else if (data.recurrenceCount !== undefined && data.recurrenceCount !== null) {
+      // Despesa com número fixo de repetições (subtrai 1 porque a primeira já foi criada)
+      totalInstallments = data.recurrenceCount - 1;
+    } else if (data.recurrenceEndDate) {
+      // Despesa com data final
+      const endDate = new Date(data.recurrenceEndDate);
+      const diffTime = endDate.getTime() - dueDate.getTime();
+      const diffMonths = Math.floor(diffTime / (1000 * 60 * 60 * 24 * 30));
+
+      if (diffMonths <= 0) {
+        return; // Data final já passou ou é igual à data inicial
+      }
+
+      totalInstallments = diffMonths;
+    }
+
+    // Gerar parcelas aplicando o intervalo
+    for (let i = 1; i <= totalInstallments; i++) {
+      // Multiplica pelo intervalo para pular os períodos corretos
+      const nextDueDate = this.addPeriods(dueDate, data.recurrencePattern!, i * interval);
+
+      // Parar se ultrapassar a data final (quando definida)
+      if (data.recurrenceEndDate && nextDueDate > data.recurrenceEndDate) {
+        break;
+      }
+
+      installments.push({
+        account_id: data.accountId,
+        category_id: data.categoryId,
+        type: 'fixed_expense',
+        amount: data.amount,
+        description: data.description,
+        due_date: nextDueDate,
+        status: 'pending',
+        is_recurring: true,
+        recurrence_pattern: data.recurrencePattern,
+        recurrence_interval: data.recurrenceInterval ?? undefined,
+        recurrence_count: data.recurrenceCount ?? undefined,
+        recurrence_end_date: data.recurrenceEndDate ?? undefined,
+        indefinite: data.indefinite ?? false,
+        parent_transaction_id: data.parentTransactionId,
+      });
+    }
+
+    if (installments.length > 0) {
+      await tx.transaction.createMany({
+        data: installments,
+      });
+    }
+  }
+
+  /**
+   * Adiciona períodos a uma data conforme o pattern de recorrência
+   */
+  private addPeriods(baseDate: Date, pattern: string, periods: number): Date {
+    const result = new Date(baseDate);
+
+    switch (pattern) {
+      case 'monthly':
+        result.setMonth(result.getMonth() + periods);
+        break;
+      case 'weekly':
+        result.setDate(result.getDate() + periods * 7);
+        break;
+      case 'yearly':
+        result.setFullYear(result.getFullYear() + periods);
+        break;
+    }
+
+    return result;
+  }
+
+  /**
    * Cria despesa variável com débito imediato
    */
   async createVariableExpense(userId: string, data: CreateVariableExpenseDTO) {
@@ -262,6 +417,8 @@ export class TransactionService {
     if (data.amount <= 0) {
       throw new ValidationError('Amount must be positive');
     }
+
+    const dueDate = data.dueDate ?? new Date();
 
     return await prisma.$transaction(async (tx) => {
       // 1. Buscar conta
@@ -304,7 +461,7 @@ export class TransactionService {
           type: 'variable_expense',
           amount: data.amount,
           description: data.description,
-          due_date: new Date(),
+          due_date: dueDate,
           executed_date: new Date(),
           status: 'executed',
         },
@@ -658,20 +815,20 @@ export class TransactionService {
       description: `${transaction.description} (cópia)`,
       dueDate: new Date(),
       isRecurring: transaction.is_recurring,
-      recurrencePattern: transaction.recurrence_pattern ?? undefined,
+      recurrencePattern:
+        (transaction.recurrence_pattern as 'monthly' | 'weekly' | 'yearly' | undefined) ??
+        undefined,
     };
 
     // Criar nova transação baseada no tipo original
     if (transaction.type === 'income') {
       return this.processIncome(userId, duplicateData);
     } else if (transaction.type === 'fixed_expense') {
-      return this.createFixedExpense(userId, duplicateData);
+      return this.createFixedExpense(userId, { ...duplicateData, type: 'fixed' });
     } else if (transaction.type === 'variable_expense') {
       return this.createVariableExpense(userId, {
-        accountId: duplicateData.accountId,
-        categoryId: duplicateData.categoryId,
-        amount: duplicateData.amount,
-        description: duplicateData.description,
+        ...duplicateData,
+        type: 'variable',
       });
     }
 

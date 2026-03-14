@@ -20,24 +20,28 @@ const createIncomeSchema = z.object({
   recurrencePattern: z.enum(['monthly', 'weekly', 'yearly']).optional(),
 });
 
-const createFixedExpenseSchema = z.object({
+const createExpenseSchema = z.object({
   accountId: z.string().uuid('Invalid account ID'),
   amount: z.number().positive('Amount must be positive'),
   description: z.string().min(1, 'Description is required'),
   categoryId: z.string().uuid('Invalid category ID'),
+  type: z.enum(['fixed', 'variable']),
   dueDate: z
     .string()
-    .datetime('Due date is required')
-    .transform((val) => new Date(val)),
+    .datetime()
+    .optional()
+    .transform((val) => (val ? new Date(val) : undefined)),
   isRecurring: z.boolean().optional(),
   recurrencePattern: z.enum(['monthly', 'weekly', 'yearly']).optional(),
-});
-
-const createVariableExpenseSchema = z.object({
-  accountId: z.string().uuid('Invalid account ID'),
-  amount: z.number().positive('Amount must be positive'),
-  description: z.string().min(1, 'Description is required'),
-  categoryId: z.string().uuid('Invalid category ID'),
+  recurrenceInterval: z.number().int().positive().optional().nullable(),
+  recurrenceCount: z.number().int().positive().optional().nullable(),
+  recurrenceEndDate: z
+    .string()
+    .datetime()
+    .optional()
+    .nullable()
+    .transform((val) => (val ? new Date(val) : null)),
+  indefinite: z.boolean().optional(),
 });
 
 const listTransactionsSchema = z.object({
@@ -121,35 +125,30 @@ export class TransactionController {
   }
 
   /**
-   * POST /api/v1/transactions/fixed-expense
-   * Cria despesa fixa com bloqueio preventivo
+   * POST /api/v1/transactions/expense
+   * Cria uma despesa (fixa ou variável)
    */
-  async createFixedExpense(req: AuthRequest, res: Response): Promise<void> {
+  async createExpense(req: AuthRequest, res: Response): Promise<void> {
     if (!req.user) {
       res.status(401).json({ error: 'Unauthorized' });
       return;
     }
 
-    const data = createFixedExpenseSchema.parse(req.body);
-    const result = await transactionService.createFixedExpense(req.user.userId, data);
+    const data = createExpenseSchema.parse(req.body);
 
-    res.status(201).json(result);
-  }
-
-  /**
-   * POST /api/v1/transactions/variable-expense
-   * Cria despesa variável com débito imediato
-   */
-  async createVariableExpense(req: AuthRequest, res: Response): Promise<void> {
-    if (!req.user) {
-      res.status(401).json({ error: 'Unauthorized' });
-      return;
+    if (data.type === 'fixed') {
+      const result = await transactionService.createFixedExpense(req.user.userId, {
+        ...data,
+        type: 'fixed',
+      });
+      res.status(201).json(result);
+    } else {
+      const result = await transactionService.createVariableExpense(req.user.userId, {
+        ...data,
+        type: 'variable',
+      });
+      res.status(201).json(result);
     }
-
-    const data = createVariableExpenseSchema.parse(req.body);
-    const result = await transactionService.createVariableExpense(req.user.userId, data);
-
-    res.status(201).json(result);
   }
 
   /**
