@@ -61,7 +61,7 @@ describe('Transactions', () => {
     });
   });
 
-  describe('POST /api/v1/transactions/fixed-expense', () => {
+  describe('POST /api/v1/transactions/expense (fixed)', () => {
     it('should create a fixed expense and lock balance', async () => {
       const { user, tokens } = await createTestUser();
       const account = await createTestAccount(user.id);
@@ -79,11 +79,12 @@ describe('Transactions', () => {
         amount: 500,
         description: 'Monthly Rent',
         categoryId: category.id,
+        type: 'fixed',
         dueDate: new Date().toISOString(), // Today
       };
 
       const response = await testRequest
-        .post('/api/v1/transactions/fixed-expense')
+        .post('/api/v1/transactions/expense')
         .set(getAuthHeader(tokens.access_token))
         .send(expenseData)
         .expect(201);
@@ -105,18 +106,19 @@ describe('Transactions', () => {
         amount: 500,
         description: 'Monthly Rent',
         categoryId: category.id,
+        type: 'fixed',
         dueDate: new Date().toISOString(),
       };
 
       await testRequest
-        .post('/api/v1/transactions/fixed-expense')
+        .post('/api/v1/transactions/expense')
         .set(getAuthHeader(tokens.access_token))
         .send(expenseData)
         .expect(400); // InsufficientBalanceError maps to 400 usually, checking errorHandler might be needed but 400 is safe bet for logic error
     });
   });
 
-  describe('POST /api/v1/transactions/variable-expense', () => {
+  describe('POST /api/v1/transactions/expense (variable)', () => {
     it('should create a variable expense and deduct immediately', async () => {
       const { user, tokens } = await createTestUser();
       const account = await createTestAccount(user.id);
@@ -134,10 +136,11 @@ describe('Transactions', () => {
         amount: 50,
         description: 'Lunch',
         categoryId: category.id,
+        type: 'variable',
       };
 
       const response = await testRequest
-        .post('/api/v1/transactions/variable-expense')
+        .post('/api/v1/transactions/expense')
         .set(getAuthHeader(tokens.access_token))
         .send(expenseData)
         .expect(201);

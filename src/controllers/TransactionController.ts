@@ -20,6 +20,30 @@ const createIncomeSchema = z.object({
   recurrencePattern: z.enum(['monthly', 'weekly', 'yearly']).optional(),
 });
 
+const createExpenseSchema = z.object({
+  accountId: z.string().uuid('Invalid account ID'),
+  amount: z.number().positive('Amount must be positive'),
+  description: z.string().min(1, 'Description is required'),
+  categoryId: z.string().uuid('Invalid category ID'),
+  type: z.enum(['fixed', 'variable']),
+  dueDate: z
+    .string()
+    .datetime()
+    .optional()
+    .transform((val) => (val ? new Date(val) : undefined)),
+  isRecurring: z.boolean().optional(),
+  recurrencePattern: z.enum(['monthly', 'weekly', 'yearly']).optional(),
+  recurrenceInterval: z.number().int().positive().optional().nullable(),
+  recurrenceCount: z.number().int().positive().optional().nullable(),
+  recurrenceEndDate: z
+    .string()
+    .datetime()
+    .optional()
+    .nullable()
+    .transform((val) => (val ? new Date(val) : null)),
+  indefinite: z.boolean().optional(),
+});
+
 const createFixedExpenseSchema = z.object({
   accountId: z.string().uuid('Invalid account ID'),
   amount: z.number().positive('Amount must be positive'),
@@ -27,10 +51,20 @@ const createFixedExpenseSchema = z.object({
   categoryId: z.string().uuid('Invalid category ID'),
   dueDate: z
     .string()
-    .datetime('Due date is required')
-    .transform((val) => new Date(val)),
+    .datetime()
+    .optional()
+    .transform((val) => (val ? new Date(val) : undefined)),
   isRecurring: z.boolean().optional(),
   recurrencePattern: z.enum(['monthly', 'weekly', 'yearly']).optional(),
+  recurrenceInterval: z.number().int().positive().optional().nullable(),
+  recurrenceCount: z.number().int().positive().optional().nullable(),
+  recurrenceEndDate: z
+    .string()
+    .datetime()
+    .optional()
+    .nullable()
+    .transform((val) => (val ? new Date(val) : null)),
+  indefinite: z.boolean().optional(),
 });
 
 const createVariableExpenseSchema = z.object({
@@ -38,6 +72,11 @@ const createVariableExpenseSchema = z.object({
   amount: z.number().positive('Amount must be positive'),
   description: z.string().min(1, 'Description is required'),
   categoryId: z.string().uuid('Invalid category ID'),
+  dueDate: z
+    .string()
+    .datetime()
+    .optional()
+    .transform((val) => (val ? new Date(val) : undefined)),
 });
 
 const listTransactionsSchema = z.object({
@@ -121,8 +160,35 @@ export class TransactionController {
   }
 
   /**
-   * POST /api/v1/transactions/fixed-expense
-   * Cria despesa fixa com bloqueio preventivo
+   * POST /api/v1/transactions/expense
+   * Cria uma despesa (fixa ou variável)
+   */
+  async createExpense(req: AuthRequest, res: Response): Promise<void> {
+    if (!req.user) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+
+    const data = createExpenseSchema.parse(req.body);
+
+    if (data.type === 'fixed') {
+      const result = await transactionService.createFixedExpense(req.user.userId, {
+        ...data,
+        type: 'fixed',
+      });
+      res.status(201).json(result);
+    } else {
+      const result = await transactionService.createVariableExpense(req.user.userId, {
+        ...data,
+        type: 'variable',
+      });
+      res.status(201).json(result);
+    }
+  }
+
+  /**
+   * POST /api/v1/transactions/expense/fixed
+   * Cria uma despesa fixa
    */
   async createFixedExpense(req: AuthRequest, res: Response): Promise<void> {
     if (!req.user) {
@@ -137,8 +203,8 @@ export class TransactionController {
   }
 
   /**
-   * POST /api/v1/transactions/variable-expense
-   * Cria despesa variável com débito imediato
+   * POST /api/v1/transactions/expense/variable
+   * Cria uma despesa variável
    */
   async createVariableExpense(req: AuthRequest, res: Response): Promise<void> {
     if (!req.user) {

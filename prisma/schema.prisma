@@ -173,7 +173,10 @@ model Transaction {
   // Recorrência
   is_recurring          Boolean @default(false)
   recurrence_pattern    String? // monthly, weekly, yearly
-  recurrence_end_date   DateTime?
+  recurrence_interval   Int?    // Intervalo entre repetições (ex: 3 = de 3 em 3 meses)
+  recurrence_count      Int?    // Número máximo de repetições (null = indefinido)
+  recurrence_end_date   DateTime? // Data final da recorrência
+  indefinite            Boolean @default(false) // true = repete até cancelar
   parent_transaction_id String?
   parent_transaction    Transaction? @relation("RecurringTransactions", fields: [parent_transaction_id], references: [id])
   child_transactions    Transaction[] @relation("RecurringTransactions")

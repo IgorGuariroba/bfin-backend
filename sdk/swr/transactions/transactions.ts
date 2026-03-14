@@ -16,10 +16,9 @@ import type {
   Error,
   GetApiV1Transactions200,
   GetApiV1TransactionsParams,
-  PostApiV1TransactionsFixedExpenseBody,
+  PostApiV1TransactionsExpenseBody,
   PostApiV1TransactionsIdMarkAsPaid200,
   PostApiV1TransactionsIncomeBody,
-  PostApiV1TransactionsVariableExpenseBody,
   PutApiV1TransactionsId200,
   PutApiV1TransactionsIdBody,
   Transaction,
@@ -130,205 +129,101 @@ export const usePostApiV1TransactionsIncome = <TError = Error | void>(options?: 
   };
 };
 /**
- * Cria uma despesa fixa com bloqueio preventivo do valor no saldo disponível
- * @summary Criar despesa fixa
+ * Cria uma despesa. Tipo "fixed" bloqueia o valor no saldo (pode ser recorrente). Tipo "variable" debita imediatamente.
+ * @summary Criar despesa (fixa ou variável)
  */
-export type postApiV1TransactionsFixedExpenseResponse201 = {
+export type postApiV1TransactionsExpenseResponse201 = {
   data: Transaction;
   status: 201;
 };
 
-export type postApiV1TransactionsFixedExpenseResponse400 = {
+export type postApiV1TransactionsExpenseResponse400 = {
   data: Error;
   status: 400;
 };
 
-export type postApiV1TransactionsFixedExpenseResponse401 = {
+export type postApiV1TransactionsExpenseResponse401 = {
   data: void;
   status: 401;
 };
 
-export type postApiV1TransactionsFixedExpenseResponse403 = {
+export type postApiV1TransactionsExpenseResponse403 = {
   data: void;
   status: 403;
 };
 
-export type postApiV1TransactionsFixedExpenseResponse404 = {
+export type postApiV1TransactionsExpenseResponse404 = {
   data: void;
   status: 404;
 };
 
-export type postApiV1TransactionsFixedExpenseResponseSuccess =
-  postApiV1TransactionsFixedExpenseResponse201 & {
+export type postApiV1TransactionsExpenseResponseSuccess =
+  postApiV1TransactionsExpenseResponse201 & {
     headers: Headers;
   };
-export type postApiV1TransactionsFixedExpenseResponseError = (
-  | postApiV1TransactionsFixedExpenseResponse400
-  | postApiV1TransactionsFixedExpenseResponse401
-  | postApiV1TransactionsFixedExpenseResponse403
-  | postApiV1TransactionsFixedExpenseResponse404
+export type postApiV1TransactionsExpenseResponseError = (
+  | postApiV1TransactionsExpenseResponse400
+  | postApiV1TransactionsExpenseResponse401
+  | postApiV1TransactionsExpenseResponse403
+  | postApiV1TransactionsExpenseResponse404
 ) & {
   headers: Headers;
 };
 
-export type postApiV1TransactionsFixedExpenseResponse =
-  | postApiV1TransactionsFixedExpenseResponseSuccess
-  | postApiV1TransactionsFixedExpenseResponseError;
+export type postApiV1TransactionsExpenseResponse =
+  | postApiV1TransactionsExpenseResponseSuccess
+  | postApiV1TransactionsExpenseResponseError;
 
-export const getPostApiV1TransactionsFixedExpenseUrl = () => {
-  return `/api/v1/transactions/fixed-expense`;
+export const getPostApiV1TransactionsExpenseUrl = () => {
+  return `/api/v1/transactions/expense`;
 };
 
-export const postApiV1TransactionsFixedExpense = async (
-  postApiV1TransactionsFixedExpenseBody: PostApiV1TransactionsFixedExpenseBody,
+export const postApiV1TransactionsExpense = async (
+  postApiV1TransactionsExpenseBody: PostApiV1TransactionsExpenseBody,
   options?: RequestInit
-): Promise<postApiV1TransactionsFixedExpenseResponse> => {
-  return customInstance<postApiV1TransactionsFixedExpenseResponse>(
-    getPostApiV1TransactionsFixedExpenseUrl(),
+): Promise<postApiV1TransactionsExpenseResponse> => {
+  return customInstance<postApiV1TransactionsExpenseResponse>(
+    getPostApiV1TransactionsExpenseUrl(),
     {
       ...options,
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...options?.headers },
-      body: JSON.stringify(postApiV1TransactionsFixedExpenseBody),
+      body: JSON.stringify(postApiV1TransactionsExpenseBody),
     }
   );
 };
 
-export const getPostApiV1TransactionsFixedExpenseMutationFetcher = (
+export const getPostApiV1TransactionsExpenseMutationFetcher = (
   options?: SecondParameter<typeof customInstance>
 ) => {
-  return (_: Key, { arg }: { arg: PostApiV1TransactionsFixedExpenseBody }) => {
-    return postApiV1TransactionsFixedExpense(arg, options);
+  return (_: Key, { arg }: { arg: PostApiV1TransactionsExpenseBody }) => {
+    return postApiV1TransactionsExpense(arg, options);
   };
 };
-export const getPostApiV1TransactionsFixedExpenseMutationKey = () =>
-  [`/api/v1/transactions/fixed-expense`] as const;
+export const getPostApiV1TransactionsExpenseMutationKey = () =>
+  [`/api/v1/transactions/expense`] as const;
 
-export type PostApiV1TransactionsFixedExpenseMutationResult = NonNullable<
-  Awaited<ReturnType<typeof postApiV1TransactionsFixedExpense>>
+export type PostApiV1TransactionsExpenseMutationResult = NonNullable<
+  Awaited<ReturnType<typeof postApiV1TransactionsExpense>>
 >;
 
 /**
- * @summary Criar despesa fixa
+ * @summary Criar despesa (fixa ou variável)
  */
-export const usePostApiV1TransactionsFixedExpense = <TError = Error | void>(options?: {
+export const usePostApiV1TransactionsExpense = <TError = Error | void>(options?: {
   swr?: SWRMutationConfiguration<
-    Awaited<ReturnType<typeof postApiV1TransactionsFixedExpense>>,
+    Awaited<ReturnType<typeof postApiV1TransactionsExpense>>,
     TError,
     Key,
-    PostApiV1TransactionsFixedExpenseBody,
-    Awaited<ReturnType<typeof postApiV1TransactionsFixedExpense>>
+    PostApiV1TransactionsExpenseBody,
+    Awaited<ReturnType<typeof postApiV1TransactionsExpense>>
   > & { swrKey?: string };
   request?: SecondParameter<typeof customInstance>;
 }) => {
   const { swr: swrOptions, request: requestOptions } = options ?? {};
 
-  const swrKey = swrOptions?.swrKey ?? getPostApiV1TransactionsFixedExpenseMutationKey();
-  const swrFn = getPostApiV1TransactionsFixedExpenseMutationFetcher(requestOptions);
-
-  const query = useSWRMutation(swrKey, swrFn, swrOptions);
-
-  return {
-    swrKey,
-    ...query,
-  };
-};
-/**
- * Cria uma despesa variável com débito imediato no saldo disponível
- * @summary Criar despesa variável
- */
-export type postApiV1TransactionsVariableExpenseResponse201 = {
-  data: Transaction;
-  status: 201;
-};
-
-export type postApiV1TransactionsVariableExpenseResponse400 = {
-  data: Error;
-  status: 400;
-};
-
-export type postApiV1TransactionsVariableExpenseResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type postApiV1TransactionsVariableExpenseResponse403 = {
-  data: void;
-  status: 403;
-};
-
-export type postApiV1TransactionsVariableExpenseResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type postApiV1TransactionsVariableExpenseResponseSuccess =
-  postApiV1TransactionsVariableExpenseResponse201 & {
-    headers: Headers;
-  };
-export type postApiV1TransactionsVariableExpenseResponseError = (
-  | postApiV1TransactionsVariableExpenseResponse400
-  | postApiV1TransactionsVariableExpenseResponse401
-  | postApiV1TransactionsVariableExpenseResponse403
-  | postApiV1TransactionsVariableExpenseResponse404
-) & {
-  headers: Headers;
-};
-
-export type postApiV1TransactionsVariableExpenseResponse =
-  | postApiV1TransactionsVariableExpenseResponseSuccess
-  | postApiV1TransactionsVariableExpenseResponseError;
-
-export const getPostApiV1TransactionsVariableExpenseUrl = () => {
-  return `/api/v1/transactions/variable-expense`;
-};
-
-export const postApiV1TransactionsVariableExpense = async (
-  postApiV1TransactionsVariableExpenseBody: PostApiV1TransactionsVariableExpenseBody,
-  options?: RequestInit
-): Promise<postApiV1TransactionsVariableExpenseResponse> => {
-  return customInstance<postApiV1TransactionsVariableExpenseResponse>(
-    getPostApiV1TransactionsVariableExpenseUrl(),
-    {
-      ...options,
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...options?.headers },
-      body: JSON.stringify(postApiV1TransactionsVariableExpenseBody),
-    }
-  );
-};
-
-export const getPostApiV1TransactionsVariableExpenseMutationFetcher = (
-  options?: SecondParameter<typeof customInstance>
-) => {
-  return (_: Key, { arg }: { arg: PostApiV1TransactionsVariableExpenseBody }) => {
-    return postApiV1TransactionsVariableExpense(arg, options);
-  };
-};
-export const getPostApiV1TransactionsVariableExpenseMutationKey = () =>
-  [`/api/v1/transactions/variable-expense`] as const;
-
-export type PostApiV1TransactionsVariableExpenseMutationResult = NonNullable<
-  Awaited<ReturnType<typeof postApiV1TransactionsVariableExpense>>
->;
-
-/**
- * @summary Criar despesa variável
- */
-export const usePostApiV1TransactionsVariableExpense = <TError = Error | void>(options?: {
-  swr?: SWRMutationConfiguration<
-    Awaited<ReturnType<typeof postApiV1TransactionsVariableExpense>>,
-    TError,
-    Key,
-    PostApiV1TransactionsVariableExpenseBody,
-    Awaited<ReturnType<typeof postApiV1TransactionsVariableExpense>>
-  > & { swrKey?: string };
-  request?: SecondParameter<typeof customInstance>;
-}) => {
-  const { swr: swrOptions, request: requestOptions } = options ?? {};
-
-  const swrKey = swrOptions?.swrKey ?? getPostApiV1TransactionsVariableExpenseMutationKey();
-  const swrFn = getPostApiV1TransactionsVariableExpenseMutationFetcher(requestOptions);
+  const swrKey = swrOptions?.swrKey ?? getPostApiV1TransactionsExpenseMutationKey();
+  const swrFn = getPostApiV1TransactionsExpenseMutationFetcher(requestOptions);
 
   const query = useSWRMutation(swrKey, swrFn, swrOptions);
 
