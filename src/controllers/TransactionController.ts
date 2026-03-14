@@ -44,6 +44,41 @@ const createExpenseSchema = z.object({
   indefinite: z.boolean().optional(),
 });
 
+const createFixedExpenseSchema = z.object({
+  accountId: z.string().uuid('Invalid account ID'),
+  amount: z.number().positive('Amount must be positive'),
+  description: z.string().min(1, 'Description is required'),
+  categoryId: z.string().uuid('Invalid category ID'),
+  dueDate: z
+    .string()
+    .datetime()
+    .optional()
+    .transform((val) => (val ? new Date(val) : undefined)),
+  isRecurring: z.boolean().optional(),
+  recurrencePattern: z.enum(['monthly', 'weekly', 'yearly']).optional(),
+  recurrenceInterval: z.number().int().positive().optional().nullable(),
+  recurrenceCount: z.number().int().positive().optional().nullable(),
+  recurrenceEndDate: z
+    .string()
+    .datetime()
+    .optional()
+    .nullable()
+    .transform((val) => (val ? new Date(val) : null)),
+  indefinite: z.boolean().optional(),
+});
+
+const createVariableExpenseSchema = z.object({
+  accountId: z.string().uuid('Invalid account ID'),
+  amount: z.number().positive('Amount must be positive'),
+  description: z.string().min(1, 'Description is required'),
+  categoryId: z.string().uuid('Invalid category ID'),
+  dueDate: z
+    .string()
+    .datetime()
+    .optional()
+    .transform((val) => (val ? new Date(val) : undefined)),
+});
+
 const listTransactionsSchema = z.object({
   accountId: z.string().uuid().optional(),
   type: z.enum(['income', 'fixed_expense', 'variable_expense']).optional(),
@@ -149,6 +184,38 @@ export class TransactionController {
       });
       res.status(201).json(result);
     }
+  }
+
+  /**
+   * POST /api/v1/transactions/expense/fixed
+   * Cria uma despesa fixa
+   */
+  async createFixedExpense(req: AuthRequest, res: Response): Promise<void> {
+    if (!req.user) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+
+    const data = createFixedExpenseSchema.parse(req.body);
+    const result = await transactionService.createFixedExpense(req.user.userId, data);
+
+    res.status(201).json(result);
+  }
+
+  /**
+   * POST /api/v1/transactions/expense/variable
+   * Cria uma despesa variável
+   */
+  async createVariableExpense(req: AuthRequest, res: Response): Promise<void> {
+    if (!req.user) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+
+    const data = createVariableExpenseSchema.parse(req.body);
+    const result = await transactionService.createVariableExpense(req.user.userId, data);
+
+    res.status(201).json(result);
   }
 
   /**
