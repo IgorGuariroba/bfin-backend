@@ -277,12 +277,13 @@ export class LoanSimulationService {
       const reserveContext = await accountService.getDefaultEmergencyReserve(userId, tx);
       const reserveAmount = reserveContext.emergencyReserveAmount;
 
-      // 5. Calculate sum of active loans (APPROVED + COMPLETED)
+      // 5. Calculate sum of active loans (only APPROVED, not yet withdrawn)
+      // COMPLETED loans are already deducted from reserve balance, so they shouldn't count again
       const activeLoansAggregate = await tx.loanSimulation.aggregate({
         where: {
           user_id: userId,
           account_id: reserveContext.accountId,
-          status: { in: ['APPROVED', 'COMPLETED'] },
+          status: 'APPROVED',
         },
         _sum: {
           principal_amount: true,
@@ -410,12 +411,13 @@ export class LoanSimulationService {
         );
       }
 
-      // 5. Calculate active loans total for revalidation
+      // 5. Calculate active loans total for revalidation (only APPROVED, not yet withdrawn)
+      // COMPLETED loans are already deducted from reserve balance, so they shouldn't count again
       const activeLoansAggregate = await tx.loanSimulation.aggregate({
         where: {
           user_id: userId,
           account_id: account.id,
-          status: { in: ['APPROVED', 'COMPLETED'] },
+          status: 'APPROVED',
           id: { not: simulationId }, // Exclude current simulation
         },
         _sum: {
