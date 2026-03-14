@@ -85,7 +85,7 @@ describe('LoanSimulationService', () => {
       );
     });
 
-    it('should throw ValidationError if approval exceeds 70% reserve limit', async () => {
+    it('should throw ValidationError if approval exceeds reserve limit', async () => {
       const createdDate = new Date();
 
       vi.mocked(prisma.loanSimulation.findFirst).mockResolvedValue({
@@ -108,9 +108,9 @@ describe('LoanSimulationService', () => {
       });
 
       // Mock aggregate to return existing loans that push over limit
-      // Limit is 700 (70% of 1000). Current sim is 800. 800 > 700.
+      // Limit is 1000 (100% of 1000). Current sim is 800. 800 <= 1000, so we need existing loans
       vi.mocked(prisma.loanSimulation.aggregate).mockResolvedValue({
-        _sum: { principal_amount: 0 },
+        _sum: { principal_amount: 300 },
       } as any);
 
       await expect(loanSimulationService.approveSimulation(userId, simulationId)).rejects.toThrow(
@@ -211,11 +211,11 @@ describe('LoanSimulationService', () => {
       );
     });
 
-    it('should throw ValidationError if withdrawal exceeds 70% limit (re-check)', async () => {
-      // Reserve 1000. Limit 700.
+    it('should throw ValidationError if withdrawal exceeds reserve limit (re-check)', async () => {
+      // Reserve 1000. Limit 1000 (100%).
       // Principal 600.
-      // Active loans (other): 200.
-      // Total: 800 > 700.
+      // Active loans (other): 500.
+      // Total: 1100 > 1000.
       vi.mocked(prisma.loanSimulation.findFirst).mockResolvedValue({
         id: simulationId,
         user_id: userId,
@@ -229,7 +229,7 @@ describe('LoanSimulationService', () => {
       } as any);
 
       vi.mocked(prisma.loanSimulation.aggregate).mockResolvedValue({
-        _sum: { principal_amount: 200 },
+        _sum: { principal_amount: 500 },
       } as any);
 
       await expect(loanSimulationService.withdrawFunds(userId, simulationId)).rejects.toThrow(

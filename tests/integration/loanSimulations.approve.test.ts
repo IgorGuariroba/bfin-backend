@@ -147,12 +147,12 @@ describe('POST /api/v1/loan-simulations/:id/approve', () => {
     expect(secondApprovalResponse.body.message).toContain('APPROVED');
   });
 
-  it('rejects approval if simulation exceeds 70% reserve limit', async () => {
-    // Create first simulation (50% of reserve)
+  it('rejects approval if simulation exceeds reserve limit', async () => {
+    // Create first simulation (60% of reserve)
     const firstCreateResponse = await request(app)
       .post('/api/v1/loan-simulations')
       .set('Authorization', `Bearer ${token}`)
-      .send({ amount: 5000, termMonths: 12 });
+      .send({ amount: 6000, termMonths: 12 });
 
     const firstSimulationId = firstCreateResponse.body.id;
     createdSimulationIds.push(firstSimulationId);
@@ -162,16 +162,16 @@ describe('POST /api/v1/loan-simulations/:id/approve', () => {
       .post(`/api/v1/loan-simulations/${firstSimulationId}/approve`)
       .set('Authorization', `Bearer ${token}`);
 
-    // Create second simulation (30% of reserve)
+    // Create second simulation (50% of reserve)
     const secondCreateResponse = await request(app)
       .post('/api/v1/loan-simulations')
       .set('Authorization', `Bearer ${token}`)
-      .send({ amount: 3000, termMonths: 12 });
+      .send({ amount: 5000, termMonths: 12 });
 
     const secondSimulationId = secondCreateResponse.body.id;
     createdSimulationIds.push(secondSimulationId);
 
-    // Try to approve second simulation (would total 80%, exceeds 70% limit)
+    // Try to approve second simulation (would total 110%, exceeds 100% limit)
     const approveResponse = await request(app)
       .post(`/api/v1/loan-simulations/${secondSimulationId}/approve`)
       .set('Authorization', `Bearer ${token}`);
@@ -179,7 +179,7 @@ describe('POST /api/v1/loan-simulations/:id/approve', () => {
     expect(approveResponse.status).toBe(400);
     expect(approveResponse.body.error).toBe('ValidationError');
     expect(approveResponse.body.message).toContain('exceed reserve limit');
-    expect(approveResponse.body.message).toContain('70%');
+    expect(approveResponse.body.message).toContain('100%');
   });
 
   it('rejects approval if simulation has expired (>30 days)', async () => {
