@@ -61,11 +61,11 @@ export const listFiltersSchema = z.object({
   page: z
     .string()
     .optional()
-    .transform((val) => (val ? parseInt(val, 10) : 1)),
+    .transform((val) => (val ? Number.parseInt(val, 10) : 1)),
   limit: z
     .string()
     .optional()
-    .transform((val) => (val ? parseInt(val, 10) : 50)),
+    .transform((val) => (val ? Number.parseInt(val, 10) : 50)),
 });
 
 /**
