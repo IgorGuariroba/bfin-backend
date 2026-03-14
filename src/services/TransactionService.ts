@@ -183,25 +183,17 @@ export class TransactionService {
     }
 
     // Validate due date is not in the past (allow today)
-    // Extrai a data do objeto Date mantendo o dia/mês/ano originais
+    // Usa métodos UTC para ser independente do fuso do servidor
+    // Compara apenas o dia (ignora hora)
     const dueDateInput = data.dueDate;
-    const dueDateStart = new Date(
+    const dueDateStart = Date.UTC(
       dueDateInput.getUTCFullYear(),
       dueDateInput.getUTCMonth(),
       dueDateInput.getUTCDate()
     );
 
     const today = new Date();
-    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-
-    console.log(`[DEBUG] dueDate input: ${dueDateInput.toISOString()}`);
-    console.log(
-      `[DEBUG] dueDateStart: ${dueDateStart.toISOString()} (ano: ${dueDateStart.getFullYear()}, mes: ${dueDateStart.getMonth()}, dia: ${dueDateStart.getDate()})`
-    );
-    console.log(
-      `[DEBUG] todayStart: ${todayStart.toISOString()} (ano: ${todayStart.getFullYear()}, mes: ${todayStart.getMonth()}, dia: ${todayStart.getDate()})`
-    );
-    console.log(`[DEBUG] dueDateStart < todayStart: ${dueDateStart < todayStart}`);
+    const todayStart = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate());
 
     if (dueDateStart < todayStart) {
       throw new ValidationError('Due date cannot be in the past');
