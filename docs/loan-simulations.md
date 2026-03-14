@@ -8,7 +8,7 @@ Este recurso permite simular um empréstimo interno usando a reserva de emergên
 - Amortização: Price (parcelas fixas)
 - Taxa padrão: 2.5% ao mês (`0.025`)
 - Prazo permitido: 6 a 30 meses
-- Uso máximo da reserva: 70%
+- Uso máximo da reserva: 100%
 - Valores monetários são arredondados para 2 casas decimais
 - Simulações são imutáveis e auditadas
 
@@ -42,7 +42,7 @@ Resposta 201 (campos principais):
 
 Erros comuns:
 
-- 400: payload inválido, prazo fora do range, ou excede 70% da reserva
+- 400: payload inválido, prazo fora do range, ou excede 100% da reserva
 - 404: conta padrão inexistente
 
 ### GET /

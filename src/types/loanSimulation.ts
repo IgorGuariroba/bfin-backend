@@ -3,7 +3,7 @@ import { LoanSimulationStatus } from '../generated/prisma/enums';
 export { LoanSimulationStatus };
 
 export const LOAN_SIMULATION_DEFAULT_INTEREST_RATE_MONTHLY = 0.025;
-export const LOAN_SIMULATION_MAX_RESERVE_USAGE_PERCENT = 70;
+export const LOAN_SIMULATION_MAX_RESERVE_USAGE_PERCENT = 100;
 export const LOAN_SIMULATION_MIN_TERM_MONTHS = 6;
 export const LOAN_SIMULATION_MAX_TERM_MONTHS = 30;
 

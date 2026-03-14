@@ -293,7 +293,7 @@ export class LoanSimulationService {
       const currentSimulationAmount = Number(simulation.principal_amount);
       const totalUsage = activeLoansTotal + currentSimulationAmount;
 
-      // 6. Validate 70% reserve limit
+      // 6. Validate reserve limit
       const maxAllowedAmount = reserveAmount * (LOAN_SIMULATION_MAX_RESERVE_USAGE_PERCENT / 100);
 
       if (totalUsage > maxAllowedAmount) {
@@ -301,7 +301,7 @@ export class LoanSimulationService {
           `Approval would exceed reserve limit. Current active loans: ${activeLoansTotal.toFixed(2)}, ` +
             `requested amount: ${currentSimulationAmount.toFixed(2)}, ` +
             `total: ${totalUsage.toFixed(2)}, ` +
-            `maximum allowed (70% of ${reserveAmount.toFixed(2)}): ${maxAllowedAmount.toFixed(2)}`
+            `maximum allowed (${LOAN_SIMULATION_MAX_RESERVE_USAGE_PERCENT}% of ${reserveAmount.toFixed(2)}): ${maxAllowedAmount.toFixed(2)}`
         );
       }
 
@@ -426,7 +426,7 @@ export class LoanSimulationService {
       const activeLoansTotal = Number(activeLoansAggregate._sum.principal_amount ?? 0);
       const totalUsage = activeLoansTotal + principalAmount;
 
-      // 6. Revalidate 70% limit with current reserve
+      // 6. Revalidate reserve limit with current reserve
       const maxAllowedAmount = currentReserve * (LOAN_SIMULATION_MAX_RESERVE_USAGE_PERCENT / 100);
 
       if (totalUsage > maxAllowedAmount) {
@@ -434,7 +434,7 @@ export class LoanSimulationService {
           `Withdrawal would exceed reserve limit. Current active loans: ${activeLoansTotal.toFixed(2)}, ` +
             `requested amount: ${principalAmount.toFixed(2)}, ` +
             `total: ${totalUsage.toFixed(2)}, ` +
-            `maximum allowed (70% of current reserve ${currentReserve.toFixed(2)}): ${maxAllowedAmount.toFixed(2)}`
+            `maximum allowed (${LOAN_SIMULATION_MAX_RESERVE_USAGE_PERCENT}% of current reserve ${currentReserve.toFixed(2)}): ${maxAllowedAmount.toFixed(2)}`
         );
       }
 

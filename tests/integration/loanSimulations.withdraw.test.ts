@@ -228,12 +228,12 @@ describe('POST /api/v1/loan-simulations/:id/withdraw', () => {
     expect(withdrawResponse.body.message).toContain('Insufficient emergency reserve');
   });
 
-  it('rejects withdrawal when 70% limit would be exceeded', async () => {
-    // Create and approve first simulation
+  it('rejects withdrawal when reserve limit would be exceeded', async () => {
+    // Create and approve first simulation (60% of reserve)
     const firstCreateResponse = await request(app)
       .post('/api/v1/loan-simulations')
       .set('Authorization', `Bearer ${token}`)
-      .send({ amount: 4000, termMonths: 12 });
+      .send({ amount: 6000, termMonths: 12 });
 
     const firstSimulationId = firstCreateResponse.body.id;
     createdSimulationIds.push(firstSimulationId);
@@ -242,11 +242,11 @@ describe('POST /api/v1/loan-simulations/:id/withdraw', () => {
       .post(`/api/v1/loan-simulations/${firstSimulationId}/approve`)
       .set('Authorization', `Bearer ${token}`);
 
-    // Create and approve second simulation
+    // Create and approve second simulation (40% of reserve) - total 100%
     const secondCreateResponse = await request(app)
       .post('/api/v1/loan-simulations')
       .set('Authorization', `Bearer ${token}`)
-      .send({ amount: 3000, termMonths: 12 });
+      .send({ amount: 4000, termMonths: 12 });
 
     const secondSimulationId = secondCreateResponse.body.id;
     createdSimulationIds.push(secondSimulationId);
@@ -255,14 +255,14 @@ describe('POST /api/v1/loan-simulations/:id/withdraw', () => {
       .post(`/api/v1/loan-simulations/${secondSimulationId}/approve`)
       .set('Authorization', `Bearer ${token}`);
 
-    // Reduce emergency reserve to make 70% limit fail
-    // With reserve=8000, 70% = 5600, but we have 7000 in approved loans
+    // Reduce emergency reserve to make 100% limit fail
+    // With reserve=9000, 100% = 9000, but we have 10000 in approved loans
     await prisma.account.update({
       where: { id: accountId },
-      data: { emergency_reserve: 8000 },
+      data: { emergency_reserve: 9000 },
     });
 
-    // Try to withdraw second simulation (would exceed 70% limit)
+    // Try to withdraw second simulation (would exceed 100% limit with reduced reserve)
     const withdrawResponse = await request(app)
       .post(`/api/v1/loan-simulations/${secondSimulationId}/withdraw`)
       .set('Authorization', `Bearer ${token}`);
@@ -270,7 +270,7 @@ describe('POST /api/v1/loan-simulations/:id/withdraw', () => {
     expect(withdrawResponse.status).toBe(400);
     expect(withdrawResponse.body.error).toBe('ValidationError');
     expect(withdrawResponse.body.message).toContain('exceed reserve limit');
-    expect(withdrawResponse.body.message).toContain('70%');
+    expect(withdrawResponse.body.message).toContain('100%');
   });
 
   it('rejects withdrawal without authentication', async () => {
