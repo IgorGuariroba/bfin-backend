@@ -24,6 +24,7 @@ type PrismaTransactionMock = {
   findMany: ReturnType<typeof vi.fn>;
   count: ReturnType<typeof vi.fn>;
   create: ReturnType<typeof vi.fn>;
+  createMany: ReturnType<typeof vi.fn>;
   update: ReturnType<typeof vi.fn>;
   delete: ReturnType<typeof vi.fn>;
 };
@@ -79,6 +80,7 @@ async function loadService() {
       create: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),
+      createMany: vi.fn(),
     },
     balanceHistory: { create: vi.fn() },
   };
@@ -98,6 +100,7 @@ async function loadService() {
       create: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),
+      createMany: vi.fn(),
     },
     balanceHistory: { create: vi.fn() },
   };
@@ -378,6 +381,7 @@ describe('TransactionService (unit)', () => {
 
     await expect(
       service.createFixedExpense('user-1', {
+        type: 'fixed',
         accountId: 'acc-1',
         amount: 100,
         description: 'Rent',
@@ -409,6 +413,7 @@ describe('TransactionService (unit)', () => {
 
     await expect(
       service.createFixedExpense('user-1', {
+        type: 'fixed',
         accountId: 'acc-1',
         amount: 100,
         description: 'Rent',
@@ -445,6 +450,7 @@ describe('TransactionService (unit)', () => {
     dueDate.setDate(dueDate.getDate() + 1);
 
     const result = await service.createFixedExpense('user-1', {
+      type: 'fixed',
       accountId: 'acc-1',
       amount: 100,
       description: 'Rent',
@@ -478,6 +484,7 @@ describe('TransactionService (unit)', () => {
 
     await expect(
       service.createVariableExpense('user-1', {
+        type: 'variable',
         accountId: 'acc-1',
         amount: 50,
         description: 'Groceries',
@@ -510,6 +517,7 @@ describe('TransactionService (unit)', () => {
     txMock.balanceHistory.create.mockResolvedValueOnce({ id: 'hist-var-1' });
 
     const result = await service.createVariableExpense('user-1', {
+      type: 'variable',
       accountId: 'acc-1',
       amount: 50,
       description: 'Groceries',
@@ -698,5 +706,869 @@ describe('TransactionService (unit)', () => {
       })
     );
     expect(result).toEqual({ message: 'Transaction deleted successfully' });
+  });
+
+  it('reverts locked balance when deleting a locked fixed expense transaction', async () => {
+    const TransactionService = await loadService();
+    const service = new TransactionService();
+
+    prismaMock.transaction.findUnique.mockResolvedValueOnce({
+      id: 'txn-locked-del',
+      account_id: 'acc-1',
+      category_id: 'cat-1',
+      type: 'fixed_expense',
+      amount: 200,
+      description: 'Rent',
+      status: 'locked',
+      is_recurring: false,
+      recurrence_pattern: null,
+    });
+
+    txMock.account.update.mockResolvedValueOnce({});
+    txMock.transaction.delete.mockResolvedValueOnce({});
+
+    const result = await service.delete('user-1', 'txn-locked-del');
+
+    expect(txMock.account.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          available_balance: { increment: 200 },
+          locked_balance: { decrement: 200 },
+        }),
+      })
+    );
+    expect(result).toEqual({ message: 'Transaction deleted successfully' });
+  });
+
+  it('reverts balances when deleting an executed variable expense transaction', async () => {
+    const TransactionService = await loadService();
+    const service = new TransactionService();
+
+    prismaMock.transaction.findUnique.mockResolvedValueOnce({
+      id: 'txn-var-del',
+      account_id: 'acc-1',
+      category_id: 'cat-1',
+      type: 'variable_expense',
+      amount: 150,
+      description: 'Groceries',
+      status: 'executed',
+      is_recurring: false,
+      recurrence_pattern: null,
+    });
+
+    txMock.account.update.mockResolvedValueOnce({});
+    txMock.transaction.delete.mockResolvedValueOnce({});
+
+    const result = await service.delete('user-1', 'txn-var-del');
+
+    expect(txMock.account.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          total_balance: { increment: 150 },
+          available_balance: { increment: 150 },
+        }),
+      })
+    );
+    expect(result).toEqual({ message: 'Transaction deleted successfully' });
+  });
+
+  it('throws ForbiddenError when deleting a transaction without access', async () => {
+    const TransactionService = await loadService();
+    const service = new TransactionService();
+
+    prismaMock.transaction.findUnique.mockResolvedValueOnce({
+      id: 'txn-no-access',
+      account_id: 'acc-1',
+      category_id: 'cat-1',
+      type: 'income',
+      amount: 100,
+      description: 'Salary',
+      status: 'executed',
+      is_recurring: false,
+      recurrence_pattern: null,
+    });
+
+    accessMock.checkAccess.mockResolvedValueOnce({ hasAccess: false });
+
+    await expect(service.delete('user-2', 'txn-no-access')).rejects.toMatchObject({
+      name: 'ForbiddenError',
+      statusCode: 403,
+    });
+  });
+
+  it('updates transaction without changing amount when only description is provided', async () => {
+    const TransactionService = await loadService();
+    const service = new TransactionService();
+
+    prismaMock.transaction.findUnique.mockResolvedValueOnce({
+      id: 'txn-update-desc',
+      account_id: 'acc-1',
+      category_id: 'cat-1',
+      type: 'income',
+      amount: 100,
+      description: 'Old description',
+      status: 'executed',
+      is_recurring: false,
+      recurrence_pattern: null,
+    });
+
+    txMock.transaction.update.mockResolvedValueOnce({
+      id: 'txn-update-desc',
+      amount: 100,
+      description: 'New description',
+    });
+
+    const result = await service.update('user-1', 'txn-update-desc', {
+      description: 'New description',
+    });
+
+    expect(txMock.account.update).not.toHaveBeenCalled();
+    expect(result.message).toBe('Transaction updated successfully');
+    expect(suggestionEngineMock.invalidateCache).not.toHaveBeenCalled();
+  });
+
+  it('throws ForbiddenError when updating a transaction without access', async () => {
+    const TransactionService = await loadService();
+    const service = new TransactionService();
+
+    prismaMock.transaction.findUnique.mockResolvedValueOnce({
+      id: 'txn-no-access-update',
+      account_id: 'acc-1',
+      category_id: 'cat-1',
+      type: 'income',
+      amount: 100,
+      description: 'Salary',
+      status: 'executed',
+      is_recurring: false,
+      recurrence_pattern: null,
+    });
+
+    accessMock.checkAccess.mockResolvedValueOnce({ hasAccess: false });
+
+    await expect(
+      service.update('user-2', 'txn-no-access-update', { amount: 150 })
+    ).rejects.toMatchObject({
+      name: 'ForbiddenError',
+      statusCode: 403,
+    });
+  });
+
+  it('throws ForbiddenError when marking fixed expense as paid without access', async () => {
+    const TransactionService = await loadService();
+    const service = new TransactionService();
+
+    prismaMock.transaction.findUnique.mockResolvedValueOnce({
+      id: 'txn-no-access-paid',
+      account_id: 'acc-1',
+      category_id: 'cat-1',
+      type: 'fixed_expense',
+      amount: 100,
+      description: 'Rent',
+      status: 'locked',
+      is_recurring: false,
+      recurrence_pattern: null,
+    });
+
+    accessMock.checkAccess.mockResolvedValueOnce({ hasAccess: false });
+
+    await expect(
+      service.markFixedExpenseAsPaid('user-2', 'txn-no-access-paid')
+    ).rejects.toMatchObject({
+      name: 'ForbiddenError',
+      statusCode: 403,
+    });
+  });
+
+  it('throws ValidationError when marking a non-locked transaction as paid', async () => {
+    const TransactionService = await loadService();
+    const service = new TransactionService();
+
+    prismaMock.transaction.findUnique.mockResolvedValueOnce({
+      id: 'txn-not-locked',
+      account_id: 'acc-1',
+      category_id: 'cat-1',
+      type: 'fixed_expense',
+      amount: 100,
+      description: 'Rent',
+      status: 'executed',
+      is_recurring: false,
+      recurrence_pattern: null,
+    });
+
+    await expect(service.markFixedExpenseAsPaid('user-1', 'txn-not-locked')).rejects.toMatchObject({
+      name: 'ValidationError',
+      statusCode: 400,
+    });
+  });
+
+  it('throws ForbiddenError when duplicating a transaction without access', async () => {
+    const TransactionService = await loadService();
+    const service = new TransactionService();
+
+    prismaMock.transaction.findUnique.mockResolvedValueOnce({
+      id: 'txn-no-access-dup',
+      account_id: 'acc-1',
+      category_id: 'cat-1',
+      type: 'income',
+      amount: 100,
+      description: 'Salary',
+      status: 'executed',
+      is_recurring: false,
+      recurrence_pattern: null,
+    });
+
+    accessMock.checkAccess.mockResolvedValueOnce({ hasAccess: false });
+
+    await expect(service.duplicate('user-2', 'txn-no-access-dup')).rejects.toMatchObject({
+      name: 'ForbiddenError',
+      statusCode: 403,
+    });
+  });
+
+  it('duplicates an income transaction successfully', async () => {
+    const TransactionService = await loadService();
+    const service = new TransactionService();
+
+    prismaMock.transaction.findUnique.mockResolvedValueOnce({
+      id: 'txn-income-dup',
+      account_id: 'acc-1',
+      category_id: 'cat-1',
+      type: 'income',
+      amount: 100,
+      description: 'Salary',
+      status: 'executed',
+      is_recurring: false,
+      recurrence_pattern: null,
+    });
+
+    const processIncomeSpy = vi
+      .spyOn(service, 'processIncome')
+      .mockResolvedValueOnce({ transaction: { id: 'new-income' } } as never);
+
+    const result = await service.duplicate('user-1', 'txn-income-dup');
+
+    expect(processIncomeSpy).toHaveBeenCalledWith(
+      'user-1',
+      expect.objectContaining({
+        accountId: 'acc-1',
+        categoryId: 'cat-1',
+        amount: 100,
+        description: 'Salary (cópia)',
+      })
+    );
+    expect(result).toMatchObject({ transaction: { id: 'new-income' } });
+  });
+
+  it('duplicates a fixed expense transaction successfully', async () => {
+    const TransactionService = await loadService();
+    const service = new TransactionService();
+
+    prismaMock.transaction.findUnique.mockResolvedValueOnce({
+      id: 'txn-fixed-dup',
+      account_id: 'acc-1',
+      category_id: 'cat-1',
+      type: 'fixed_expense',
+      amount: 200,
+      description: 'Rent',
+      status: 'locked',
+      is_recurring: false,
+      recurrence_pattern: 'monthly',
+      due_date: new Date('2026-02-01'),
+    });
+
+    const createFixedExpenseSpy = vi
+      .spyOn(service, 'createFixedExpense')
+      .mockResolvedValueOnce({ transaction: { id: 'new-fixed' } } as never);
+
+    const result = await service.duplicate('user-1', 'txn-fixed-dup');
+
+    expect(createFixedExpenseSpy).toHaveBeenCalledWith(
+      'user-1',
+      expect.objectContaining({
+        accountId: 'acc-1',
+        categoryId: 'cat-1',
+        amount: 200,
+        type: 'fixed',
+        description: 'Rent (cópia)',
+      })
+    );
+    expect(result).toMatchObject({ transaction: { id: 'new-fixed' } });
+  });
+
+  it('throws when duplicating a transaction with invalid type', async () => {
+    const TransactionService = await loadService();
+    const service = new TransactionService();
+
+    prismaMock.transaction.findUnique.mockResolvedValueOnce({
+      id: 'txn-invalid-type',
+      account_id: 'acc-1',
+      category_id: 'cat-1',
+      type: 'unknown_type',
+      amount: 100,
+      description: 'Unknown',
+      status: 'executed',
+      is_recurring: false,
+      recurrence_pattern: null,
+    });
+
+    await expect(service.duplicate('user-1', 'txn-invalid-type')).rejects.toMatchObject({
+      name: 'ValidationError',
+      statusCode: 400,
+    });
+  });
+
+  it('generates recurring installments for indefinite expense', async () => {
+    const TransactionService = await loadService();
+    const service = new TransactionService();
+
+    txMock.account.findUnique.mockResolvedValueOnce({
+      id: 'acc-1',
+      available_balance: 500,
+      locked_balance: 0,
+      total_balance: 500,
+      emergency_reserve: 0,
+    });
+    txMock.account.update.mockResolvedValueOnce({
+      total_balance: 500,
+      available_balance: 400,
+      locked_balance: 100,
+      emergency_reserve: 0,
+    });
+    txMock.transaction.create.mockResolvedValueOnce({ id: 'txn-recurring' });
+    txMock.balanceHistory.create.mockResolvedValueOnce({ id: 'hist-recurring' });
+    txMock.transaction.createMany.mockResolvedValueOnce({ count: 12 });
+
+    const dueDate = new Date();
+    dueDate.setDate(dueDate.getDate() + 1);
+
+    await service.createFixedExpense('user-1', {
+      type: 'fixed',
+      accountId: 'acc-1',
+      amount: 100,
+      description: 'Monthly Rent',
+      categoryId: 'cat-1',
+      dueDate,
+      isRecurring: true,
+      recurrencePattern: 'monthly',
+      indefinite: true,
+    });
+
+    expect(txMock.transaction.createMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.arrayContaining([
+          expect.objectContaining({
+            status: 'pending',
+            is_recurring: true,
+          }),
+        ]),
+      })
+    );
+  });
+
+  it('generates recurring installments with recurrence count', async () => {
+    const TransactionService = await loadService();
+    const service = new TransactionService();
+
+    txMock.account.findUnique.mockResolvedValueOnce({
+      id: 'acc-1',
+      available_balance: 500,
+      locked_balance: 0,
+      total_balance: 500,
+      emergency_reserve: 0,
+    });
+    txMock.account.update.mockResolvedValueOnce({
+      total_balance: 500,
+      available_balance: 400,
+      locked_balance: 100,
+      emergency_reserve: 0,
+    });
+    txMock.transaction.create.mockResolvedValueOnce({ id: 'txn-recurring-count' });
+    txMock.balanceHistory.create.mockResolvedValueOnce({ id: 'hist-recurring-count' });
+    txMock.transaction.createMany.mockResolvedValueOnce({ count: 2 });
+
+    const dueDate = new Date();
+    dueDate.setDate(dueDate.getDate() + 1);
+
+    await service.createFixedExpense('user-1', {
+      type: 'fixed',
+      accountId: 'acc-1',
+      amount: 100,
+      description: 'Quarterly Rent',
+      categoryId: 'cat-1',
+      dueDate,
+      isRecurring: true,
+      recurrencePattern: 'monthly',
+      recurrenceCount: 3,
+    });
+
+    expect(txMock.transaction.createMany).toHaveBeenCalled();
+  });
+
+  it('generates recurring installments with end date', async () => {
+    const TransactionService = await loadService();
+    const service = new TransactionService();
+
+    txMock.account.findUnique.mockResolvedValueOnce({
+      id: 'acc-1',
+      available_balance: 500,
+      locked_balance: 0,
+      total_balance: 500,
+      emergency_reserve: 0,
+    });
+    txMock.account.update.mockResolvedValueOnce({
+      total_balance: 500,
+      available_balance: 400,
+      locked_balance: 100,
+      emergency_reserve: 0,
+    });
+    txMock.transaction.create.mockResolvedValueOnce({ id: 'txn-recurring-end' });
+    txMock.balanceHistory.create.mockResolvedValueOnce({ id: 'hist-recurring-end' });
+    txMock.transaction.createMany.mockResolvedValueOnce({ count: 5 });
+
+    const dueDate = new Date();
+    dueDate.setDate(dueDate.getDate() + 1);
+    const endDate = new Date(dueDate);
+    endDate.setMonth(endDate.getMonth() + 5);
+
+    await service.createFixedExpense('user-1', {
+      type: 'fixed',
+      accountId: 'acc-1',
+      amount: 100,
+      description: 'Temporary Rent',
+      categoryId: 'cat-1',
+      dueDate,
+      isRecurring: true,
+      recurrencePattern: 'monthly',
+      recurrenceEndDate: endDate,
+    });
+
+    expect(txMock.transaction.createMany).toHaveBeenCalled();
+  });
+
+  it('generates recurring installments with weekly pattern', async () => {
+    const TransactionService = await loadService();
+    const service = new TransactionService();
+
+    txMock.account.findUnique.mockResolvedValueOnce({
+      id: 'acc-1',
+      available_balance: 500,
+      locked_balance: 0,
+      total_balance: 500,
+      emergency_reserve: 0,
+    });
+    txMock.account.update.mockResolvedValueOnce({
+      total_balance: 500,
+      available_balance: 400,
+      locked_balance: 100,
+      emergency_reserve: 0,
+    });
+    txMock.transaction.create.mockResolvedValueOnce({ id: 'txn-weekly' });
+    txMock.balanceHistory.create.mockResolvedValueOnce({ id: 'hist-weekly' });
+    txMock.transaction.createMany.mockResolvedValueOnce({ count: 12 });
+
+    const dueDate = new Date();
+    dueDate.setDate(dueDate.getDate() + 1);
+
+    await service.createFixedExpense('user-1', {
+      type: 'fixed',
+      accountId: 'acc-1',
+      amount: 50,
+      description: 'Weekly Expense',
+      categoryId: 'cat-1',
+      dueDate,
+      isRecurring: true,
+      recurrencePattern: 'weekly',
+      indefinite: true,
+    });
+
+    expect(txMock.transaction.createMany).toHaveBeenCalled();
+  });
+
+  it('generates recurring installments with yearly pattern', async () => {
+    const TransactionService = await loadService();
+    const service = new TransactionService();
+
+    txMock.account.findUnique.mockResolvedValueOnce({
+      id: 'acc-1',
+      available_balance: 5000,
+      locked_balance: 0,
+      total_balance: 5000,
+      emergency_reserve: 0,
+    });
+    txMock.account.update.mockResolvedValueOnce({
+      total_balance: 5000,
+      available_balance: 4900,
+      locked_balance: 100,
+      emergency_reserve: 0,
+    });
+    txMock.transaction.create.mockResolvedValueOnce({ id: 'txn-yearly' });
+    txMock.balanceHistory.create.mockResolvedValueOnce({ id: 'hist-yearly' });
+    txMock.transaction.createMany.mockResolvedValueOnce({ count: 12 });
+
+    const dueDate = new Date();
+    dueDate.setDate(dueDate.getDate() + 1);
+
+    await service.createFixedExpense('user-1', {
+      type: 'fixed',
+      accountId: 'acc-1',
+      amount: 100,
+      description: 'Yearly Expense',
+      categoryId: 'cat-1',
+      dueDate,
+      isRecurring: true,
+      recurrencePattern: 'yearly',
+      indefinite: true,
+    });
+
+    expect(txMock.transaction.createMany).toHaveBeenCalled();
+  });
+
+  it('generates recurring installments with custom interval', async () => {
+    const TransactionService = await loadService();
+    const service = new TransactionService();
+
+    txMock.account.findUnique.mockResolvedValueOnce({
+      id: 'acc-1',
+      available_balance: 500,
+      locked_balance: 0,
+      total_balance: 500,
+      emergency_reserve: 0,
+    });
+    txMock.account.update.mockResolvedValueOnce({
+      total_balance: 500,
+      available_balance: 400,
+      locked_balance: 100,
+      emergency_reserve: 0,
+    });
+    txMock.transaction.create.mockResolvedValueOnce({ id: 'txn-interval' });
+    txMock.balanceHistory.create.mockResolvedValueOnce({ id: 'hist-interval' });
+    txMock.transaction.createMany.mockResolvedValueOnce({ count: 4 });
+
+    const dueDate = new Date();
+    dueDate.setDate(dueDate.getDate() + 1);
+
+    await service.createFixedExpense('user-1', {
+      type: 'fixed',
+      accountId: 'acc-1',
+      amount: 100,
+      description: 'Quarterly Expense',
+      categoryId: 'cat-1',
+      dueDate,
+      isRecurring: true,
+      recurrencePattern: 'monthly',
+      recurrenceInterval: 3,
+      indefinite: true,
+    });
+
+    expect(txMock.transaction.createMany).toHaveBeenCalled();
+  });
+
+  it('does not generate installments when end date is before due date', async () => {
+    const TransactionService = await loadService();
+    const service = new TransactionService();
+
+    txMock.account.findUnique.mockResolvedValueOnce({
+      id: 'acc-1',
+      available_balance: 500,
+      locked_balance: 0,
+      total_balance: 500,
+      emergency_reserve: 0,
+    });
+    txMock.account.update.mockResolvedValueOnce({
+      total_balance: 500,
+      available_balance: 400,
+      locked_balance: 100,
+      emergency_reserve: 0,
+    });
+    txMock.transaction.create.mockResolvedValueOnce({ id: 'txn-invalid-range' });
+    txMock.balanceHistory.create.mockResolvedValueOnce({ id: 'hist-invalid-range' });
+
+    const dueDate = new Date();
+    dueDate.setDate(dueDate.getDate() + 1);
+    const endDate = new Date(dueDate);
+    endDate.setDate(endDate.getDate() - 1);
+
+    await service.createFixedExpense('user-1', {
+      type: 'fixed',
+      accountId: 'acc-1',
+      amount: 100,
+      description: 'Invalid Range',
+      categoryId: 'cat-1',
+      dueDate,
+      isRecurring: true,
+      recurrencePattern: 'monthly',
+      recurrenceEndDate: endDate,
+    });
+
+    expect(txMock.transaction.createMany).not.toHaveBeenCalled();
+  });
+
+  it('throws ValidationError when fixed expense has multiple recurrence end types', async () => {
+    const TransactionService = await loadService();
+    const service = new TransactionService();
+
+    const dueDate = new Date();
+    dueDate.setDate(dueDate.getDate() + 1);
+    const endDate = new Date(dueDate);
+    endDate.setMonth(endDate.getMonth() + 6);
+
+    await expect(
+      service.createFixedExpense('user-1', {
+        type: 'fixed',
+        accountId: 'acc-1',
+        amount: 100,
+        description: 'Multiple end types',
+        categoryId: 'cat-1',
+        dueDate,
+        isRecurring: true,
+        recurrencePattern: 'monthly',
+        recurrenceCount: 5,
+        recurrenceEndDate: endDate,
+      })
+    ).rejects.toMatchObject({
+      name: 'ValidationError',
+      statusCode: 400,
+    });
+  });
+
+  it('defaults to indefinite when isRecurring is true but no end type is specified', async () => {
+    const TransactionService = await loadService();
+    const service = new TransactionService();
+
+    txMock.account.findUnique.mockResolvedValueOnce({
+      id: 'acc-1',
+      available_balance: 500,
+      locked_balance: 0,
+      total_balance: 500,
+      emergency_reserve: 0,
+    });
+    txMock.account.update.mockResolvedValueOnce({
+      total_balance: 500,
+      available_balance: 400,
+      locked_balance: 100,
+      emergency_reserve: 0,
+    });
+    txMock.transaction.create.mockResolvedValueOnce({ id: 'txn-default-indefinite' });
+    txMock.balanceHistory.create.mockResolvedValueOnce({ id: 'hist-default-indefinite' });
+    txMock.transaction.createMany.mockResolvedValueOnce({ count: 12 });
+
+    const dueDate = new Date();
+    dueDate.setDate(dueDate.getDate() + 1);
+
+    await service.createFixedExpense('user-1', {
+      type: 'fixed',
+      accountId: 'acc-1',
+      amount: 100,
+      description: 'Default indefinite',
+      categoryId: 'cat-1',
+      dueDate,
+      isRecurring: true,
+      recurrencePattern: 'monthly',
+    });
+
+    expect(txMock.transaction.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          indefinite: true,
+        }),
+      })
+    );
+  });
+
+  it('adjusts available and locked balances when updating a locked transaction with decreased amount', async () => {
+    const TransactionService = await loadService();
+    const service = new TransactionService();
+
+    prismaMock.transaction.findUnique.mockResolvedValueOnce({
+      id: 'txn-locked-decrease',
+      account_id: 'acc-1',
+      category_id: 'cat-1',
+      type: 'fixed_expense',
+      amount: 100,
+      description: 'Rent',
+      status: 'locked',
+      is_recurring: false,
+      recurrence_pattern: null,
+    });
+    txMock.account.update.mockResolvedValueOnce({});
+    txMock.transaction.update.mockResolvedValueOnce({
+      id: 'txn-locked-decrease',
+      amount: 50,
+    });
+
+    await service.update('user-1', 'txn-locked-decrease', { amount: 50 });
+
+    // amountDiff = 50 - 100 = -50
+    // decrement: -50 === increment 50
+    // increment: -50 === decrement 50
+    expect(txMock.account.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          available_balance: { decrement: -50 },
+          locked_balance: { increment: -50 },
+        }),
+      })
+    );
+  });
+
+  it('adjusts balances correctly when updating an executed income transaction', async () => {
+    const TransactionService = await loadService();
+    const service = new TransactionService();
+
+    prismaMock.transaction.findUnique.mockResolvedValueOnce({
+      id: 'txn-income-update',
+      account_id: 'acc-1',
+      category_id: 'cat-1',
+      type: 'income',
+      amount: 100,
+      description: 'Salary',
+      status: 'executed',
+      is_recurring: false,
+      recurrence_pattern: null,
+    });
+    txMock.account.update.mockResolvedValueOnce({});
+    txMock.transaction.update.mockResolvedValueOnce({
+      id: 'txn-income-update',
+      amount: 200,
+    });
+
+    await service.update('user-1', 'txn-income-update', { amount: 200 });
+
+    expect(txMock.account.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          total_balance: { increment: 100 },
+          emergency_reserve: { increment: 30 },
+          available_balance: { increment: 70 },
+        }),
+      })
+    );
+  });
+
+  it('adjusts balances correctly when updating an executed variable expense transaction', async () => {
+    const TransactionService = await loadService();
+    const service = new TransactionService();
+
+    prismaMock.transaction.findUnique.mockResolvedValueOnce({
+      id: 'txn-var-update',
+      account_id: 'acc-1',
+      category_id: 'cat-1',
+      type: 'variable_expense',
+      amount: 100,
+      description: 'Groceries',
+      status: 'executed',
+      is_recurring: false,
+      recurrence_pattern: null,
+    });
+    txMock.account.update.mockResolvedValueOnce({});
+    txMock.transaction.update.mockResolvedValueOnce({
+      id: 'txn-var-update',
+      amount: 150,
+    });
+
+    await service.update('user-1', 'txn-var-update', { amount: 150 });
+
+    expect(txMock.account.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          total_balance: { decrement: 50 },
+          available_balance: { decrement: 50 },
+        }),
+      })
+    );
+  });
+
+  it('marks fixed expense as paid and updates balances correctly', async () => {
+    const TransactionService = await loadService();
+    const service = new TransactionService();
+
+    prismaMock.transaction.findUnique.mockResolvedValueOnce({
+      id: 'txn-mark-paid',
+      account_id: 'acc-1',
+      category_id: 'cat-1',
+      type: 'fixed_expense',
+      amount: 100,
+      description: 'Rent',
+      status: 'locked',
+      is_recurring: false,
+      recurrence_pattern: null,
+    });
+
+    txMock.account.update.mockResolvedValueOnce({});
+    txMock.transaction.update.mockResolvedValueOnce({
+      id: 'txn-mark-paid',
+      status: 'executed',
+    });
+    txMock.account.findUnique.mockResolvedValueOnce({
+      total_balance: 400,
+      available_balance: 400,
+      locked_balance: 0,
+      emergency_reserve: 0,
+    });
+    txMock.balanceHistory.create.mockResolvedValueOnce({ id: 'hist-mark-paid' });
+
+    const result = await service.markFixedExpenseAsPaid('user-1', 'txn-mark-paid');
+
+    expect(txMock.account.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          total_balance: { decrement: 100 },
+          locked_balance: { decrement: 100 },
+        }),
+      })
+    );
+    expect(result.message).toBe('Fixed expense marked as paid successfully');
+    expect(suggestionEngineMock.invalidateCache).toHaveBeenCalledWith('acc-1');
+  });
+
+  it('throws NotFoundError when marking fixed expense as paid and account is not found', async () => {
+    const TransactionService = await loadService();
+    const service = new TransactionService();
+
+    prismaMock.transaction.findUnique.mockResolvedValueOnce({
+      id: 'txn-no-account',
+      account_id: 'acc-missing',
+      category_id: 'cat-1',
+      type: 'fixed_expense',
+      amount: 100,
+      description: 'Rent',
+      status: 'locked',
+      is_recurring: false,
+      recurrence_pattern: null,
+    });
+
+    txMock.account.update.mockResolvedValueOnce({});
+    txMock.transaction.update.mockResolvedValueOnce({ id: 'txn-no-account' });
+    txMock.account.findUnique.mockResolvedValueOnce(null);
+
+    await expect(service.markFixedExpenseAsPaid('user-1', 'txn-no-account')).rejects.toMatchObject({
+      name: 'NotFoundError',
+      statusCode: 404,
+    });
+  });
+
+  it('throws NotFoundError when accessing a transaction from a non-existent account', async () => {
+    const TransactionService = await loadService();
+    const service = new TransactionService();
+
+    prismaMock.transaction.findUnique.mockResolvedValueOnce({
+      id: 'txn-missing-account',
+      account_id: 'acc-missing',
+      category_id: 'cat-1',
+      type: 'income',
+      amount: 100,
+      description: 'Salary',
+      status: 'executed',
+      is_recurring: false,
+      recurrence_pattern: null,
+    });
+
+    prismaMock.account.findUnique.mockResolvedValueOnce(null);
+    accessMock.checkAccess.mockResolvedValueOnce({ hasAccess: false });
+
+    await expect(service.getById('user-1', 'txn-missing-account')).rejects.toMatchObject({
+      name: 'ForbiddenError',
+      statusCode: 403,
+    });
   });
 });

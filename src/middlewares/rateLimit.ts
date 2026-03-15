@@ -6,7 +6,10 @@ const isTest = process.env.NODE_ENV === 'test';
 export const rateLimiter = rateLimitMiddleware({
   windowMs: Number(process.env.RATE_LIMIT_WINDOW_MS) || 60000,
   max: Number(process.env.RATE_LIMIT_MAX_REQUESTS) || 100,
-  skip: () => isTest,
+  skip: (req) => {
+    // Não aplicar rate limit em ambiente de teste ou para documentação Swagger
+    return isTest || req.path.startsWith('/api-docs');
+  },
   message: {
     error: 'TooManyRequestsError',
     message: 'Too many requests, please try again later',
