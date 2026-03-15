@@ -529,6 +529,107 @@ router.post('/:id/duplicate', (req, res, next) => {
 
 /**
  * @swagger
+ * /api/v1/transactions/transfer:
+ *   post:
+ *     tags: [Transactions]
+ *     summary: Transferir valor entre contas
+ *     description: Realiza transferência de valor da conta de origem para conta de destino. Apenas o saldo disponível (available_balance) pode ser transferido.
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - sourceAccountId
+ *               - destinationAccountId
+ *               - amount
+ *             properties:
+ *               sourceAccountId:
+ *                 type: string
+ *                 format: uuid
+ *                 description: ID da conta de origem (deve ser owner)
+ *               destinationAccountId:
+ *                 type: string
+ *                 format: uuid
+ *                 description: ID da conta de destino (deve existir)
+ *               amount:
+ *                 type: number
+ *                 format: decimal
+ *                 minimum: 0.01
+ *                 description: Valor a ser transferido
+ *               description:
+ *                 type: string
+ *                 minLength: 1
+ *                 maxLength: 255
+ *                 description: Descrição opcional da transferência
+ *           example:
+ *             sourceAccountId: "123e4567-e89b-12d3-a456-426614174000"
+ *             destinationAccountId: "987fcdeb-51d2-43ab-9876-543210fedcba"
+ *             amount: 500.00
+ *             description: "Pagamento jantar"
+ *     responses:
+ *       201:
+ *         description: Transferência realizada com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 transfer:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       format: uuid
+ *                     amount:
+ *                       type: number
+ *                     description:
+ *                       type: string
+ *                     sourceAccount:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                           format: uuid
+ *                         account_name:
+ *                           type: string
+ *                     destinationAccount:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                           format: uuid
+ *                         account_name:
+ *                           type: string
+ *                     createdAt:
+ *                       type: string
+ *                       format: date-time
+ *                 debitTransaction:
+ *                   $ref: '#/components/schemas/Transaction'
+ *                 creditTransaction:
+ *                   $ref: '#/components/schemas/Transaction'
+ *       400:
+ *         description: Dados inválidos ou saldo insuficiente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: Não autenticado
+ *       403:
+ *         description: Sem permissão de owner na conta de origem
+ *       404:
+ *         description: Conta de origem ou destino não encontrada
+ */
+router.post('/transfer', (req, res, next) => {
+  transactionController.createTransfer(req, res).catch(next);
+});
+
+/**
+ * @swagger
  * /api/v1/transactions/{id}:
  *   delete:
  *     tags: [Transactions]

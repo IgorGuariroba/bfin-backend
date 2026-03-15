@@ -19,6 +19,8 @@ import type {
   PostApiV1TransactionsExpenseBody,
   PostApiV1TransactionsIdMarkAsPaid200,
   PostApiV1TransactionsIncomeBody,
+  PostApiV1TransactionsTransfer201,
+  PostApiV1TransactionsTransferBody,
   PutApiV1TransactionsId200,
   PutApiV1TransactionsIdBody,
   Transaction,
@@ -814,6 +816,110 @@ export const usePostApiV1TransactionsIdDuplicate = <TError = Error | void>(
 
   const swrKey = swrOptions?.swrKey ?? getPostApiV1TransactionsIdDuplicateMutationKey(id);
   const swrFn = getPostApiV1TransactionsIdDuplicateMutationFetcher(id, requestOptions);
+
+  const query = useSWRMutation(swrKey, swrFn, swrOptions);
+
+  return {
+    swrKey,
+    ...query,
+  };
+};
+/**
+ * Realiza transferência de valor da conta de origem para conta de destino. Apenas o saldo disponível (available_balance) pode ser transferido.
+ * @summary Transferir valor entre contas
+ */
+export type postApiV1TransactionsTransferResponse201 = {
+  data: PostApiV1TransactionsTransfer201;
+  status: 201;
+};
+
+export type postApiV1TransactionsTransferResponse400 = {
+  data: Error;
+  status: 400;
+};
+
+export type postApiV1TransactionsTransferResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type postApiV1TransactionsTransferResponse403 = {
+  data: void;
+  status: 403;
+};
+
+export type postApiV1TransactionsTransferResponse404 = {
+  data: void;
+  status: 404;
+};
+
+export type postApiV1TransactionsTransferResponseSuccess =
+  postApiV1TransactionsTransferResponse201 & {
+    headers: Headers;
+  };
+export type postApiV1TransactionsTransferResponseError = (
+  | postApiV1TransactionsTransferResponse400
+  | postApiV1TransactionsTransferResponse401
+  | postApiV1TransactionsTransferResponse403
+  | postApiV1TransactionsTransferResponse404
+) & {
+  headers: Headers;
+};
+
+export type postApiV1TransactionsTransferResponse =
+  | postApiV1TransactionsTransferResponseSuccess
+  | postApiV1TransactionsTransferResponseError;
+
+export const getPostApiV1TransactionsTransferUrl = () => {
+  return `/api/v1/transactions/transfer`;
+};
+
+export const postApiV1TransactionsTransfer = async (
+  postApiV1TransactionsTransferBody: PostApiV1TransactionsTransferBody,
+  options?: RequestInit
+): Promise<postApiV1TransactionsTransferResponse> => {
+  return customInstance<postApiV1TransactionsTransferResponse>(
+    getPostApiV1TransactionsTransferUrl(),
+    {
+      ...options,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...options?.headers },
+      body: JSON.stringify(postApiV1TransactionsTransferBody),
+    }
+  );
+};
+
+export const getPostApiV1TransactionsTransferMutationFetcher = (
+  options?: SecondParameter<typeof customInstance>
+) => {
+  return (_: Key, { arg }: { arg: PostApiV1TransactionsTransferBody }) => {
+    return postApiV1TransactionsTransfer(arg, options);
+  };
+};
+export const getPostApiV1TransactionsTransferMutationKey = () =>
+  [`/api/v1/transactions/transfer`] as const;
+
+export type PostApiV1TransactionsTransferMutationResult = NonNullable<
+  Awaited<ReturnType<typeof postApiV1TransactionsTransfer>>
+>;
+
+/**
+ * @summary Transferir valor entre contas
+ */
+export const usePostApiV1TransactionsTransfer = <TError = Error | void>(options?: {
+  swr?: SWRMutationConfiguration<
+    Awaited<ReturnType<typeof postApiV1TransactionsTransfer>>,
+    TError,
+    Key,
+    PostApiV1TransactionsTransferBody,
+    Awaited<ReturnType<typeof postApiV1TransactionsTransfer>>
+  > & { swrKey?: string };
+  request?: SecondParameter<typeof customInstance>;
+}) => {
+  const { swr: swrOptions, request: requestOptions } = options ?? {};
+
+  const swrKey = swrOptions?.swrKey ?? getPostApiV1TransactionsTransferMutationKey();
+  const swrFn = getPostApiV1TransactionsTransferMutationFetcher(requestOptions);
 
   const query = useSWRMutation(swrKey, swrFn, swrOptions);
 

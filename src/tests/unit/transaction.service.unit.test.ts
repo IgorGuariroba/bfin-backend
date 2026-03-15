@@ -33,8 +33,11 @@ type PrismaMock = {
   $transaction: ReturnType<typeof vi.fn>;
   account: PrismaAccountMock;
   financialRule: { findMany: ReturnType<typeof vi.fn> };
+  category: { findFirst: ReturnType<typeof vi.fn> };
   transaction: PrismaTransactionMock;
   balanceHistory: { create: ReturnType<typeof vi.fn> };
+  notification: { create: ReturnType<typeof vi.fn> };
+  auditEvent: { create: ReturnType<typeof vi.fn> };
 };
 
 let redisMock: RedisMock;
@@ -73,6 +76,7 @@ async function loadService() {
       update: vi.fn(),
     },
     financialRule: { findMany: vi.fn() },
+    category: { findFirst: vi.fn() },
     transaction: {
       findUnique: vi.fn(),
       findMany: vi.fn(),
@@ -83,6 +87,8 @@ async function loadService() {
       createMany: vi.fn(),
     },
     balanceHistory: { create: vi.fn() },
+    notification: { create: vi.fn() },
+    auditEvent: { create: vi.fn() },
   };
 
   prismaMock = {
@@ -93,6 +99,7 @@ async function loadService() {
       update: vi.fn(),
     },
     financialRule: { findMany: vi.fn() },
+    category: { findFirst: vi.fn() },
     transaction: {
       findUnique: vi.fn(),
       findMany: vi.fn(),
@@ -103,6 +110,8 @@ async function loadService() {
       createMany: vi.fn(),
     },
     balanceHistory: { create: vi.fn() },
+    notification: { create: vi.fn() },
+    auditEvent: { create: vi.fn() },
   };
 
   accessMock = {
@@ -1569,6 +1578,421 @@ describe('TransactionService (unit)', () => {
     await expect(service.getById('user-1', 'txn-missing-account')).rejects.toMatchObject({
       name: 'ForbiddenError',
       statusCode: 403,
+    });
+  });
+
+  describe('transfer', () => {
+    it('throws ValidationError when amount is not positive', async () => {
+      const TransactionService = await loadService();
+      const service = new TransactionService();
+
+      await expect(
+        service.transfer('user-1', {
+          sourceAccountId: 'acc-1',
+          destinationAccountId: 'acc-2',
+          amount: 0,
+        })
+      ).rejects.toMatchObject({
+        name: 'ValidationError',
+        statusCode: 400,
+      });
+
+      expect(prismaMock.$transaction).not.toHaveBeenCalled();
+    });
+
+    it('throws ValidationError when source and destination accounts are the same', async () => {
+      const TransactionService = await loadService();
+      const service = new TransactionService();
+
+      await expect(
+        service.transfer('user-1', {
+          sourceAccountId: 'acc-1',
+          destinationAccountId: 'acc-1',
+          amount: 100,
+        })
+      ).rejects.toMatchObject({
+        name: 'ValidationError',
+        statusCode: 400,
+      });
+
+      expect(prismaMock.$transaction).not.toHaveBeenCalled();
+    });
+
+    it('throws NotFoundError when source account does not exist', async () => {
+      const TransactionService = await loadService();
+      const service = new TransactionService();
+
+      prismaMock.$transaction.mockImplementation(async (fn) => {
+        txMock.account.findUnique.mockResolvedValueOnce(null);
+        return fn(txMock);
+      });
+
+      await expect(
+        service.transfer('user-1', {
+          sourceAccountId: 'missing',
+          destinationAccountId: 'acc-2',
+          amount: 100,
+        })
+      ).rejects.toMatchObject({
+        name: 'NotFoundError',
+        statusCode: 404,
+      });
+    });
+
+    it('throws ForbiddenError when user is not owner of source account', async () => {
+      const TransactionService = await loadService();
+      const service = new TransactionService();
+
+      accessMock.checkAccess.mockResolvedValueOnce({ hasAccess: true, role: 'member' });
+
+      prismaMock.$transaction.mockImplementation(async (fn) => {
+        txMock.account.findUnique.mockResolvedValueOnce({
+          id: 'acc-1',
+          user_id: 'other-user',
+          account_name: 'Source Account',
+          available_balance: 500,
+          locked_balance: 0,
+          total_balance: 500,
+          emergency_reserve: 0,
+        });
+        return fn(txMock);
+      });
+
+      await expect(
+        service.transfer('user-1', {
+          sourceAccountId: 'acc-1',
+          destinationAccountId: 'acc-2',
+          amount: 100,
+        })
+      ).rejects.toMatchObject({
+        name: 'ForbiddenError',
+        statusCode: 403,
+      });
+    });
+
+    it('throws InsufficientBalanceError when source account has insufficient balance', async () => {
+      const TransactionService = await loadService();
+      const service = new TransactionService();
+
+      prismaMock.$transaction.mockImplementation(async (fn) => {
+        txMock.account.findUnique.mockResolvedValueOnce({
+          id: 'acc-1',
+          user_id: 'user-1',
+          account_name: 'Source Account',
+          available_balance: 50,
+          locked_balance: 0,
+          total_balance: 50,
+          emergency_reserve: 0,
+        });
+        return fn(txMock);
+      });
+
+      await expect(
+        service.transfer('user-1', {
+          sourceAccountId: 'acc-1',
+          destinationAccountId: 'acc-2',
+          amount: 100,
+        })
+      ).rejects.toMatchObject({
+        name: 'InsufficientBalanceError',
+        statusCode: 400,
+      });
+    });
+
+    it('throws NotFoundError when destination account does not exist', async () => {
+      const TransactionService = await loadService();
+      const service = new TransactionService();
+
+      prismaMock.$transaction.mockImplementation(async (fn) => {
+        txMock.account.findUnique
+          .mockResolvedValueOnce({
+            id: 'acc-1',
+            user_id: 'user-1',
+            account_name: 'Source Account',
+            available_balance: 500,
+            locked_balance: 0,
+            total_balance: 500,
+            emergency_reserve: 0,
+          })
+          .mockResolvedValueOnce(null);
+        return fn(txMock);
+      });
+
+      await expect(
+        service.transfer('user-1', {
+          sourceAccountId: 'acc-1',
+          destinationAccountId: 'missing',
+          amount: 100,
+        })
+      ).rejects.toMatchObject({
+        name: 'NotFoundError',
+        statusCode: 404,
+      });
+    });
+
+    it('throws NotFoundError when transfer category does not exist', async () => {
+      const TransactionService = await loadService();
+      const service = new TransactionService();
+
+      prismaMock.$transaction.mockImplementation(async (fn) => {
+        txMock.account.findUnique
+          .mockResolvedValueOnce({
+            id: 'acc-1',
+            user_id: 'user-1',
+            account_name: 'Source Account',
+            available_balance: 500,
+            locked_balance: 0,
+            total_balance: 500,
+            emergency_reserve: 0,
+          })
+          .mockResolvedValueOnce({
+            id: 'acc-2',
+            user_id: 'user-2',
+            account_name: 'Destination Account',
+          });
+        txMock.category.findFirst.mockResolvedValueOnce(null);
+        return fn(txMock);
+      });
+
+      await expect(
+        service.transfer('user-1', {
+          sourceAccountId: 'acc-1',
+          destinationAccountId: 'acc-2',
+          amount: 100,
+        })
+      ).rejects.toMatchObject({
+        name: 'NotFoundError',
+        statusCode: 404,
+      });
+    });
+
+    it('successfully transfers money between accounts', async () => {
+      const TransactionService = await loadService();
+      const service = new TransactionService();
+
+      const sourceAccount = {
+        id: 'acc-1',
+        user_id: 'user-1',
+        account_name: 'Source Account',
+        available_balance: 500,
+        locked_balance: 0,
+        total_balance: 500,
+        emergency_reserve: 0,
+      };
+
+      const destinationAccount = {
+        id: 'acc-2',
+        user_id: 'user-2',
+        account_name: 'Destination Account',
+        available_balance: 200,
+        locked_balance: 0,
+        total_balance: 200,
+        emergency_reserve: 0,
+      };
+
+      const transferCategory = {
+        id: 'cat-transfer',
+        name: 'Transferências',
+        type: 'transfer',
+        is_system: true,
+      };
+
+      const debitTransaction = {
+        id: 'txn-debit',
+        account_id: 'acc-1',
+        type: 'transfer',
+        amount: 100,
+        description: 'Payment',
+        destination_account_id: 'acc-2',
+        status: 'executed',
+        created_at: new Date(),
+      };
+
+      const creditTransaction = {
+        id: 'txn-credit',
+        account_id: 'acc-2',
+        type: 'transfer',
+        amount: 100,
+        description: 'Payment',
+        source_account_id: 'acc-1',
+        status: 'executed',
+        created_at: new Date(),
+      };
+
+      prismaMock.$transaction.mockImplementation(async (fn) => {
+        txMock.account.findUnique
+          .mockResolvedValueOnce(sourceAccount)
+          .mockResolvedValueOnce(destinationAccount)
+          .mockResolvedValueOnce({ ...sourceAccount, available_balance: 400, total_balance: 400 })
+          .mockResolvedValueOnce({
+            ...destinationAccount,
+            available_balance: 300,
+            total_balance: 300,
+          });
+
+        txMock.category.findFirst.mockResolvedValueOnce(transferCategory);
+        txMock.account.update.mockResolvedValueOnce({}).mockResolvedValueOnce({});
+        txMock.transaction.create
+          .mockResolvedValueOnce(debitTransaction)
+          .mockResolvedValueOnce(creditTransaction);
+        txMock.balanceHistory.create
+          .mockResolvedValueOnce({ id: 'hist-1' })
+          .mockResolvedValueOnce({ id: 'hist-2' });
+        txMock.notification.create
+          .mockResolvedValueOnce({ id: 'notif-1' })
+          .mockResolvedValueOnce({ id: 'notif-2' });
+        txMock.auditEvent.create.mockResolvedValueOnce({ id: 'audit-1' });
+
+        return fn(txMock);
+      });
+
+      const result = await service.transfer('user-1', {
+        sourceAccountId: 'acc-1',
+        destinationAccountId: 'acc-2',
+        amount: 100,
+        description: 'Payment',
+      });
+
+      expect(result.transfer).toMatchObject({
+        id: 'txn-debit',
+        amount: 100,
+        description: 'Payment',
+        sourceAccount: { id: 'acc-1', account_name: 'Source Account' },
+        destinationAccount: { id: 'acc-2', account_name: 'Destination Account' },
+      });
+
+      expect(result.debitTransaction).toMatchObject(debitTransaction);
+      expect(result.creditTransaction).toMatchObject(creditTransaction);
+
+      expect(txMock.account.update).toHaveBeenCalledTimes(2);
+      expect(txMock.account.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'acc-1' },
+          data: expect.objectContaining({
+            total_balance: { decrement: 100 },
+            available_balance: { decrement: 100 },
+          }),
+        })
+      );
+      expect(txMock.account.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'acc-2' },
+          data: expect.objectContaining({
+            total_balance: { increment: 100 },
+            available_balance: { increment: 100 },
+          }),
+        })
+      );
+
+      expect(txMock.transaction.create).toHaveBeenCalledTimes(2);
+      expect(txMock.balanceHistory.create).toHaveBeenCalledTimes(2);
+      expect(txMock.notification.create).toHaveBeenCalledTimes(2);
+      expect(txMock.auditEvent.create).toHaveBeenCalledTimes(1);
+
+      expect(redisMock.scanStream).toHaveBeenCalledTimes(2);
+    });
+
+    it('creates transfer without description when not provided', async () => {
+      const TransactionService = await loadService();
+      const service = new TransactionService();
+
+      prismaMock.$transaction.mockImplementation(async (fn) => {
+        txMock.account.findUnique
+          .mockResolvedValueOnce({
+            id: 'acc-1',
+            user_id: 'user-1',
+            account_name: 'Source',
+            available_balance: 500,
+            locked_balance: 0,
+            total_balance: 500,
+            emergency_reserve: 0,
+          })
+          .mockResolvedValueOnce({
+            id: 'acc-2',
+            user_id: 'user-2',
+            account_name: 'Dest',
+          })
+          .mockResolvedValueOnce({ available_balance: 400, total_balance: 400 })
+          .mockResolvedValueOnce({ available_balance: 100, total_balance: 100 });
+
+        txMock.category.findFirst.mockResolvedValueOnce({ id: 'cat-transfer' });
+        txMock.account.update.mockResolvedValueOnce({}).mockResolvedValueOnce({});
+        txMock.transaction.create
+          .mockResolvedValueOnce({ id: 'txn-debit', description: 'Transferência para conta acc-2' })
+          .mockResolvedValueOnce({
+            id: 'txn-credit',
+            description: 'Transferência recebida de conta acc-1',
+          });
+        txMock.balanceHistory.create.mockResolvedValueOnce({}).mockResolvedValueOnce({});
+        txMock.notification.create.mockResolvedValueOnce({}).mockResolvedValueOnce({});
+        txMock.auditEvent.create.mockResolvedValueOnce({});
+
+        return fn(txMock);
+      });
+
+      await service.transfer('user-1', {
+        sourceAccountId: 'acc-1',
+        destinationAccountId: 'acc-2',
+        amount: 100,
+      });
+
+      expect(txMock.transaction.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            description: expect.stringContaining('Transferência para conta acc-2'),
+          }),
+        })
+      );
+    });
+
+    it('invalidates calendar cache for both accounts', async () => {
+      const TransactionService = await loadService();
+      const service = new TransactionService();
+
+      prismaMock.$transaction.mockImplementation(async (fn) => {
+        txMock.account.findUnique
+          .mockResolvedValueOnce({
+            id: 'acc-1',
+            user_id: 'user-1',
+            account_name: 'Source',
+            available_balance: 500,
+            locked_balance: 0,
+            total_balance: 500,
+            emergency_reserve: 0,
+          })
+          .mockResolvedValueOnce({
+            id: 'acc-2',
+            user_id: 'user-2',
+            account_name: 'Dest',
+          })
+          .mockResolvedValueOnce({ available_balance: 400, total_balance: 400 })
+          .mockResolvedValueOnce({ available_balance: 100, total_balance: 100 });
+
+        txMock.category.findFirst.mockResolvedValueOnce({ id: 'cat-transfer' });
+        txMock.account.update.mockResolvedValueOnce({}).mockResolvedValueOnce({});
+        txMock.transaction.create
+          .mockResolvedValueOnce({ id: 'txn-debit' })
+          .mockResolvedValueOnce({ id: 'txn-credit' });
+        txMock.balanceHistory.create.mockResolvedValueOnce({}).mockResolvedValueOnce({});
+        txMock.notification.create.mockResolvedValueOnce({}).mockResolvedValueOnce({});
+        txMock.auditEvent.create.mockResolvedValueOnce({});
+
+        return fn(txMock);
+      });
+
+      await service.transfer('user-1', {
+        sourceAccountId: 'acc-1',
+        destinationAccountId: 'acc-2',
+        amount: 100,
+      });
+
+      expect(redisMock.scanStream).toHaveBeenCalledTimes(2);
+      expect(redisMock.scanStream).toHaveBeenCalledWith({
+        match: 'calendar:acc-1:*',
+      });
+      expect(redisMock.scanStream).toHaveBeenCalledWith({
+        match: 'calendar:acc-2:*',
+      });
     });
   });
 });

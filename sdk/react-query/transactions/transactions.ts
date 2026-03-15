@@ -24,6 +24,8 @@ import type {
   PostApiV1TransactionsExpenseBody,
   PostApiV1TransactionsIdMarkAsPaid200,
   PostApiV1TransactionsIncomeBody,
+  PostApiV1TransactionsTransfer201,
+  PostApiV1TransactionsTransferBody,
   PutApiV1TransactionsId200,
   PutApiV1TransactionsIdBody,
   Transaction,
@@ -995,4 +997,133 @@ export const usePostApiV1TransactionsIdDuplicate = <
   TContext
 > => {
   return useMutation(getPostApiV1TransactionsIdDuplicateMutationOptions(options));
+};
+/**
+ * Realiza transferência de valor da conta de origem para conta de destino. Apenas o saldo disponível (available_balance) pode ser transferido.
+ * @summary Transferir valor entre contas
+ */
+export type postApiV1TransactionsTransferResponse201 = {
+  data: PostApiV1TransactionsTransfer201;
+  status: 201;
+};
+
+export type postApiV1TransactionsTransferResponse400 = {
+  data: Error;
+  status: 400;
+};
+
+export type postApiV1TransactionsTransferResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type postApiV1TransactionsTransferResponse403 = {
+  data: void;
+  status: 403;
+};
+
+export type postApiV1TransactionsTransferResponse404 = {
+  data: void;
+  status: 404;
+};
+
+export type postApiV1TransactionsTransferResponseSuccess =
+  postApiV1TransactionsTransferResponse201 & {
+    headers: Headers;
+  };
+export type postApiV1TransactionsTransferResponseError = (
+  | postApiV1TransactionsTransferResponse400
+  | postApiV1TransactionsTransferResponse401
+  | postApiV1TransactionsTransferResponse403
+  | postApiV1TransactionsTransferResponse404
+) & {
+  headers: Headers;
+};
+
+export type postApiV1TransactionsTransferResponse =
+  | postApiV1TransactionsTransferResponseSuccess
+  | postApiV1TransactionsTransferResponseError;
+
+export const getPostApiV1TransactionsTransferUrl = () => {
+  return `/api/v1/transactions/transfer`;
+};
+
+export const postApiV1TransactionsTransfer = async (
+  postApiV1TransactionsTransferBody: PostApiV1TransactionsTransferBody,
+  options?: RequestInit
+): Promise<postApiV1TransactionsTransferResponse> => {
+  return customInstance<postApiV1TransactionsTransferResponse>(
+    getPostApiV1TransactionsTransferUrl(),
+    {
+      ...options,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...options?.headers },
+      body: JSON.stringify(postApiV1TransactionsTransferBody),
+    }
+  );
+};
+
+export const getPostApiV1TransactionsTransferMutationOptions = <
+  TError = Error | void,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof postApiV1TransactionsTransfer>>,
+    TError,
+    { data: PostApiV1TransactionsTransferBody },
+    TContext
+  >;
+  request?: SecondParameter<typeof customInstance>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof postApiV1TransactionsTransfer>>,
+  TError,
+  { data: PostApiV1TransactionsTransferBody },
+  TContext
+> => {
+  const mutationKey = ['postApiV1TransactionsTransfer'];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof postApiV1TransactionsTransfer>>,
+    { data: PostApiV1TransactionsTransferBody }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return postApiV1TransactionsTransfer(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type PostApiV1TransactionsTransferMutationResult = NonNullable<
+  Awaited<ReturnType<typeof postApiV1TransactionsTransfer>>
+>;
+export type PostApiV1TransactionsTransferMutationBody = PostApiV1TransactionsTransferBody;
+export type PostApiV1TransactionsTransferMutationError = Error | void;
+
+/**
+ * @summary Transferir valor entre contas
+ */
+export const usePostApiV1TransactionsTransfer = <
+  TError = Error | void,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof postApiV1TransactionsTransfer>>,
+    TError,
+    { data: PostApiV1TransactionsTransferBody },
+    TContext
+  >;
+  request?: SecondParameter<typeof customInstance>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof postApiV1TransactionsTransfer>>,
+  TError,
+  { data: PostApiV1TransactionsTransferBody },
+  TContext
+> => {
+  return useMutation(getPostApiV1TransactionsTransferMutationOptions(options));
 };

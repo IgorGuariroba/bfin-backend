@@ -8,6 +8,15 @@ async function main() {
     where: { is_system: true },
   });
 
+  // Categoria de TRANSFERÊNCIA (neutra)
+  const transferCategory = {
+    name: 'Transferências',
+    type: 'transfer',
+    color: '#9E9E9E',
+    icon: 'swap_horiz',
+    is_system: true,
+  };
+
   // Categorias de RECEITA
   const incomeCategories = [
     {
@@ -114,6 +123,13 @@ async function main() {
     },
   ];
 
+  // Inserir categoria de transferência
+  await prisma.category.create({
+    data: transferCategory,
+  });
+
+  console.log(`✅ 1 categoria de transferência criada`);
+
   // Inserir categorias de receita
   for (const category of incomeCategories) {
     await prisma.category.create({
@@ -134,7 +150,7 @@ async function main() {
 
   // Estatísticas finais
   const totalCategories = await prisma.category.count();
-  console.log(`\n🎉 Seed concluído! Total de categorias: ${totalCategories}`);
+  console.log(`\n🎉 Seed concluído! Total de categorias: ${totalCategories} (1 transferência + ${incomeCategories.length} receitas + ${expenseCategories.length} despesas)`);
 }
 
 main()

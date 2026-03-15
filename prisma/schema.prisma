@@ -157,9 +157,13 @@ model Transaction {
   category    Category? @relation(fields: [category_id], references: [id], onDelete: SetNull)
 
   // Tipo e Valores
-  type        String  // income, fixed_expense, variable_expense
+  type        String  // income, fixed_expense, variable_expense, transfer
   amount      Decimal @db.Decimal(15, 2)
   description String?
+
+  // Transferência (opcional - preenchido apenas para tipo "transfer")
+  source_account_id      String?  // Conta de origem (para transação de crédito/destino)
+  destination_account_id String?  // Conta de destino (para transação de débito/origem)
 
   // Datas
   due_date       DateTime
@@ -195,6 +199,8 @@ model Transaction {
   @@index([status])
   @@index([type])
   @@index([category_id])
+  @@index([source_account_id])
+  @@index([destination_account_id])
 
   // Índices para performance do calendário
   @@index([account_id, due_date])

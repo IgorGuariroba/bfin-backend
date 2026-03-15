@@ -828,6 +828,227 @@ export class TransactionService {
   }
 
   /**
+   * Realiza transferência entre contas
+   */
+  async transfer(
+    userId: string,
+    data: {
+      sourceAccountId: string;
+      destinationAccountId: string;
+      amount: number;
+      description?: string;
+    }
+  ) {
+    const { sourceAccountId, destinationAccountId, amount, description } = data;
+
+    // Validações iniciais
+    if (amount <= 0) {
+      throw new ValidationError('Amount must be positive');
+    }
+
+    if (sourceAccountId === destinationAccountId) {
+      throw new ValidationError('Source and destination accounts must be different');
+    }
+
+    return await prisma.$transaction(async (tx) => {
+      // 1. Buscar e validar conta origem (com lock)
+      const sourceAccount = await tx.account.findUnique({
+        where: { id: sourceAccountId },
+      });
+
+      if (!sourceAccount) {
+        throw new NotFoundError('Source account not found');
+      }
+
+      // 2. Verificar se usuário é owner da conta origem
+      const access = await accountMemberService.checkAccess(sourceAccountId, userId);
+      if (!access.hasAccess || access.role !== 'owner') {
+        throw new ForbiddenError('You must be the owner of the source account to transfer');
+      }
+
+      // 3. Verificar saldo disponível
+      const availableBalance = Number(sourceAccount.available_balance);
+      if (availableBalance < amount) {
+        throw new InsufficientBalanceError(
+          `Insufficient balance. Available: R$ ${sourceAccount.available_balance}, Required: R$ ${amount}`
+        );
+      }
+
+      // 4. Buscar e validar conta destino
+      const destinationAccount = await tx.account.findUnique({
+        where: { id: destinationAccountId },
+      });
+
+      if (!destinationAccount) {
+        throw new NotFoundError('Destination account not found');
+      }
+
+      // 5. Buscar categoria de transferências do sistema
+      const transferCategory = await tx.category.findFirst({
+        where: { is_system: true, type: 'transfer' },
+      });
+
+      if (!transferCategory) {
+        throw new NotFoundError('Transfer category not found');
+      }
+
+      // 6. Debitar da conta origem
+      await tx.account.update({
+        where: { id: sourceAccountId },
+        data: {
+          total_balance: { decrement: amount },
+          available_balance: { decrement: amount },
+          updated_at: new Date(),
+        },
+      });
+
+      // 7. Criar transação de débito na conta origem
+      const debitTransaction = await tx.transaction.create({
+        data: {
+          account_id: sourceAccountId,
+          category_id: transferCategory.id,
+          type: 'transfer',
+          amount,
+          description: description || `Transferência para conta ${destinationAccount.id}`,
+          due_date: new Date(),
+          executed_date: new Date(),
+          status: 'executed',
+          destination_account_id: destinationAccountId,
+        },
+      });
+
+      // 8. Criar BalanceHistory para conta origem
+      const updatedSourceAccount = await tx.account.findUnique({
+        where: { id: sourceAccountId },
+      });
+
+      if (!updatedSourceAccount) {
+        throw new NotFoundError('Source account not found after update');
+      }
+
+      await tx.balanceHistory.create({
+        data: {
+          account_id: sourceAccountId,
+          transaction_id: debitTransaction.id,
+          total_balance: updatedSourceAccount.total_balance,
+          available_balance: updatedSourceAccount.available_balance,
+          locked_balance: updatedSourceAccount.locked_balance,
+          emergency_reserve: updatedSourceAccount.emergency_reserve,
+          change_reason: 'transfer_sent',
+        },
+      });
+
+      // 9. Creditar na conta destino
+      await tx.account.update({
+        where: { id: destinationAccountId },
+        data: {
+          total_balance: { increment: amount },
+          available_balance: { increment: amount },
+          updated_at: new Date(),
+        },
+      });
+
+      // 10. Criar transação de crédito na conta destino
+      const creditTransaction = await tx.transaction.create({
+        data: {
+          account_id: destinationAccountId,
+          category_id: transferCategory.id,
+          type: 'transfer',
+          amount,
+          description: description || `Transferência recebida de conta ${sourceAccount.id}`,
+          due_date: new Date(),
+          executed_date: new Date(),
+          status: 'executed',
+          source_account_id: sourceAccountId,
+        },
+      });
+
+      // 11. Criar BalanceHistory para conta destino
+      const updatedDestinationAccount = await tx.account.findUnique({
+        where: { id: destinationAccountId },
+      });
+
+      if (!updatedDestinationAccount) {
+        throw new NotFoundError('Destination account not found after update');
+      }
+
+      await tx.balanceHistory.create({
+        data: {
+          account_id: destinationAccountId,
+          transaction_id: creditTransaction.id,
+          total_balance: updatedDestinationAccount.total_balance,
+          available_balance: updatedDestinationAccount.available_balance,
+          locked_balance: updatedDestinationAccount.locked_balance,
+          emergency_reserve: updatedDestinationAccount.emergency_reserve,
+          change_reason: 'transfer_received',
+        },
+      });
+
+      // 12. Criar notificações
+      await tx.notification.create({
+        data: {
+          user_id: sourceAccount.user_id,
+          notification_type: 'transfer_sent',
+          title: 'Transferência realizada',
+          message: `Você transferiu R$ ${amount.toFixed(2)} para a conta ${destinationAccount.account_name}`,
+          related_transaction_id: debitTransaction.id,
+        },
+      });
+
+      await tx.notification.create({
+        data: {
+          user_id: destinationAccount.user_id,
+          notification_type: 'transfer_received',
+          title: 'Transferência recebida',
+          message: `Você recebeu R$ ${amount.toFixed(2)} da conta ${sourceAccount.account_name}`,
+          related_transaction_id: creditTransaction.id,
+        },
+      });
+
+      // 13. Criar evento de auditoria
+      await tx.auditEvent.create({
+        data: {
+          user_id: userId,
+          account_id: sourceAccountId,
+          event_type: 'transfer_created',
+          payload: {
+            sourceAccountId,
+            destinationAccountId,
+            amount,
+            description,
+            debitTransactionId: debitTransaction.id,
+            creditTransactionId: creditTransaction.id,
+          },
+        },
+      });
+
+      // 14. Invalidar cache de calendário
+      this.invalidateCalendarCache(sourceAccountId);
+      this.invalidateCalendarCache(destinationAccountId);
+
+      // 15. Retornar resultado
+      return {
+        transfer: {
+          id: debitTransaction.id,
+          amount,
+          description: description || null,
+          sourceAccount: {
+            id: sourceAccount.id,
+            account_name: sourceAccount.account_name,
+          },
+          destinationAccount: {
+            id: destinationAccount.id,
+            account_name: destinationAccount.account_name,
+          },
+          createdAt: debitTransaction.created_at,
+        },
+        debitTransaction,
+        creditTransaction,
+      };
+    });
+  }
+
+  /**
    * Marca uma despesa fixa como paga (executa o pagamento)
    */
   async markFixedExpenseAsPaid(userId: string, transactionId: string) {

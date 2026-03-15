@@ -7,6 +7,7 @@ import {
   createVariableExpenseSchema,
   listFiltersSchema,
   updateTransactionSchema,
+  createTransferSchema,
 } from '../validators/transactionSchemas';
 
 const transactionService = new TransactionService();
@@ -138,5 +139,16 @@ export class TransactionController {
     const result = await transactionService.delete(req.user.userId, id);
 
     res.json(result);
+  });
+
+  /**
+   * POST /api/v1/transactions/transfer
+   * Realiza transferência entre contas
+   */
+  createTransfer = withAuth(async (req, res): Promise<void> => {
+    const data = createTransferSchema.parse(req.body);
+    const result = await transactionService.transfer(req.user.userId, data);
+
+    res.status(201).json(result);
   });
 }
