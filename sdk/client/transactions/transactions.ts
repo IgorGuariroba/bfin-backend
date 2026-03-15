@@ -9,8 +9,11 @@ import type {
   DeleteApiV1TransactionsId200,
   GetApiV1Transactions200,
   GetApiV1TransactionsParams,
+  PostApiV1TransactionsExpenseBody,
   PostApiV1TransactionsIdMarkAsPaid200,
   PostApiV1TransactionsIncomeBody,
+  PostApiV1TransactionsTransfer201,
+  PostApiV1TransactionsTransferBody,
   PutApiV1TransactionsId200,
   PutApiV1TransactionsIdBody,
   Transaction,
@@ -35,6 +38,24 @@ export const getTransactions = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         data: postApiV1TransactionsIncomeBody,
+      },
+      options
+    );
+  };
+  /**
+   * Cria uma despesa. Tipo "fixed" bloqueia o valor no saldo (pode ser recorrente). Tipo "variable" debita imediatamente.
+   * @summary Criar despesa (fixa ou variável)
+   */
+  const postApiV1TransactionsExpense = (
+    postApiV1TransactionsExpenseBody: PostApiV1TransactionsExpenseBody,
+    options?: SecondParameter<typeof customInstance<Transaction>>
+  ) => {
+    return customInstance<Transaction>(
+      {
+        url: `/api/v1/transactions/expense`,
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        data: postApiV1TransactionsExpenseBody,
       },
       options
     );
@@ -123,18 +144,41 @@ export const getTransactions = () => {
       options
     );
   };
+  /**
+   * Realiza transferência de valor da conta de origem para conta de destino. Apenas o saldo disponível (available_balance) pode ser transferido.
+   * @summary Transferir valor entre contas
+   */
+  const postApiV1TransactionsTransfer = (
+    postApiV1TransactionsTransferBody: PostApiV1TransactionsTransferBody,
+    options?: SecondParameter<typeof customInstance<PostApiV1TransactionsTransfer201>>
+  ) => {
+    return customInstance<PostApiV1TransactionsTransfer201>(
+      {
+        url: `/api/v1/transactions/transfer`,
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        data: postApiV1TransactionsTransferBody,
+      },
+      options
+    );
+  };
   return {
     postApiV1TransactionsIncome,
+    postApiV1TransactionsExpense,
     getApiV1Transactions,
     getApiV1TransactionsId,
     putApiV1TransactionsId,
     deleteApiV1TransactionsId,
     postApiV1TransactionsIdMarkAsPaid,
     postApiV1TransactionsIdDuplicate,
+    postApiV1TransactionsTransfer,
   };
 };
 export type PostApiV1TransactionsIncomeResult = NonNullable<
   Awaited<ReturnType<ReturnType<typeof getTransactions>['postApiV1TransactionsIncome']>>
+>;
+export type PostApiV1TransactionsExpenseResult = NonNullable<
+  Awaited<ReturnType<ReturnType<typeof getTransactions>['postApiV1TransactionsExpense']>>
 >;
 export type GetApiV1TransactionsResult = NonNullable<
   Awaited<ReturnType<ReturnType<typeof getTransactions>['getApiV1Transactions']>>
@@ -153,4 +197,7 @@ export type PostApiV1TransactionsIdMarkAsPaidResult = NonNullable<
 >;
 export type PostApiV1TransactionsIdDuplicateResult = NonNullable<
   Awaited<ReturnType<ReturnType<typeof getTransactions>['postApiV1TransactionsIdDuplicate']>>
+>;
+export type PostApiV1TransactionsTransferResult = NonNullable<
+  Awaited<ReturnType<ReturnType<typeof getTransactions>['postApiV1TransactionsTransfer']>>
 >;

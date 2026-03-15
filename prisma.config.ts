@@ -5,6 +5,7 @@ export default defineConfig({
   schema: 'prisma/schema.prisma',
   migrations: {
     path: 'prisma/migrations',
+    seed: 'tsx prisma/seed.ts',
   },
   // Prisma v7: URLs de conexão (incluindo migrações) ficam aqui, não mais no schema.prisma.
   // - DIRECT_URL: conexão direta (sem pooler/pgbouncer) recomendada para `prisma migrate deploy`

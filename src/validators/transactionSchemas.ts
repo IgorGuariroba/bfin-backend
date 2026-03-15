@@ -79,6 +79,16 @@ export const updateTransactionSchema = z.object({
 });
 
 /**
+ * Schema para transferência entre contas
+ */
+export const createTransferSchema = z.object({
+  sourceAccountId: z.string().uuid('Invalid source account ID'),
+  destinationAccountId: z.string().uuid('Invalid destination account ID'),
+  amount: z.number().positive('Amount must be positive'),
+  description: z.string().min(1, 'Description is required').max(255).optional(),
+});
+
+/**
  * Schemas específicos para transações
  */
 
