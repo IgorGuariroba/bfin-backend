@@ -24,6 +24,7 @@ type PrismaTransactionMock = {
   findMany: ReturnType<typeof vi.fn>;
   count: ReturnType<typeof vi.fn>;
   create: ReturnType<typeof vi.fn>;
+  createMany: ReturnType<typeof vi.fn>;
   update: ReturnType<typeof vi.fn>;
   delete: ReturnType<typeof vi.fn>;
 };
