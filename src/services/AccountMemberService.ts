@@ -172,6 +172,7 @@ export class AccountMemberService {
         account_id: accountId,
         invited_email: email,
         status: 'pending',
+        expires_at: { gt: new Date() },
       },
     });
 
