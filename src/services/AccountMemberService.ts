@@ -166,8 +166,8 @@ export class AccountMemberService {
       throw new ValidationError('User is already a member of this account');
     }
 
-    // Verificar se já existe um convite pendente
-    const existingInvitation = await prisma.accountInvitation.findFirst({
+    // Verificar se já existe um convite pendente (válido)
+    const existingValidInvitation = await prisma.accountInvitation.findFirst({
       where: {
         account_id: accountId,
         invited_email: email,
@@ -176,9 +176,20 @@ export class AccountMemberService {
       },
     });
 
-    if (existingInvitation) {
+    if (existingValidInvitation) {
       throw new ValidationError('An invitation has already been sent to this email');
     }
+
+    // Cancelar convites expirados anteriores para permitir reenvio
+    await prisma.accountInvitation.updateMany({
+      where: {
+        account_id: accountId,
+        invited_email: email,
+        status: 'pending',
+        expires_at: { lte: new Date() },
+      },
+      data: { status: 'expired' },
+    });
 
     // Criar convite (válido por 7 dias)
     const expiresAt = new Date();
