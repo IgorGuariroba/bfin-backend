@@ -19,7 +19,11 @@ interface CreateIncomeDTO {
   categoryId: string;
   dueDate?: Date;
   isRecurring?: boolean;
-  recurrencePattern?: string;
+  recurrencePattern?: 'monthly' | 'weekly' | 'yearly';
+  recurrenceInterval?: number | null;
+  recurrenceCount?: number | null;
+  recurrenceEndDate?: Date | null;
+  indefinite?: boolean;
 }
 
 interface CreateFixedExpenseDTO {
@@ -35,6 +39,7 @@ interface CreateFixedExpenseDTO {
   recurrenceCount?: number | null;
   recurrenceEndDate?: Date | null;
   indefinite?: boolean;
+  isFloating?: boolean; // true = dívida sem data de vencimento
 }
 
 interface CreateVariableExpenseDTO {
@@ -67,47 +72,98 @@ export class TransactionService {
   }
 
   /**
-   * Processa uma receita aplicando regras automáticas (30/70)
+   * Processa uma receita.
+   *
+   * - Se dueDate for no futuro: cria como PENDING (agendada) sem afetar saldo.
+   *   O saldo é atualizado quando marcada como recebida via markIncomeAsReceived().
+   * - Se dueDate for hoje/passado (ou não informada): executa imediatamente (30/70).
+   *
+   * Em ambos os casos, se for recorrente gera instâncias futuras como PENDING.
    */
   async processIncome(userId: string, data: CreateIncomeDTO) {
-    // Validações
     if (data.amount <= 0) {
       throw new ValidationError('Amount must be positive');
     }
 
-    return await prisma.$transaction(async (tx) => {
-      // 1. Buscar conta e verificar acesso
-      const account = await tx.account.findUnique({
-        where: { id: data.accountId },
-      });
+    const dueDate = data.dueDate || new Date();
+    // Só é agendada se dueDate foi explicitamente informado E é estritamente no futuro (após hoje)
+    // Usa UTC para evitar problemas de fuso horário quando o servidor está em país diferente do usuário
+    const tomorrow = new Date();
+    tomorrow.setUTCHours(0, 0, 0, 0);
+    tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+    const isScheduled = data.dueDate !== undefined && dueDate >= tomorrow;
 
+    if (data.isRecurring) {
+      const hasRecurrenceCount =
+        data.recurrenceCount !== undefined && data.recurrenceCount !== null;
+      const hasRecurrenceEnd =
+        data.recurrenceEndDate !== undefined && data.recurrenceEndDate !== null;
+      const hasIndefinite = data.indefinite === true;
+      const opts = [hasRecurrenceCount, hasRecurrenceEnd, hasIndefinite].filter(Boolean);
+      if (opts.length > 1) {
+        throw new ValidationError(
+          'Only one recurrence end type allowed: recurrenceCount, recurrenceEndDate, or indefinite'
+        );
+      }
+      if (opts.length === 0) {
+        data.indefinite = true;
+      }
+    }
+
+    return await prisma.$transaction(async (tx) => {
+      const account = await tx.account.findUnique({ where: { id: data.accountId } });
       if (!account) {
         throw new NotFoundError('Account not found');
       }
 
-      // Verificar acesso (owner ou membro convidado)
       const access = await accountMemberService.checkAccess(data.accountId, userId);
       if (!access.hasAccess) {
         throw new ForbiddenError('Access denied to this account');
       }
 
-      // 2. Buscar regras ativas
+      // ── Receita agendada (data futura): não mexe no saldo ─────────────────
+      if (isScheduled) {
+        const transaction = await tx.transaction.create({
+          data: {
+            account_id: data.accountId,
+            category_id: data.categoryId,
+            type: 'income',
+            amount: data.amount,
+            description: data.description,
+            due_date: dueDate,
+            status: 'pending',
+            is_recurring: data.isRecurring || false,
+            recurrence_pattern: data.recurrencePattern,
+            recurrence_interval: data.recurrenceInterval ?? undefined,
+            recurrence_count: data.recurrenceCount ?? undefined,
+            recurrence_end_date: data.recurrenceEndDate ?? undefined,
+            indefinite: data.indefinite ?? false,
+          },
+        });
+
+        if (data.isRecurring && data.recurrencePattern) {
+          await this.generateIncomeInstances(tx, {
+            ...data,
+            dueDate,
+            parentTransactionId: transaction.id,
+          });
+        }
+
+        this.invalidateCalendarCache(data.accountId);
+        return { transaction };
+      }
+
+      // ── Receita imediata: executa e aplica regra 30/70 ────────────────────
       const rules = await tx.financialRule.findMany({
-        where: {
-          account_id: data.accountId,
-          is_active: true,
-        },
+        where: { account_id: data.accountId, is_active: true },
         orderBy: { priority: 'asc' },
       });
 
       const emergencyRule = rules.find((r) => r.rule_type === 'emergency_reserve');
       const reservePercentage = emergencyRule?.percentage ? Number(emergencyRule.percentage) : 30;
-
-      // 3. Calcular divisão 30/70
       const reserveAmount = data.amount * (reservePercentage / 100);
       const availableAmount = data.amount - reserveAmount;
 
-      // 4. Atualizar saldos da conta
       const updatedAccount = await tx.account.update({
         where: { id: data.accountId },
         data: {
@@ -118,7 +174,6 @@ export class TransactionService {
         },
       });
 
-      // 5. Criar transação
       const transaction = await tx.transaction.create({
         data: {
           account_id: data.accountId,
@@ -126,15 +181,18 @@ export class TransactionService {
           type: 'income',
           amount: data.amount,
           description: data.description,
-          due_date: data.dueDate || new Date(),
+          due_date: dueDate,
           executed_date: new Date(),
           status: 'executed',
           is_recurring: data.isRecurring || false,
           recurrence_pattern: data.recurrencePattern,
+          recurrence_interval: data.recurrenceInterval ?? undefined,
+          recurrence_count: data.recurrenceCount ?? undefined,
+          recurrence_end_date: data.recurrenceEndDate ?? undefined,
+          indefinite: data.indefinite ?? false,
         },
       });
 
-      // 6. Criar snapshot de histórico
       await tx.balanceHistory.create({
         data: {
           account_id: data.accountId,
@@ -147,7 +205,15 @@ export class TransactionService {
         },
       });
 
-      // 7. Invalidar cache de sugestão
+      // Gerar instâncias futuras se recorrente
+      if (data.isRecurring && data.recurrencePattern) {
+        await this.generateIncomeInstances(tx, {
+          ...data,
+          dueDate,
+          parentTransactionId: transaction.id,
+        });
+      }
+
       await SuggestionEngine.invalidateCache(data.accountId);
       this.invalidateCalendarCache(data.accountId);
 
@@ -169,34 +235,98 @@ export class TransactionService {
   }
 
   /**
-   * Cria despesa fixa com bloqueio preventivo
+   * Gera instâncias futuras pendentes para uma receita recorrente
+   */
+  private async generateIncomeInstances(
+    tx: typeof prisma,
+    data: CreateIncomeDTO & { dueDate: Date; parentTransactionId: string }
+  ): Promise<void> {
+    const instances: Prisma.TransactionUncheckedCreateInput[] = [];
+    const dueDate = new Date(data.dueDate);
+    const interval = data.recurrenceInterval ?? 1;
+
+    let totalInstances = 0;
+    if (data.indefinite) {
+      totalInstances = 12;
+    } else if (data.recurrenceCount !== undefined && data.recurrenceCount !== null) {
+      totalInstances = data.recurrenceCount - 1;
+    } else if (data.recurrenceEndDate) {
+      const diffTime = data.recurrenceEndDate.getTime() - dueDate.getTime();
+      totalInstances = Math.floor(diffTime / (1000 * 60 * 60 * 24 * 30));
+    }
+
+    for (let i = 1; i <= totalInstances; i++) {
+      const nextDueDate = this.addPeriods(dueDate, data.recurrencePattern!, i * interval);
+      if (data.recurrenceEndDate && nextDueDate > data.recurrenceEndDate) {
+        break;
+      }
+
+      instances.push({
+        account_id: data.accountId,
+        category_id: data.categoryId,
+        type: 'income',
+        amount: data.amount,
+        description: data.description,
+        due_date: nextDueDate,
+        status: 'pending',
+        is_recurring: true,
+        recurrence_pattern: data.recurrencePattern,
+        recurrence_interval: data.recurrenceInterval ?? undefined,
+        recurrence_count: data.recurrenceCount ?? undefined,
+        recurrence_end_date: data.recurrenceEndDate ?? undefined,
+        indefinite: data.indefinite ?? false,
+        parent_transaction_id: data.parentTransactionId,
+      });
+    }
+
+    if (instances.length > 0) {
+      await tx.transaction.createMany({ data: instances });
+    }
+  }
+
+  /**
+   * Cria despesa fixa com bloqueio preventivo.
+   *
+   * Se isFloating=true: cria sem data de vencimento e sem bloquear saldo.
+   * A dívida será abatida na projeção com o excedente de saldo disponível.
    */
   async createFixedExpense(userId: string, data: CreateFixedExpenseDTO) {
-    // Validações
     if (data.amount <= 0) {
       throw new ValidationError('Amount must be positive');
     }
 
-    // dueDate é obrigatório para despesa fixa
-    if (!data.dueDate) {
-      throw new ValidationError('dueDate is required for fixed expenses');
+    // ── Dívida flutuante (sem data) ──────────────────────────────────────────
+    if (data.isFloating) {
+      const account = await prisma.account.findUnique({ where: { id: data.accountId } });
+      if (!account) {
+        throw new NotFoundError('Account not found');
+      }
+
+      const access = await accountMemberService.checkAccess(data.accountId, userId);
+      if (!access.hasAccess) {
+        throw new ForbiddenError('Access denied to this account');
+      }
+
+      const transaction = await prisma.transaction.create({
+        data: {
+          account_id: data.accountId,
+          category_id: data.categoryId,
+          type: 'fixed_expense',
+          amount: data.amount,
+          description: data.description,
+          is_floating: true,
+          due_date: null,
+          status: 'pending',
+        },
+      });
+
+      this.invalidateCalendarCache(data.accountId);
+      return { transaction };
     }
 
-    // Validate due date is not in the past (allow today)
-    // Usa métodos UTC para ser independente do fuso do servidor
-    // Compara apenas o dia (ignora hora)
-    const dueDateInput = data.dueDate;
-    const dueDateStart = Date.UTC(
-      dueDateInput.getUTCFullYear(),
-      dueDateInput.getUTCMonth(),
-      dueDateInput.getUTCDate()
-    );
-
-    const today = new Date();
-    const todayStart = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate());
-
-    if (dueDateStart < todayStart) {
-      throw new ValidationError('Due date cannot be in the past');
+    // dueDate é obrigatório para despesa fixa com data
+    if (!data.dueDate) {
+      throw new ValidationError('dueDate is required for fixed expenses');
     }
 
     // Validação de recorrência: não pode ter mais de um tipo de fim
@@ -1183,6 +1313,84 @@ export class TransactionService {
       this.invalidateCalendarCache(transaction.account_id);
 
       return { message: 'Transaction deleted successfully' };
+    });
+  }
+
+  /**
+   * Marca uma receita agendada como recebida e atualiza o saldo (regra 30/70)
+   */
+  async markIncomeAsReceived(userId: string, transactionId: string) {
+    const transaction = await this.getById(userId, transactionId);
+
+    if (transaction.type !== 'income') {
+      throw new ValidationError('Transaction is not an income');
+    }
+    if (transaction.status !== 'pending') {
+      throw new ValidationError('Only pending income can be marked as received');
+    }
+
+    return await prisma.$transaction(async (tx) => {
+      const account = await tx.account.findUnique({ where: { id: transaction.account_id } });
+      if (!account) {
+        throw new NotFoundError('Account not found');
+      }
+
+      const rules = await tx.financialRule.findMany({
+        where: { account_id: transaction.account_id, is_active: true },
+        orderBy: { priority: 'asc' },
+      });
+
+      const emergencyRule = rules.find((r) => r.rule_type === 'emergency_reserve');
+      const reservePercentage = emergencyRule?.percentage ? Number(emergencyRule.percentage) : 30;
+
+      const amount = Number(transaction.amount);
+      const reserveAmount = amount * (reservePercentage / 100);
+      const availableAmount = amount - reserveAmount;
+
+      const updatedAccount = await tx.account.update({
+        where: { id: transaction.account_id },
+        data: {
+          total_balance: { increment: amount },
+          emergency_reserve: { increment: reserveAmount },
+          available_balance: { increment: availableAmount },
+          updated_at: new Date(),
+        },
+      });
+
+      const updatedTransaction = await tx.transaction.update({
+        where: { id: transactionId },
+        data: { status: 'executed', executed_date: new Date() },
+      });
+
+      await tx.balanceHistory.create({
+        data: {
+          account_id: transaction.account_id,
+          transaction_id: transaction.id,
+          total_balance: updatedAccount.total_balance,
+          available_balance: updatedAccount.available_balance,
+          locked_balance: updatedAccount.locked_balance,
+          emergency_reserve: updatedAccount.emergency_reserve,
+          change_reason: 'income_received',
+        },
+      });
+
+      await SuggestionEngine.invalidateCache(transaction.account_id);
+      this.invalidateCalendarCache(transaction.account_id);
+
+      return {
+        transaction: updatedTransaction,
+        breakdown: {
+          total_received: amount,
+          emergency_reserve: reserveAmount,
+          available: availableAmount,
+        },
+        account_balances: {
+          total_balance: updatedAccount.total_balance,
+          available_balance: updatedAccount.available_balance,
+          locked_balance: updatedAccount.locked_balance,
+          emergency_reserve: updatedAccount.emergency_reserve,
+        },
+      };
     });
   }
 }

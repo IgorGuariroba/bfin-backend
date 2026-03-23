@@ -380,7 +380,7 @@ describe('TransactionService (unit)', () => {
     });
   });
 
-  it('validates fixed expense due date is not in the past', async () => {
+  it('allows fixed expense with past due date (overdue debt registration)', async () => {
     const TransactionService = await loadService();
     const service = new TransactionService();
 
@@ -388,21 +388,34 @@ describe('TransactionService (unit)', () => {
     past.setDate(past.getDate() - 1);
     past.setHours(0, 0, 0, 0);
 
+    txMock.account.findUnique.mockResolvedValueOnce({
+      id: 'acc-1',
+      available_balance: 500,
+      locked_balance: 0,
+      total_balance: 500,
+      emergency_reserve: 0,
+    });
+    accessMock.checkAccess.mockResolvedValueOnce({ hasAccess: true });
+    txMock.account.update.mockResolvedValueOnce({
+      total_balance: 500,
+      available_balance: 400,
+      locked_balance: 100,
+      emergency_reserve: 0,
+    });
+    txMock.transaction.create.mockResolvedValueOnce({ id: 'txn-past', amount: 100 });
+    txMock.balanceHistory.create.mockResolvedValueOnce({ id: 'hist-1' });
+
+    // Deve criar sem erro — dívidas do passado são válidas
     await expect(
       service.createFixedExpense('user-1', {
         type: 'fixed',
         accountId: 'acc-1',
         amount: 100,
-        description: 'Rent',
+        description: 'Overdue rent',
         categoryId: 'cat-1',
         dueDate: past,
       })
-    ).rejects.toMatchObject({
-      name: 'ValidationError',
-      statusCode: 400,
-    });
-
-    expect(prismaMock.$transaction).not.toHaveBeenCalled();
+    ).resolves.toBeDefined();
   });
 
   it('throws InsufficientBalanceError when fixed expense exceeds available balance', async () => {

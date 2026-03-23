@@ -165,8 +165,11 @@ model Transaction {
   source_account_id      String?  // Conta de origem (para transação de crédito/destino)
   destination_account_id String?  // Conta de destino (para transação de débito/origem)
 
+  // Dívida flutuante (sem data de vencimento)
+  is_floating    Boolean  @default(false)
+
   // Datas
-  due_date       DateTime
+  due_date       DateTime?
   executed_date  DateTime?
   created_at     DateTime  @default(now())
   updated_at     DateTime  @updatedAt
@@ -209,6 +212,7 @@ model Transaction {
   @@index([category_id, due_date])
   @@index([due_date, account_id, type, status])
   @@index([due_date, amount])
+  @@index([account_id, is_floating])
   @@map("transactions")
 }
 

@@ -2,9 +2,28 @@ import { z } from 'zod';
 
 /**
  * Helpers para transformações comuns
+ *
+ * Aceita "YYYY-MM-DD" ou ISO 8601 completo (com ou sem Z).
+ * Normaliza sempre para UTC midnight — datas financeiras não têm hora.
+ * Isso garante que o servidor em qualquer fuso horário trate "2026-03-15"
+ * como 2026-03-15T00:00:00Z, independente do local do servidor.
  */
-const dateTransform = (val?: string) => (val ? new Date(val) : undefined);
-const dateTransformNullable = (val?: string | null) => (val ? new Date(val) : null);
+function toUTCMidnight(val: string): Date {
+  // "YYYY-MM-DD" → interpreta como UTC midnight diretamente
+  if (/^\d{4}-\d{2}-\d{2}$/.test(val)) {
+    return new Date(`${val}T00:00:00.000Z`);
+  }
+  // ISO 8601 completo → zera a hora em UTC para padronizar
+  const d = new Date(val);
+  d.setUTCHours(0, 0, 0, 0);
+  return d;
+}
+
+const DATE_REGEX = /^\d{4}-\d{2}-\d{2}(T[\d:.]+Z?)?$/;
+const dateSchema = z.string().regex(DATE_REGEX, 'Use YYYY-MM-DD or ISO 8601 format');
+
+const dateTransform = (val?: string) => (val ? toUTCMidnight(val) : undefined);
+const dateTransformNullable = (val?: string | null) => (val ? toUTCMidnight(val) : null);
 
 const arrayTransform = (val?: string | string[]) => {
   if (!val) {
@@ -21,7 +40,7 @@ export const transactionBaseSchema = z.object({
   amount: z.number().positive('Amount must be positive'),
   description: z.string().min(1, 'Description is required'),
   categoryId: z.string().uuid('Invalid category ID'),
-  dueDate: z.string().datetime().optional().transform(dateTransform),
+  dueDate: dateSchema.optional().transform(dateTransform),
 });
 
 /**
@@ -32,7 +51,7 @@ export const recurrenceSchema = z.object({
   recurrencePattern: z.enum(['monthly', 'weekly', 'yearly']).optional(),
   recurrenceInterval: z.number().int().positive().optional().nullable(),
   recurrenceCount: z.number().int().positive().optional().nullable(),
-  recurrenceEndDate: z.string().datetime().optional().nullable().transform(dateTransformNullable),
+  recurrenceEndDate: dateSchema.optional().nullable().transform(dateTransformNullable),
   indefinite: z.boolean().optional(),
 });
 
@@ -51,8 +70,8 @@ export const listFiltersSchema = z.object({
     .union([z.string(), z.array(z.string())])
     .optional()
     .transform(arrayTransform),
-  startDate: z.string().datetime().optional().transform(dateTransform),
-  endDate: z.string().datetime().optional().transform(dateTransform),
+  startDate: dateSchema.optional().transform(dateTransform),
+  endDate: dateSchema.optional().transform(dateTransform),
   categoryId: z.string().uuid().optional(),
   categories: z
     .union([z.string(), z.array(z.string())])
@@ -75,7 +94,7 @@ export const updateTransactionSchema = z.object({
   amount: z.number().positive('Amount must be positive').optional(),
   description: z.string().min(1, 'Description is required').optional(),
   categoryId: z.string().uuid('Invalid category ID').optional(),
-  dueDate: z.string().datetime().optional().transform(dateTransform),
+  dueDate: dateSchema.optional().transform(dateTransform),
 });
 
 /**
@@ -96,6 +115,10 @@ export const createTransferSchema = z.object({
 export const createIncomeSchema = transactionBaseSchema.extend({
   isRecurring: z.boolean().optional(),
   recurrencePattern: z.enum(['monthly', 'weekly', 'yearly']).optional(),
+  recurrenceInterval: z.number().int().positive().optional().nullable(),
+  recurrenceCount: z.number().int().positive().optional().nullable(),
+  recurrenceEndDate: dateSchema.optional().nullable().transform(dateTransformNullable),
+  indefinite: z.boolean().optional(),
 });
 
 // Expense base (comum para fixed e variable)
@@ -107,6 +130,7 @@ export const expenseBaseSchema = transactionBaseSchema.extend({
 export const createFixedExpenseSchema = expenseBaseSchema
   .extend({
     type: z.literal('fixed'),
+    isFloating: z.boolean().optional(), // true = dívida sem data de vencimento
   })
   .merge(recurrenceSchema);
 
