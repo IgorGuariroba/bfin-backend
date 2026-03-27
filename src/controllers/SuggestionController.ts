@@ -17,7 +17,7 @@ export class SuggestionController {
       if (!account_id || typeof account_id !== 'string') {
         return res.status(400).json({
           error: 'BadRequest',
-          message: 'account_id is required',
+          message: 'account_id é obrigatório',
         });
       }
 
@@ -46,16 +46,16 @@ export class SuggestionController {
 
       const message = error instanceof Error ? error.message : 'Unknown error';
 
-      if (message === 'Account not found') {
+      if (message === 'Conta não encontrada') {
         return res.status(404).json({
           error: 'NotFound',
-          message: 'Account not found',
+          message: 'Conta não encontrada',
         });
       }
 
       return res.status(500).json({
         error: 'InternalServerError',
-        message: 'Failed to calculate daily limit',
+        message: 'Falha ao calcular limite diário',
       });
     }
   }
@@ -71,14 +71,14 @@ export class SuggestionController {
       if (!account_id || typeof account_id !== 'string') {
         return res.status(400).json({
           error: 'BadRequest',
-          message: 'account_id is required',
+          message: 'account_id é obrigatório',
         });
       }
 
       const suggestion = await SuggestionEngine.recalculateDailyLimit(account_id);
 
       return res.status(200).json({
-        message: 'Daily limit recalculated successfully',
+        message: 'Limite diário recalculado com sucesso',
         accountId: suggestion.accountId,
         dailyLimit: suggestion.dailyLimit,
         availableBalance: suggestion.availableBalance,
@@ -89,16 +89,16 @@ export class SuggestionController {
 
       const message = error instanceof Error ? error.message : 'Unknown error';
 
-      if (message === 'Account not found') {
+      if (message === 'Conta não encontrada') {
         return res.status(404).json({
           error: 'NotFound',
-          message: 'Account not found',
+          message: 'Conta não encontrada',
         });
       }
 
       return res.status(500).json({
         error: 'InternalServerError',
-        message: 'Failed to recalculate daily limit',
+        message: 'Falha ao recalcular limite diário',
       });
     }
   }
@@ -114,7 +114,7 @@ export class SuggestionController {
       if (!account_id || typeof account_id !== 'string') {
         return res.status(400).json({
           error: 'BadRequest',
-          message: 'account_id is required',
+          message: 'account_id é obrigatório',
         });
       }
 
@@ -132,7 +132,7 @@ export class SuggestionController {
 
       return res.status(500).json({
         error: 'InternalServerError',
-        message: 'Failed to get suggestion history',
+        message: 'Falha ao buscar histórico de sugestões',
       });
     }
   }
@@ -148,7 +148,7 @@ export class SuggestionController {
       if (!account_id || typeof account_id !== 'string') {
         return res.status(400).json({
           error: 'BadRequest',
-          message: 'account_id is required',
+          message: 'account_id é obrigatório',
         });
       }
 
@@ -158,7 +158,7 @@ export class SuggestionController {
       if (isNaN(daysNumber) || daysNumber < 1 || daysNumber > 30) {
         return res.status(400).json({
           error: 'BadRequest',
-          message: 'days must be a number between 1 and 30',
+          message: 'days deve ser um número entre 1 e 30',
         });
       }
 
@@ -170,14 +170,14 @@ export class SuggestionController {
 
       const message = error instanceof Error ? error.message : 'Unknown error';
 
-      if (message === 'Account not found') {
+      if (message === 'Conta não encontrada') {
         return res.status(404).json({
           error: 'NotFound',
-          message: 'Account not found',
+          message: 'Conta não encontrada',
         });
       }
 
-      if (message === 'Days must be between 1 and 30') {
+      if (message === 'Days deve ser entre 1 e 30') {
         return res.status(400).json({
           error: 'BadRequest',
           message,
@@ -186,7 +186,7 @@ export class SuggestionController {
 
       return res.status(500).json({
         error: 'InternalServerError',
-        message: 'Failed to get spending history',
+        message: 'Falha ao buscar histórico de gastos',
       });
     }
   }
@@ -202,7 +202,7 @@ export class SuggestionController {
       if (!account_id || typeof account_id !== 'string') {
         return res.status(400).json({
           error: 'BadRequest',
-          message: 'account_id is required',
+          message: 'account_id é obrigatório',
         });
       }
 
@@ -217,7 +217,7 @@ export class SuggestionController {
 
       return res.status(500).json({
         error: 'InternalServerError',
-        message: 'Failed to get limit status',
+        message: 'Falha ao buscar status do limite',
       });
     }
   }

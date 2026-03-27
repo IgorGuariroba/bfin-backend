@@ -20,7 +20,7 @@ function toUTCMidnight(val: string): Date {
 }
 
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}(T[\d:.]+Z?)?$/;
-const dateSchema = z.string().regex(DATE_REGEX, 'Use YYYY-MM-DD or ISO 8601 format');
+const dateSchema = z.string().regex(DATE_REGEX, 'Use o formato YYYY-MM-DD ou ISO 8601');
 
 const dateTransform = (val?: string) => (val ? toUTCMidnight(val) : undefined);
 const dateTransformNullable = (val?: string | null) => (val ? toUTCMidnight(val) : null);
@@ -36,10 +36,10 @@ const arrayTransform = (val?: string | string[]) => {
  * Schema base para transações (campos comuns entre income e expense)
  */
 export const transactionBaseSchema = z.object({
-  accountId: z.string().uuid('Invalid account ID'),
-  amount: z.number().positive('Amount must be positive'),
-  description: z.string().min(1, 'Description is required'),
-  categoryId: z.string().uuid('Invalid category ID'),
+  accountId: z.string().uuid('ID de conta inválido'),
+  amount: z.number().positive('O valor deve ser positivo'),
+  description: z.string().min(1, 'Descrição é obrigatória'),
+  categoryId: z.string().uuid('ID de categoria inválido'),
   dueDate: dateSchema.optional().transform(dateTransform),
 });
 
@@ -91,9 +91,9 @@ export const listFiltersSchema = z.object({
  * Schema para atualização de transação (campos opcionais)
  */
 export const updateTransactionSchema = z.object({
-  amount: z.number().positive('Amount must be positive').optional(),
-  description: z.string().min(1, 'Description is required').optional(),
-  categoryId: z.string().uuid('Invalid category ID').optional(),
+  amount: z.number().positive('O valor deve ser positivo').optional(),
+  description: z.string().min(1, 'Descrição é obrigatória').optional(),
+  categoryId: z.string().uuid('ID de categoria inválido').optional(),
   dueDate: dateSchema.optional().transform(dateTransform),
 });
 
@@ -101,10 +101,10 @@ export const updateTransactionSchema = z.object({
  * Schema para transferência entre contas
  */
 export const createTransferSchema = z.object({
-  sourceAccountId: z.string().uuid('Invalid source account ID'),
-  destinationAccountId: z.string().uuid('Invalid destination account ID'),
-  amount: z.number().positive('Amount must be positive'),
-  description: z.string().min(1, 'Description is required').max(255).optional(),
+  sourceAccountId: z.string().uuid('ID de conta de origem inválido'),
+  destinationAccountId: z.string().uuid('ID de conta de destino inválido'),
+  amount: z.number().positive('O valor deve ser positivo'),
+  description: z.string().min(1, 'Descrição é obrigatória').max(255).optional(),
 });
 
 /**

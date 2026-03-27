@@ -7,14 +7,14 @@ import {
 } from '../types';
 
 export const createLoanSimulationSchema = z.object({
-  amount: z.number({ invalid_type_error: 'amount must be a number' }).min(0.01),
+  amount: z.number({ invalid_type_error: 'amount deve ser um número' }).min(0.01),
   termMonths: z
-    .number({ invalid_type_error: 'termMonths must be a number' })
+    .number({ invalid_type_error: 'termMonths deve ser um número' })
     .int()
     .min(LOAN_SIMULATION_MIN_TERM_MONTHS)
     .max(LOAN_SIMULATION_MAX_TERM_MONTHS),
   interestRateMonthly: z
-    .number({ invalid_type_error: 'interestRateMonthly must be a number' })
+    .number({ invalid_type_error: 'interestRateMonthly deve ser um número' })
     .positive()
     .max(1)
     .optional()
@@ -33,11 +33,11 @@ export const getLoanSimulationParamsSchema = z.object({
 
 // Approval and withdrawal schemas
 export const approveSimulationParamsSchema = z.object({
-  id: z.string().uuid('Invalid simulation ID format'),
+  id: z.string().uuid('Formato de ID de simulação inválido'),
 });
 
 export const withdrawSimulationParamsSchema = z.object({
-  id: z.string().uuid('Invalid simulation ID format'),
+  id: z.string().uuid('Formato de ID de simulação inválido'),
 });
 
 export type CreateLoanSimulationDTO = z.infer<typeof createLoanSimulationSchema>;

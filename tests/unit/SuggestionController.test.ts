@@ -75,7 +75,9 @@ describe('SuggestionController', () => {
 
     it('should return 404 if account not found', async () => {
       req.query = { account_id: 'acc123' };
-      vi.mocked(SuggestionEngine.getDailyLimit).mockRejectedValue(new Error('Account not found'));
+      vi.mocked(SuggestionEngine.getDailyLimit).mockRejectedValue(
+        new Error('Conta não encontrada')
+      );
 
       await SuggestionController.getDailyLimit(req as Request, res as Response);
 
@@ -113,7 +115,7 @@ describe('SuggestionController', () => {
       expect(status).toHaveBeenCalledWith(200);
       expect(json).toHaveBeenCalledWith(
         expect.objectContaining({
-          message: 'Daily limit recalculated successfully',
+          message: 'Limite diário recalculado com sucesso',
           dailyLimit: 100,
         })
       );
@@ -129,7 +131,7 @@ describe('SuggestionController', () => {
     it('should return 404 if account not found', async () => {
       req.query = { account_id: 'acc123' };
       vi.mocked(SuggestionEngine.recalculateDailyLimit).mockRejectedValue(
-        new Error('Account not found')
+        new Error('Conta não encontrada')
       );
 
       await SuggestionController.recalculate(req as Request, res as Response);
@@ -220,14 +222,14 @@ describe('SuggestionController', () => {
 
       expect(status).toHaveBeenCalledWith(400);
       expect(json).toHaveBeenCalledWith(
-        expect.objectContaining({ message: 'days must be a number between 1 and 30' })
+        expect.objectContaining({ message: 'days deve ser um número entre 1 e 30' })
       );
     });
 
     it('should return 404 if account not found', async () => {
       req.query = { account_id: 'acc123' };
       vi.mocked(SuggestionEngine.getSpendingHistory).mockRejectedValue(
-        new Error('Account not found')
+        new Error('Conta não encontrada')
       );
 
       await SuggestionController.getSpendingHistory(req as Request, res as Response);
@@ -238,7 +240,7 @@ describe('SuggestionController', () => {
     it('should return 400 if service throws invalid days error', async () => {
       req.query = { account_id: 'acc123' };
       vi.mocked(SuggestionEngine.getSpendingHistory).mockRejectedValue(
-        new Error('Days must be between 1 and 30')
+        new Error('Days deve ser entre 1 e 30')
       );
 
       await SuggestionController.getSpendingHistory(req as Request, res as Response);

@@ -82,7 +82,7 @@ export class TransactionService {
    */
   async processIncome(userId: string, data: CreateIncomeDTO) {
     if (data.amount <= 0) {
-      throw new ValidationError('Amount must be positive');
+      throw new ValidationError('O valor deve ser positivo');
     }
 
     const dueDate = data.dueDate || new Date();
@@ -102,7 +102,7 @@ export class TransactionService {
       const opts = [hasRecurrenceCount, hasRecurrenceEnd, hasIndefinite].filter(Boolean);
       if (opts.length > 1) {
         throw new ValidationError(
-          'Only one recurrence end type allowed: recurrenceCount, recurrenceEndDate, or indefinite'
+          'Apenas um tipo de fim de recorrência é permitido: recurrenceCount, recurrenceEndDate ou indefinite'
         );
       }
       if (opts.length === 0) {
@@ -113,12 +113,12 @@ export class TransactionService {
     return await prisma.$transaction(async (tx) => {
       const account = await tx.account.findUnique({ where: { id: data.accountId } });
       if (!account) {
-        throw new NotFoundError('Account not found');
+        throw new NotFoundError('Conta não encontrada');
       }
 
       const access = await accountMemberService.checkAccess(data.accountId, userId);
       if (!access.hasAccess) {
-        throw new ForbiddenError('Access denied to this account');
+        throw new ForbiddenError('Acesso negado a esta conta');
       }
 
       // ── Receita agendada (data futura): não mexe no saldo ─────────────────
@@ -292,19 +292,19 @@ export class TransactionService {
    */
   async createFixedExpense(userId: string, data: CreateFixedExpenseDTO) {
     if (data.amount <= 0) {
-      throw new ValidationError('Amount must be positive');
+      throw new ValidationError('O valor deve ser positivo');
     }
 
     // ── Dívida flutuante (sem data) ──────────────────────────────────────────
     if (data.isFloating) {
       const account = await prisma.account.findUnique({ where: { id: data.accountId } });
       if (!account) {
-        throw new NotFoundError('Account not found');
+        throw new NotFoundError('Conta não encontrada');
       }
 
       const access = await accountMemberService.checkAccess(data.accountId, userId);
       if (!access.hasAccess) {
-        throw new ForbiddenError('Access denied to this account');
+        throw new ForbiddenError('Acesso negado a esta conta');
       }
 
       const transaction = await prisma.transaction.create({
@@ -326,7 +326,7 @@ export class TransactionService {
 
     // dueDate é obrigatório para despesa fixa com data
     if (!data.dueDate) {
-      throw new ValidationError('dueDate is required for fixed expenses');
+      throw new ValidationError('dueDate é obrigatório para despesas fixas');
     }
 
     // Validação de recorrência: não pode ter mais de um tipo de fim
@@ -342,7 +342,7 @@ export class TransactionService {
       );
       if (recurrenceOptions.length > 1) {
         throw new ValidationError(
-          'Only one recurrence end type allowed: recurrenceCount, recurrenceEndDate, or indefinite'
+          'Apenas um tipo de fim de recorrência é permitido: recurrenceCount, recurrenceEndDate ou indefinite'
         );
       }
 
@@ -359,19 +359,19 @@ export class TransactionService {
       });
 
       if (!account) {
-        throw new NotFoundError('Account not found');
+        throw new NotFoundError('Conta não encontrada');
       }
 
       // Verificar acesso (owner ou membro convidado)
       const access = await accountMemberService.checkAccess(data.accountId, userId);
       if (!access.hasAccess) {
-        throw new ForbiddenError('Access denied to this account');
+        throw new ForbiddenError('Acesso negado a esta conta');
       }
 
       // 2. Verificar saldo disponível
       if (Number(account.available_balance) < data.amount) {
         throw new InsufficientBalanceError(
-          `Insufficient balance. Available: R$ ${account.available_balance}, Required: R$ ${data.amount}`
+          `Saldo insuficiente. Disponível: R$ ${account.available_balance}, Necessário: R$ ${data.amount}`
         );
       }
 
@@ -537,7 +537,7 @@ export class TransactionService {
   async createVariableExpense(userId: string, data: CreateVariableExpenseDTO) {
     // Validações
     if (data.amount <= 0) {
-      throw new ValidationError('Amount must be positive');
+      throw new ValidationError('O valor deve ser positivo');
     }
 
     const dueDate = data.dueDate ?? new Date();
@@ -549,19 +549,19 @@ export class TransactionService {
       });
 
       if (!account) {
-        throw new NotFoundError('Account not found');
+        throw new NotFoundError('Conta não encontrada');
       }
 
       // Verificar acesso (owner ou membro convidado)
       const access = await accountMemberService.checkAccess(data.accountId, userId);
       if (!access.hasAccess) {
-        throw new ForbiddenError('Access denied to this account');
+        throw new ForbiddenError('Acesso negado a esta conta');
       }
 
       // 2. Verificar saldo disponível
       if (Number(account.available_balance) < data.amount) {
         throw new InsufficientBalanceError(
-          `Insufficient balance. Available: R$ ${account.available_balance}, Required: R$ ${data.amount}`
+          `Saldo insuficiente. Disponível: R$ ${account.available_balance}, Necessário: R$ ${data.amount}`
         );
       }
 
@@ -666,13 +666,13 @@ export class TransactionService {
       });
 
       if (!account) {
-        throw new NotFoundError('Account not found');
+        throw new NotFoundError('Conta não encontrada');
       }
 
       // Verificar acesso (owner ou membro convidado)
       const access = await accountMemberService.checkAccess(filters.accountId, userId);
       if (!access.hasAccess) {
-        throw new ForbiddenError('Access denied to this account');
+        throw new ForbiddenError('Acesso negado a esta conta');
       }
 
       where.account_id = filters.accountId;
@@ -817,13 +817,13 @@ export class TransactionService {
     });
 
     if (!transaction) {
-      throw new NotFoundError('Transaction not found');
+      throw new NotFoundError('Transação não encontrada');
     }
 
     // Verificar acesso (owner ou membro convidado)
     const access = await accountMemberService.checkAccess(transaction.account_id, userId);
     if (!access.hasAccess) {
-      throw new ForbiddenError('Access denied to this transaction');
+      throw new ForbiddenError('Acesso negado a esta transação');
     }
 
     return transaction;
@@ -914,7 +914,7 @@ export class TransactionService {
 
       return {
         transaction: updatedTransaction,
-        message: 'Transaction updated successfully',
+        message: 'Transação atualizada com sucesso',
       };
     });
   }
@@ -927,7 +927,7 @@ export class TransactionService {
 
     // Preparar dados para nova transação
     if (!transaction.category_id) {
-      throw new ValidationError('Cannot duplicate transaction without a category');
+      throw new ValidationError('Não é possível duplicar transação sem categoria');
     }
 
     const duplicateData = {
@@ -954,7 +954,7 @@ export class TransactionService {
       });
     }
 
-    throw new ValidationError('Invalid transaction type');
+    throw new ValidationError('Tipo de transação inválido');
   }
 
   /**
@@ -973,11 +973,11 @@ export class TransactionService {
 
     // Validações iniciais
     if (amount <= 0) {
-      throw new ValidationError('Amount must be positive');
+      throw new ValidationError('O valor deve ser positivo');
     }
 
     if (sourceAccountId === destinationAccountId) {
-      throw new ValidationError('Source and destination accounts must be different');
+      throw new ValidationError('As contas de origem e destino devem ser diferentes');
     }
 
     return await prisma.$transaction(async (tx) => {
@@ -987,20 +987,20 @@ export class TransactionService {
       });
 
       if (!sourceAccount) {
-        throw new NotFoundError('Source account not found');
+        throw new NotFoundError('Conta de origem não encontrada');
       }
 
       // 2. Verificar se usuário é owner da conta origem
       const access = await accountMemberService.checkAccess(sourceAccountId, userId);
       if (!access.hasAccess || access.role !== 'owner') {
-        throw new ForbiddenError('You must be the owner of the source account to transfer');
+        throw new ForbiddenError('Você deve ser o proprietário da conta de origem para transferir');
       }
 
       // 3. Verificar saldo disponível
       const availableBalance = Number(sourceAccount.available_balance);
       if (availableBalance < amount) {
         throw new InsufficientBalanceError(
-          `Insufficient balance. Available: R$ ${sourceAccount.available_balance}, Required: R$ ${amount}`
+          `Saldo insuficiente. Disponível: R$ ${sourceAccount.available_balance}, Necessário: R$ ${amount}`
         );
       }
 
@@ -1010,7 +1010,7 @@ export class TransactionService {
       });
 
       if (!destinationAccount) {
-        throw new NotFoundError('Destination account not found');
+        throw new NotFoundError('Conta de destino não encontrada');
       }
 
       // 5. Buscar categoria de transferências do sistema
@@ -1019,7 +1019,7 @@ export class TransactionService {
       });
 
       if (!transferCategory) {
-        throw new NotFoundError('Transfer category not found');
+        throw new NotFoundError('Categoria de transferência não encontrada');
       }
 
       // 6. Debitar da conta origem
@@ -1053,7 +1053,7 @@ export class TransactionService {
       });
 
       if (!updatedSourceAccount) {
-        throw new NotFoundError('Source account not found after update');
+        throw new NotFoundError('Conta de origem não encontrada após atualização');
       }
 
       await tx.balanceHistory.create({
@@ -1099,7 +1099,7 @@ export class TransactionService {
       });
 
       if (!updatedDestinationAccount) {
-        throw new NotFoundError('Destination account not found after update');
+        throw new NotFoundError('Conta de destino não encontrada após atualização');
       }
 
       await tx.balanceHistory.create({
@@ -1186,11 +1186,11 @@ export class TransactionService {
 
     // Só permite marcar como paga se for despesa fixa e estiver bloqueada
     if (transaction.type !== 'fixed_expense') {
-      throw new ValidationError('Only fixed expenses can be marked as paid');
+      throw new ValidationError('Apenas despesas fixas podem ser marcadas como pagas');
     }
 
     if (transaction.status !== 'locked') {
-      throw new ValidationError('Transaction is not locked');
+      throw new ValidationError('A transação não está bloqueada');
     }
 
     const amount = Number(transaction.amount);
@@ -1230,7 +1230,7 @@ export class TransactionService {
       });
 
       if (!updatedAccount) {
-        throw new NotFoundError('Account not found');
+        throw new NotFoundError('Conta não encontrada');
       }
 
       // Criar snapshot de histórico
@@ -1252,7 +1252,7 @@ export class TransactionService {
 
       return {
         transaction: updatedTransaction,
-        message: 'Fixed expense marked as paid successfully',
+        message: 'Despesa fixa marcada como paga com sucesso',
       };
     });
   }
@@ -1312,7 +1312,7 @@ export class TransactionService {
       await SuggestionEngine.invalidateCache(transaction.account_id);
       this.invalidateCalendarCache(transaction.account_id);
 
-      return { message: 'Transaction deleted successfully' };
+      return { message: 'Transação excluída com sucesso' };
     });
   }
 
@@ -1323,16 +1323,16 @@ export class TransactionService {
     const transaction = await this.getById(userId, transactionId);
 
     if (transaction.type !== 'income') {
-      throw new ValidationError('Transaction is not an income');
+      throw new ValidationError('A transação não é uma receita');
     }
     if (transaction.status !== 'pending') {
-      throw new ValidationError('Only pending income can be marked as received');
+      throw new ValidationError('Apenas receitas pendentes podem ser marcadas como recebidas');
     }
 
     return await prisma.$transaction(async (tx) => {
       const account = await tx.account.findUnique({ where: { id: transaction.account_id } });
       if (!account) {
-        throw new NotFoundError('Account not found');
+        throw new NotFoundError('Conta não encontrada');
       }
 
       const rules = await tx.financialRule.findMany({

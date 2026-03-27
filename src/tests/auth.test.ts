@@ -35,7 +35,7 @@ describe('Authentication', () => {
       const response = await testRequest.post('/api/v1/auth/register').send(userData).expect(400);
 
       expect(response.body).toHaveProperty('error');
-      expect(response.body.message).toContain('already registered');
+      expect(response.body.message).toContain('já cadastrado');
     });
 
     it('should validate required fields', async () => {

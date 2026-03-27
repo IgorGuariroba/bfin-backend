@@ -374,7 +374,7 @@ describe('Categories', () => {
         .set(getAuthHeader(tokens.access_token))
         .expect(200);
 
-      expect(response.body.message).toBe('Category deleted successfully');
+      expect(response.body.message).toBe('Categoria excluída com sucesso');
 
       await testRequest
         .get(`/api/v1/categories/${createResponse.body.id}`)

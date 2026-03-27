@@ -236,7 +236,7 @@ describe('CategoryService', () => {
 
       const result = await service.delete('category-1');
 
-      expect(result).toEqual({ message: 'Category deleted successfully' });
+      expect(result).toEqual({ message: 'Categoria excluída com sucesso' });
       expect(prisma.category.delete).toHaveBeenCalledWith({
         where: { id: 'category-1' },
       });

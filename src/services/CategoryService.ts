@@ -57,7 +57,7 @@ export class CategoryService {
     });
 
     if (!category) {
-      throw new NotFoundError('Category not found');
+      throw new NotFoundError('Categoria não encontrada');
     }
 
     return category;
@@ -145,6 +145,6 @@ export class CategoryService {
       where: { id },
     });
 
-    return { message: 'Category deleted successfully' };
+    return { message: 'Categoria excluída com sucesso' };
   }
 }

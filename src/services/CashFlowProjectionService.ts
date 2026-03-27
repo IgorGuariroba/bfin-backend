@@ -105,12 +105,12 @@ export class CashFlowProjectionService {
   ): Promise<MonthlyProjection> {
     const account = await prisma.account.findUnique({ where: { id: accountId } });
     if (!account) {
-      throw new NotFoundError('Account not found');
+      throw new NotFoundError('Conta não encontrada');
     }
 
     const access = await accountMemberService.checkAccess(accountId, userId);
     if (!access.hasAccess) {
-      throw new ForbiddenError('Access denied to this account');
+      throw new ForbiddenError('Acesso negado a esta conta');
     }
 
     const monthStart = new Date(Date.UTC(year, month - 1, 1));

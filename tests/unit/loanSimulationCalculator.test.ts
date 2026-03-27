@@ -79,21 +79,23 @@ describe('loanSimulationCalculator - Reserve Impact', () => {
   });
 
   it('throws error when reserve amount is zero', () => {
-    expect(() => calculateReserveImpact(0, 100)).toThrow('reserveAmount must be a positive number');
+    expect(() => calculateReserveImpact(0, 100)).toThrow(
+      'reserveAmount deve ser um número positivo'
+    );
   });
 
   it('throws error when reserve amount is negative', () => {
     expect(() => calculateReserveImpact(-100, 50)).toThrow(
-      'reserveAmount must be a positive number'
+      'reserveAmount deve ser um número positivo'
     );
   });
 
   it('throws error when reserve amount is not finite', () => {
     expect(() => calculateReserveImpact(Infinity, 100)).toThrow(
-      'reserveAmount must be a positive number'
+      'reserveAmount deve ser um número positivo'
     );
     expect(() => calculateReserveImpact(NaN, 100)).toThrow(
-      'reserveAmount must be a positive number'
+      'reserveAmount deve ser um número positivo'
     );
   });
 });

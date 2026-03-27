@@ -103,7 +103,7 @@ describe('errorHandler (unit)', () => {
     expect(res.status).toHaveBeenCalledWith(400);
     expect(res.body).toMatchObject({
       error: 'ValidationError',
-      message: 'Invalid JSON payload',
+      message: 'Payload JSON inválido',
     });
   });
 
@@ -125,7 +125,7 @@ describe('errorHandler (unit)', () => {
     expect(res.status).toHaveBeenCalledWith(400);
     expect(res.body).toMatchObject({
       error: 'ValidationError',
-      message: 'Validation failed',
+      message: 'Falha na validação',
     });
     expect((res.body as { details?: unknown[] }).details?.[0]).toMatchObject({
       field: 'amount',
@@ -159,7 +159,7 @@ describe('errorHandler (unit)', () => {
     expect(res.status).toHaveBeenCalledWith(400);
     expect(res.body).toMatchObject({
       error: 'ValidationError',
-      message: 'Invalid data provided',
+      message: 'Dados inválidos fornecidos',
     });
   });
 
@@ -170,7 +170,7 @@ describe('errorHandler (unit)', () => {
     expect(invalidRes.status).toHaveBeenCalledWith(401);
     expect(invalidRes.body).toMatchObject({
       error: 'UnauthorizedError',
-      message: 'Invalid token',
+      message: 'Token inválido',
     });
 
     const expiredToken = new Error('jwt expired');
@@ -179,7 +179,7 @@ describe('errorHandler (unit)', () => {
     expect(expiredRes.status).toHaveBeenCalledWith(401);
     expect(expiredRes.body).toMatchObject({
       error: 'UnauthorizedError',
-      message: 'Token expired',
+      message: 'Token expirado',
     });
   });
 
@@ -199,7 +199,7 @@ describe('errorHandler (unit)', () => {
     expect(res.status).toHaveBeenCalledWith(500);
     expect(res.body).toEqual({
       error: 'InternalServerError',
-      message: 'An unexpected error occurred',
+      message: 'Ocorreu um erro inesperado',
     });
 
     process.env.NODE_ENV = 'test';

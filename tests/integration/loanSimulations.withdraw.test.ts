@@ -84,7 +84,7 @@ describe('POST /api/v1/loan-simulations/:id/withdraw', () => {
 
     expect(withdrawResponse.status).toBe(200);
     expect(withdrawResponse.body).toMatchObject({
-      message: 'Funds withdrawn successfully from emergency reserve',
+      message: 'Fundos sacados com sucesso da reserva de emergência',
       simulation: {
         id: simulationId,
         status: 'COMPLETED',
@@ -163,7 +163,7 @@ describe('POST /api/v1/loan-simulations/:id/withdraw', () => {
 
     expect(withdrawResponse.status).toBe(400);
     expect(withdrawResponse.body.error).toBe('ValidationError');
-    expect(withdrawResponse.body.message).toContain('Cannot withdraw from simulation with status');
+    expect(withdrawResponse.body.message).toContain('Não é possível sacar da simulação com status');
     expect(withdrawResponse.body.message).toContain('PENDING');
   });
 
@@ -193,7 +193,7 @@ describe('POST /api/v1/loan-simulations/:id/withdraw', () => {
     expect(secondWithdrawResponse.status).toBe(400);
     expect(secondWithdrawResponse.body.error).toBe('ValidationError');
     expect(secondWithdrawResponse.body.message).toContain(
-      'Cannot withdraw from simulation with status'
+      'Não é possível sacar da simulação com status'
     );
     expect(secondWithdrawResponse.body.message).toContain('COMPLETED');
   });
@@ -225,7 +225,7 @@ describe('POST /api/v1/loan-simulations/:id/withdraw', () => {
 
     expect(withdrawResponse.status).toBe(400);
     expect(withdrawResponse.body.error).toBe('ValidationError');
-    expect(withdrawResponse.body.message).toContain('Insufficient emergency reserve');
+    expect(withdrawResponse.body.message).toContain('Reserva de emergência insuficiente');
   });
 
   it('rejects withdrawal when reserve limit would be exceeded', async () => {
@@ -269,7 +269,7 @@ describe('POST /api/v1/loan-simulations/:id/withdraw', () => {
 
     expect(withdrawResponse.status).toBe(400);
     expect(withdrawResponse.body.error).toBe('ValidationError');
-    expect(withdrawResponse.body.message).toContain('exceed reserve limit');
+    expect(withdrawResponse.body.message).toContain('excederia o limite da reserva');
     expect(withdrawResponse.body.message).toContain('100%');
   });
 
@@ -301,7 +301,7 @@ describe('POST /api/v1/loan-simulations/:id/withdraw', () => {
 
     expect(response.status).toBe(404);
     expect(response.body.error).toBe('NotFoundError');
-    expect(response.body.message).toContain('not found');
+    expect(response.body.message).toContain('não encontrada');
   });
 
   it('rejects withdrawal if simulation belongs to another user', async () => {
@@ -359,7 +359,7 @@ describe('POST /api/v1/loan-simulations/:id/withdraw', () => {
 
     expect(withdrawResponse.status).toBe(404);
     expect(withdrawResponse.body.error).toBe('NotFoundError');
-    expect(withdrawResponse.body.message).toContain('not found');
+    expect(withdrawResponse.body.message).toContain('não encontrada');
   });
 
   it('ensures transaction atomicity - no partial updates on failure', async () => {

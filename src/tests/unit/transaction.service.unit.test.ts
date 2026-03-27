@@ -633,7 +633,7 @@ describe('TransactionService (unit)', () => {
       })
     );
     expect(suggestionEngineMock.invalidateCache).toHaveBeenCalledWith('acc-1');
-    expect(result.message).toBe('Transaction updated successfully');
+    expect(result.message).toBe('Transação atualizada com sucesso');
   });
 
   it('routes duplication to the appropriate creation method', async () => {
@@ -727,7 +727,7 @@ describe('TransactionService (unit)', () => {
         }),
       })
     );
-    expect(result).toEqual({ message: 'Transaction deleted successfully' });
+    expect(result).toEqual({ message: 'Transação excluída com sucesso' });
   });
 
   it('reverts locked balance when deleting a locked fixed expense transaction', async () => {
@@ -759,7 +759,7 @@ describe('TransactionService (unit)', () => {
         }),
       })
     );
-    expect(result).toEqual({ message: 'Transaction deleted successfully' });
+    expect(result).toEqual({ message: 'Transação excluída com sucesso' });
   });
 
   it('reverts balances when deleting an executed variable expense transaction', async () => {
@@ -791,7 +791,7 @@ describe('TransactionService (unit)', () => {
         }),
       })
     );
-    expect(result).toEqual({ message: 'Transaction deleted successfully' });
+    expect(result).toEqual({ message: 'Transação excluída com sucesso' });
   });
 
   it('throws ForbiddenError when deleting a transaction without access', async () => {
@@ -845,7 +845,7 @@ describe('TransactionService (unit)', () => {
     });
 
     expect(txMock.account.update).not.toHaveBeenCalled();
-    expect(result.message).toBe('Transaction updated successfully');
+    expect(result.message).toBe('Transação atualizada com sucesso');
     expect(suggestionEngineMock.invalidateCache).not.toHaveBeenCalled();
   });
 
@@ -1539,7 +1539,7 @@ describe('TransactionService (unit)', () => {
         }),
       })
     );
-    expect(result.message).toBe('Fixed expense marked as paid successfully');
+    expect(result.message).toBe('Despesa fixa marcada como paga com sucesso');
     expect(suggestionEngineMock.invalidateCache).toHaveBeenCalledWith('acc-1');
   });
 

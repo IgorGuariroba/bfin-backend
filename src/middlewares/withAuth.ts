@@ -9,7 +9,7 @@ import type { AuthRequest, JWTPayload } from '../types';
 export function withAuth(handler: (req: AuthRequestWithUser, res: Response) => Promise<void>) {
   return async (req: AuthRequest, res: Response) => {
     if (!req.user) {
-      res.status(401).json({ error: 'Unauthorized' });
+      res.status(401).json({ error: 'Não autorizado' });
       return;
     }
     return handler(req as AuthRequestWithUser, res);

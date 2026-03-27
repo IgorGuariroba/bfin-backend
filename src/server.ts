@@ -35,7 +35,7 @@ app.use(
       if (allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
-        callback(new Error('Not allowed by CORS'));
+        callback(new Error('Não permitido pelo CORS'));
       }
     },
     credentials: true,
@@ -118,7 +118,7 @@ app.use('/api/v1/loan-simulations', loanSimulationRoutes);
 app.use((_req, res) => {
   res.status(404).json({
     error: 'Not Found',
-    message: 'The requested resource was not found',
+    message: 'O recurso solicitado não foi encontrado',
   });
 });
 

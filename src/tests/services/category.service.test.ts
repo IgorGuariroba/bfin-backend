@@ -161,7 +161,7 @@ describe('CategoryService', () => {
 
     it('should throw NotFoundError for non-existent category', async () => {
       await expect(categoryService.getById('00000000-0000-0000-0000-000000000000')).rejects.toThrow(
-        'Category not found'
+        'Categoria não encontrada'
       );
     });
 
@@ -238,7 +238,7 @@ describe('CategoryService', () => {
         categoryService.update('00000000-0000-0000-0000-000000000000', {
           name: 'New Name',
         })
-      ).rejects.toThrow('Category not found');
+      ).rejects.toThrow('Categoria não encontrada');
     });
   });
 
@@ -254,17 +254,17 @@ describe('CategoryService', () => {
 
       const result = await categoryService.delete(createdCategory.id);
 
-      expect(result.message).toBe('Category deleted successfully');
+      expect(result.message).toBe('Categoria excluída com sucesso');
 
       // Verificar que foi deletada
       await expect(categoryService.getById(createdCategory.id)).rejects.toThrow(
-        'Category not found'
+        'Categoria não encontrada'
       );
     });
 
     it('should throw NotFoundError when deleting non-existent category', async () => {
       await expect(categoryService.delete('00000000-0000-0000-0000-000000000000')).rejects.toThrow(
-        'Category not found'
+        'Categoria não encontrada'
       );
     });
   });
