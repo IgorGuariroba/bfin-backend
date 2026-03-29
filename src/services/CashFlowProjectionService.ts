@@ -169,7 +169,7 @@ export class CashFlowProjectionService {
 
     for (const dayStr of getDaysInRange(monthStart, monthEnd)) {
       const daySnapshots = monthSnapshots.filter((s) => toDateStr(s.recorded_at) === dayStr);
-      const lastSnapshot = daySnapshots[daySnapshots.length - 1];
+      const lastSnapshot = daySnapshots.at(-1);
       if (lastSnapshot) {
         carryBalance = Number(lastSnapshot.available_balance);
       }
@@ -203,7 +203,7 @@ export class CashFlowProjectionService {
       year,
       month,
       startBalance: days[0]?.balance ?? 0,
-      endBalance: days[days.length - 1]?.balance ?? 0,
+      endBalance: days.at(-1)?.balance ?? 0,
       totalFloatingDebt: 0,
       remainingFloatingDebtAtEnd: 0,
       debtFreeDate: null,
@@ -314,68 +314,23 @@ export class CashFlowProjectionService {
 
     // Dias passados do mês atual: usar histórico real
     const yesterday = new Date(todayUTC.getTime() - 86400000);
-    const historicalDays: DaySnapshot[] = [];
-
-    if (monthStart < todayUTC) {
-      const pastEnd = yesterday < monthEnd ? yesterday : monthEnd;
-
-      const priorSnapshot = await prisma.balanceHistory.findFirst({
-        where: { account_id: accountId, recorded_at: { lt: monthStart } },
-        orderBy: { recorded_at: 'desc' },
-      });
-
-      const monthSnapshots = await prisma.balanceHistory.findMany({
-        where: { account_id: accountId, recorded_at: { gte: monthStart, lte: pastEnd } },
-        orderBy: { recorded_at: 'asc' },
-      });
-
-      const executedTransactions = await prisma.transaction.findMany({
-        where: {
-          account_id: accountId,
-          executed_date: { gte: monthStart, lte: pastEnd },
-          status: 'executed',
-        },
-        include: CATEGORY_INCLUDE,
-        orderBy: { executed_date: 'asc' },
-      });
-
-      let carryBalance = priorSnapshot ? Number(priorSnapshot.available_balance) : 0;
-
-      for (const dayStr of getDaysInRange(monthStart, pastEnd)) {
-        if (dayStr >= monthStartStr) {
-          const daySnapshots = monthSnapshots.filter((s) => toDateStr(s.recorded_at) === dayStr);
-          const lastSnapshot = daySnapshots[daySnapshots.length - 1];
-          if (lastSnapshot) {
-            carryBalance = Number(lastSnapshot.available_balance);
-          }
-
-          const dayTransactions = executedTransactions.filter(
-            (t) => t.executed_date && toDateStr(t.executed_date) === dayStr
-          );
-
-          historicalDays.push({
-            date: dayStr,
-            balance: Math.round(carryBalance * 100) / 100,
-            remainingFloatingDebt: Math.round(totalFloatingDebt * 100) / 100,
-            isNegative: carryBalance < 0,
-            dailyIncome: dayTransactions
-              .filter((t) => t.type === 'income')
-              .reduce((sum, t) => sum + Number(t.amount), 0),
-            dailyExpenses: dayTransactions
-              .filter((t) => t.type !== 'income')
-              .reduce((sum, t) => sum + Number(t.amount), 0),
-            floatingDebtPayment: 0,
-            transactions: dayTransactions.map(toSummary),
-          });
-        }
-      }
-    }
+    const historicalDays =
+      monthStart < todayUTC
+        ? await this.buildHistoricalDaysForCurrentMonth(
+            accountId,
+            monthStart,
+            monthEnd,
+            yesterday,
+            totalFloatingDebt,
+            monthStartStr
+          )
+        : [];
 
     const allMonthDays = [...historicalDays, ...monthDays].sort((a, b) =>
       a.date.localeCompare(b.date)
     );
 
-    const lastDay = allMonthDays[allMonthDays.length - 1];
+    const lastDay = allMonthDays.at(-1);
 
     return {
       accountId,
@@ -389,5 +344,71 @@ export class CashFlowProjectionService {
       isHistorical: false,
       days: allMonthDays,
     };
+  }
+
+  // ── Dias históricos do mês atual ─────────────────────────────────────────────
+  private async buildHistoricalDaysForCurrentMonth(
+    accountId: string,
+    monthStart: Date,
+    monthEnd: Date,
+    yesterday: Date,
+    totalFloatingDebt: number,
+    monthStartStr: string
+  ): Promise<DaySnapshot[]> {
+    const pastEnd = new Date(Math.min(+yesterday, +monthEnd));
+
+    const priorSnapshot = await prisma.balanceHistory.findFirst({
+      where: { account_id: accountId, recorded_at: { lt: monthStart } },
+      orderBy: { recorded_at: 'desc' },
+    });
+
+    const monthSnapshots = await prisma.balanceHistory.findMany({
+      where: { account_id: accountId, recorded_at: { gte: monthStart, lte: pastEnd } },
+      orderBy: { recorded_at: 'asc' },
+    });
+
+    const executedTransactions = await prisma.transaction.findMany({
+      where: {
+        account_id: accountId,
+        executed_date: { gte: monthStart, lte: pastEnd },
+        status: 'executed',
+      },
+      include: CATEGORY_INCLUDE,
+      orderBy: { executed_date: 'asc' },
+    });
+
+    let carryBalance = priorSnapshot ? Number(priorSnapshot.available_balance) : 0;
+    const historicalDays: DaySnapshot[] = [];
+
+    for (const dayStr of getDaysInRange(monthStart, pastEnd)) {
+      if (dayStr >= monthStartStr) {
+        const daySnapshots = monthSnapshots.filter((s) => toDateStr(s.recorded_at) === dayStr);
+        const lastSnapshot = daySnapshots.at(-1);
+        if (lastSnapshot) {
+          carryBalance = Number(lastSnapshot.available_balance);
+        }
+
+        const dayTransactions = executedTransactions.filter(
+          (t) => t.executed_date && toDateStr(t.executed_date) === dayStr
+        );
+
+        historicalDays.push({
+          date: dayStr,
+          balance: Math.round(carryBalance * 100) / 100,
+          remainingFloatingDebt: Math.round(totalFloatingDebt * 100) / 100,
+          isNegative: carryBalance < 0,
+          dailyIncome: dayTransactions
+            .filter((t) => t.type === 'income')
+            .reduce((sum, t) => sum + Number(t.amount), 0),
+          dailyExpenses: dayTransactions
+            .filter((t) => t.type !== 'income')
+            .reduce((sum, t) => sum + Number(t.amount), 0),
+          floatingDebtPayment: 0,
+          transactions: dayTransactions.map(toSummary),
+        });
+      }
+    }
+
+    return historicalDays;
   }
 }

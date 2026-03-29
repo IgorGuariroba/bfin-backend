@@ -399,4 +399,136 @@ describe('GET /api/v1/cash-flow/monthly', () => {
     expect(day5.dailyIncome).toBe(250);
     expect(day5.transactions.length).toBeGreaterThan(0);
   });
+
+  // ── Mês atual ────────────────────────────────────────────────────────────────
+
+  it('mês atual retorna isHistorical: false', async () => {
+    const response = await request(app)
+      .get('/api/v1/cash-flow/monthly')
+      .set('Authorization', `Bearer ${token}`)
+      .query({ accountId, year: CURRENT_YEAR, month: CURRENT_MONTH });
+
+    expect(response.status).toBe(200);
+    expect(response.body.isHistorical).toBe(false);
+  });
+
+  it('mês atual retorna entradas para todos os dias do mês', async () => {
+    const response = await request(app)
+      .get('/api/v1/cash-flow/monthly')
+      .set('Authorization', `Bearer ${token}`)
+      .query({ accountId, year: CURRENT_YEAR, month: CURRENT_MONTH });
+
+    expect(response.status).toBe(200);
+
+    const daysInCurrentMonth = new Date(Date.UTC(CURRENT_YEAR, CURRENT_MONTH, 0)).getUTCDate();
+    expect(response.body.days).toHaveLength(daysInCurrentMonth);
+  });
+
+  // ── Transações vencidas aplicadas no dia de hoje ──────────────────────────
+
+  it('transação vencida (due_date ontem) é aplicada no dia de hoje na projeção', async () => {
+    // Só faz sentido se hoje não é o primeiro dia do mês
+    if (NOW.getUTCDate() <= 1) {
+      return;
+    }
+
+    const yesterday = new Date(Date.UTC(CURRENT_YEAR, CURRENT_MONTH - 1, NOW.getUTCDate() - 1));
+
+    await prisma.transaction.create({
+      data: {
+        account_id: accountId,
+        type: 'income',
+        amount: 150,
+        description: 'Receita vencida',
+        due_date: yesterday,
+        status: 'pending',
+        is_floating: false,
+      },
+    });
+
+    const response = await request(app)
+      .get('/api/v1/cash-flow/monthly')
+      .set('Authorization', `Bearer ${token}`)
+      .query({ accountId, year: CURRENT_YEAR, month: CURRENT_MONTH });
+
+    expect(response.status).toBe(200);
+
+    const todayStr = `${CURRENT_YEAR}-${String(CURRENT_MONTH).padStart(2, '0')}-${String(NOW.getUTCDate()).padStart(2, '0')}`;
+    const todayDay = response.body.days.find((d: { date: string }) => d.date === todayStr);
+    expect(todayDay).toBeDefined();
+    // A transação vencida deve aparecer nas transações do dia de hoje
+    expect(
+      todayDay.transactions.some((t: { description: string }) => t.description === 'Receita vencida')
+    ).toBe(true);
+  });
+
+  // ── Transações com status locked ──────────────────────────────────────────
+
+  it('transação com status locked no mês futuro aparece na projeção', async () => {
+    const lockedDate = new Date(Date.UTC(futureYear, futureMonth - 1, 20));
+    await prisma.transaction.create({
+      data: {
+        account_id: accountId,
+        type: 'fixed_expense',
+        amount: 400,
+        description: 'Despesa bloqueada',
+        due_date: lockedDate,
+        status: 'locked',
+        is_floating: false,
+      },
+    });
+
+    const response = await request(app)
+      .get('/api/v1/cash-flow/monthly')
+      .set('Authorization', `Bearer ${token}`)
+      .query({ accountId, year: futureYear, month: futureMonth });
+
+    expect(response.status).toBe(200);
+
+    const day20 = response.body.days.find(
+      (d: { date: string }) =>
+        d.date === `${futureYear}-${String(futureMonth).padStart(2, '0')}-20`
+    );
+    expect(day20).toBeDefined();
+    expect(day20.dailyExpenses).toBe(400);
+    expect(
+      day20.transactions.some((t: { description: string }) => t.description === 'Despesa bloqueada')
+    ).toBe(true);
+  });
+
+  // ── Histórico de saldo afetando dias passados do mês atual ────────────────
+
+  it('balanceHistory de dia passado do mês atual afeta o saldo daquele dia', async () => {
+    // Só faz sentido se hoje não é o primeiro dia do mês
+    if (NOW.getUTCDate() <= 1) {
+      return;
+    }
+
+    const pastDayOfCurrentMonth = new Date(Date.UTC(CURRENT_YEAR, CURRENT_MONTH - 1, 1, 12, 0, 0));
+    const snapshotBalance = 9999;
+
+    await prisma.balanceHistory.create({
+      data: {
+        account_id: accountId,
+        available_balance: snapshotBalance,
+        total_balance: snapshotBalance,
+        locked_balance: 0,
+        emergency_reserve: 0,
+        recorded_at: pastDayOfCurrentMonth,
+      },
+    });
+
+    const response = await request(app)
+      .get('/api/v1/cash-flow/monthly')
+      .set('Authorization', `Bearer ${token}`)
+      .query({ accountId, year: CURRENT_YEAR, month: CURRENT_MONTH });
+
+    expect(response.status).toBe(200);
+
+    const day1Str = `${CURRENT_YEAR}-${String(CURRENT_MONTH).padStart(2, '0')}-01`;
+    const day1 = response.body.days.find((d: { date: string }) => d.date === day1Str);
+    expect(day1).toBeDefined();
+    // O saldo do dia 1 deve refletir o snapshot, não o cálculo acumulado
+    expect(day1.balance).toBe(snapshotBalance);
+  });
 });
