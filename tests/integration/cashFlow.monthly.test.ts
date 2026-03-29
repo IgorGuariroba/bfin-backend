@@ -22,7 +22,6 @@ const pastYear = CURRENT_MONTH === 1 ? CURRENT_YEAR - 1 : CURRENT_YEAR;
 describe('GET /api/v1/cash-flow/monthly', () => {
   const createdUserIds: string[] = [];
   let token = '';
-  let _userId = '';
   let accountId = '';
 
   beforeEach(async () => {
@@ -30,7 +29,6 @@ describe('GET /api/v1/cash-flow/monthly', () => {
     const user = await prisma.user.create({
       data: { email, password_hash: 'test-hash', full_name: 'CashFlow Tester' },
     });
-    _userId = user.id;
     createdUserIds.push(user.id);
 
     const account = await prisma.account.create({

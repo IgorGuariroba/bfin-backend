@@ -245,8 +245,8 @@ describe('TransactionService (unit)', () => {
       categoryId: 'cat-1',
     });
 
-    expect(result.breakdown.emergency_reserve).toBe(40);
-    expect(result.breakdown.available).toBe(60);
+    expect(result.breakdown!.emergency_reserve).toBe(40);
+    expect(result.breakdown!.available).toBe(60);
     expect(suggestionEngineMock.invalidateCache).toHaveBeenCalledWith('acc-1');
     expect(redisMock.scanStream).toHaveBeenCalled();
     expect(redisMock.pipeline).toHaveBeenCalled();

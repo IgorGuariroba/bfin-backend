@@ -238,7 +238,7 @@ export class TransactionService {
    * Gera instâncias futuras pendentes para uma receita recorrente
    */
   private async generateIncomeInstances(
-    tx: typeof prisma,
+    tx: Prisma.TransactionClient,
     data: CreateIncomeDTO & { dueDate: Date; parentTransactionId: string }
   ): Promise<void> {
     const instances: Prisma.TransactionUncheckedCreateInput[] = [];
@@ -444,7 +444,7 @@ export class TransactionService {
    * Gera parcelas futuras para uma despesa recorrente
    */
   private async generateRecurringInstallments(
-    tx: typeof prisma,
+    tx: Prisma.TransactionClient,
     data: CreateFixedExpenseDTO & { parentTransactionId: string }
   ): Promise<void> {
     const installments: Prisma.TransactionUncheckedCreateInput[] = [];
