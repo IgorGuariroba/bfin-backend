@@ -27,21 +27,21 @@ export class InsufficientBalanceError extends AppError {
 }
 
 export class UnauthorizedError extends AppError {
-  constructor(message: string = 'Unauthorized') {
+  constructor(message: string = 'Não autorizado') {
     super(message, 401);
     this.name = 'UnauthorizedError';
   }
 }
 
 export class ForbiddenError extends AppError {
-  constructor(message: string = 'Forbidden') {
+  constructor(message: string = 'Acesso proibido') {
     super(message, 403);
     this.name = 'ForbiddenError';
   }
 }
 
 export class NotFoundError extends AppError {
-  constructor(message: string = 'Resource not found') {
+  constructor(message: string = 'Recurso não encontrado') {
     super(message, 404);
     this.name = 'NotFoundError';
   }
@@ -91,14 +91,14 @@ export function errorHandler(error: any, _req: Request, res: Response, _next: Ne
   if (rateLimitStatus === 429) {
     return res.status(429).json({
       error: 'RateLimitError',
-      message: error.message || 'Too many requests',
+      message: error.message || 'Muitas requisições',
     });
   }
 
   if (error instanceof SyntaxError && error.message.toLowerCase().includes('json')) {
     return res.status(400).json({
       error: 'ValidationError',
-      message: 'Invalid JSON payload',
+      message: 'Payload JSON inválido',
     });
   }
 
@@ -106,7 +106,7 @@ export function errorHandler(error: any, _req: Request, res: Response, _next: Ne
   if (error instanceof ZodError) {
     return res.status(400).json({
       error: 'ValidationError',
-      message: 'Validation failed',
+      message: 'Falha na validação',
       details: error.errors.map((err) => ({
         field: err.path.join('.'),
         message: err.message,
@@ -120,7 +120,7 @@ export function errorHandler(error: any, _req: Request, res: Response, _next: Ne
     if (error.code === 'P2002') {
       return res.status(409).json({
         error: 'ConflictError',
-        message: 'A record with this value already exists',
+        message: 'Já existe um registro com este valor',
         field: (error.meta?.target as string[])?.join(', '),
       });
     }
@@ -129,7 +129,7 @@ export function errorHandler(error: any, _req: Request, res: Response, _next: Ne
     if (error.code === 'P2025') {
       return res.status(404).json({
         error: 'NotFoundError',
-        message: 'Record not found',
+        message: 'Registro não encontrado',
       });
     }
 
@@ -137,7 +137,7 @@ export function errorHandler(error: any, _req: Request, res: Response, _next: Ne
     if (error.code === 'P2003') {
       return res.status(400).json({
         error: 'ValidationError',
-        message: 'Invalid reference to related record',
+        message: 'Referência inválida a registro relacionado',
       });
     }
   }
@@ -146,7 +146,7 @@ export function errorHandler(error: any, _req: Request, res: Response, _next: Ne
   if (error instanceof Prisma.PrismaClientValidationError) {
     return res.status(400).json({
       error: 'ValidationError',
-      message: 'Invalid data provided',
+      message: 'Dados inválidos fornecidos',
     });
   }
 
@@ -154,20 +154,20 @@ export function errorHandler(error: any, _req: Request, res: Response, _next: Ne
   if (error.name === 'JsonWebTokenError') {
     return res.status(401).json({
       error: 'UnauthorizedError',
-      message: 'Invalid token',
+      message: 'Token inválido',
     });
   }
 
   if (error.name === 'TokenExpiredError') {
     return res.status(401).json({
       error: 'UnauthorizedError',
-      message: 'Token expired',
+      message: 'Token expirado',
     });
   }
 
   // Default error (500)
   return res.status(500).json({
     error: 'InternalServerError',
-    message: process.env.NODE_ENV === 'production' ? 'An unexpected error occurred' : error.message,
+    message: process.env.NODE_ENV === 'production' ? 'Ocorreu um erro inesperado' : error.message,
   });
 }

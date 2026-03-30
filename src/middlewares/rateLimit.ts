@@ -12,7 +12,7 @@ export const rateLimiter = rateLimitMiddleware({
   },
   message: {
     error: 'TooManyRequestsError',
-    message: 'Too many requests, please try again later',
+    message: 'Muitas requisições, tente novamente mais tarde',
   },
   standardHeaders: true,
   legacyHeaders: false,
@@ -27,7 +27,7 @@ export const authRateLimiter = rateLimitMiddleware({
   skip: () => isTest,
   message: {
     error: 'TooManyRequestsError',
-    message: 'Too many login attempts, please try again after 15 minutes',
+    message: 'Muitas tentativas de login, tente novamente após 15 minutos',
   },
   standardHeaders: true,
   legacyHeaders: false,
@@ -40,7 +40,7 @@ export const transactionRateLimiter = rateLimitMiddleware({
   skip: () => isTest,
   message: {
     error: 'TooManyRequestsError',
-    message: 'Too many transactions, please try again later',
+    message: 'Muitas transações, tente novamente mais tarde',
   },
   standardHeaders: true,
   legacyHeaders: false,

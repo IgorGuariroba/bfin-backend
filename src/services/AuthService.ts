@@ -32,18 +32,18 @@ export class AuthService {
   async register(data: RegisterDTO): Promise<AuthResponse> {
     // Validar dados
     if (!data.email || !data.password || !data.full_name) {
-      throw new ValidationError('Email, password and full name are required');
+      throw new ValidationError('Email, senha e nome completo são obrigatórios');
     }
 
     // Validar formato de email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(data.email)) {
-      throw new ValidationError('Invalid email format');
+      throw new ValidationError('Formato de email inválido');
     }
 
     // Validar senha (mínimo 6 caracteres)
     if (data.password.length < 6) {
-      throw new ValidationError('Password must be at least 6 characters long');
+      throw new ValidationError('A senha deve ter pelo menos 6 caracteres');
     }
 
     // Verificar se email já existe
@@ -52,7 +52,7 @@ export class AuthService {
     });
 
     if (existingUser) {
-      throw new ValidationError('Email already registered');
+      throw new ValidationError('Email já cadastrado');
     }
 
     // Hash da senha
@@ -136,7 +136,7 @@ export class AuthService {
   async login(data: LoginDTO): Promise<AuthResponse> {
     // Validar dados
     if (!data.email || !data.password) {
-      throw new ValidationError('Email and password are required');
+      throw new ValidationError('Email e senha são obrigatórios');
     }
 
     // Buscar usuário
@@ -145,19 +145,19 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new UnauthorizedError('Invalid email or password');
+      throw new UnauthorizedError('Email ou senha inválidos');
     }
 
     // Verificar se usuário está ativo
     if (!user.is_active) {
-      throw new UnauthorizedError('Account is inactive');
+      throw new UnauthorizedError('Conta inativa');
     }
 
     // Verificar senha
     const isPasswordValid = await bcrypt.compare(data.password, user.password_hash);
 
     if (!isPasswordValid) {
-      throw new UnauthorizedError('Invalid email or password');
+      throw new UnauthorizedError('Email ou senha inválidos');
     }
 
     // Gerar tokens
@@ -201,7 +201,7 @@ export class AuthService {
       });
 
       if (!user?.is_active) {
-        throw new UnauthorizedError('Invalid refresh token');
+        throw new UnauthorizedError('Refresh token inválido');
       }
 
       // Gerar novos tokens
@@ -219,7 +219,7 @@ export class AuthService {
         tokens,
       };
     } catch (_error) {
-      throw new UnauthorizedError('Invalid or expired refresh token');
+      throw new UnauthorizedError('Refresh token inválido ou expirado');
     }
   }
 
@@ -239,7 +239,7 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new UnauthorizedError('User not found');
+      throw new UnauthorizedError('Usuário não encontrado');
     }
 
     return user;
@@ -300,7 +300,7 @@ export class AuthService {
     try {
       return jwt.verify(token, this.JWT_SECRET) as JWTPayload;
     } catch (_error) {
-      throw new UnauthorizedError('Invalid or expired token');
+      throw new UnauthorizedError('Token inválido ou expirado');
     }
   }
 }

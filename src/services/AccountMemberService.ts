@@ -6,7 +6,7 @@ const VALID_MEMBER_ROLES = ['owner', 'member', 'viewer'] as const;
 export class AccountMemberService {
   private ensureValidRole(role: string) {
     if (!VALID_MEMBER_ROLES.includes(role as (typeof VALID_MEMBER_ROLES)[number])) {
-      throw new ValidationError('Invalid role. Must be: owner, member, or viewer');
+      throw new ValidationError('Função inválida. Deve ser: owner, member ou viewer');
     }
   }
 
@@ -55,7 +55,7 @@ export class AccountMemberService {
     });
 
     if (!account) {
-      throw new NotFoundError('Account not found');
+      throw new NotFoundError('Conta não encontrada');
     }
 
     if (account.user_id !== userId) {
@@ -69,7 +69,7 @@ export class AccountMemberService {
       });
 
       if (member?.role !== 'owner') {
-        throw new ForbiddenError('Only account owners can perform this action');
+        throw new ForbiddenError('Apenas proprietários da conta podem realizar esta ação');
       }
     }
   }
@@ -81,7 +81,7 @@ export class AccountMemberService {
     // Verificar se o usuário tem acesso à conta
     const access = await this.checkAccess(accountId, userId);
     if (!access.hasAccess) {
-      throw new ForbiddenError('Access denied to this account');
+      throw new ForbiddenError('Acesso negado a esta conta');
     }
 
     // Buscar conta para pegar o dono original
@@ -91,7 +91,7 @@ export class AccountMemberService {
     });
 
     if (!account) {
-      throw new NotFoundError('Account not found');
+      throw new NotFoundError('Conta não encontrada');
     }
 
     // Buscar todos os membros (incluindo owners)
@@ -147,7 +147,7 @@ export class AccountMemberService {
     });
 
     if (account?.user.email.toLowerCase() === email) {
-      throw new ValidationError('Cannot invite the account owner');
+      throw new ValidationError('Não é possível convidar o proprietário da conta');
     }
 
     // Verificar se já é membro
@@ -163,7 +163,7 @@ export class AccountMemberService {
     });
 
     if (existingMember && existingMember.account_members.length > 0) {
-      throw new ValidationError('User is already a member of this account');
+      throw new ValidationError('Usuário já é membro desta conta');
     }
 
     // Verificar se já existe um convite pendente (válido)
@@ -177,7 +177,7 @@ export class AccountMemberService {
     });
 
     if (existingValidInvitation) {
-      throw new ValidationError('An invitation has already been sent to this email');
+      throw new ValidationError('Já foi enviado um convite para este email');
     }
 
     // Cancelar convites expirados anteriores para permitir reenvio
@@ -242,7 +242,7 @@ export class AccountMemberService {
     });
 
     if (account?.user_id === targetUserId) {
-      throw new ValidationError('Cannot change role of the account owner');
+      throw new ValidationError('Não é possível alterar a função do proprietário da conta');
     }
 
     // Buscar membro
@@ -256,7 +256,7 @@ export class AccountMemberService {
     });
 
     if (!member) {
-      throw new NotFoundError('Member not found');
+      throw new NotFoundError('Membro não encontrado');
     }
 
     // Atualizar role
@@ -298,7 +298,7 @@ export class AccountMemberService {
     });
 
     if (account?.user_id === targetUserId) {
-      throw new ValidationError('Cannot remove the account owner');
+      throw new ValidationError('Não é possível remover o proprietário da conta');
     }
 
     // Buscar membro
@@ -312,7 +312,7 @@ export class AccountMemberService {
     });
 
     if (!member) {
-      throw new NotFoundError('Member not found');
+      throw new NotFoundError('Membro não encontrado');
     }
 
     // Remover membro
@@ -325,7 +325,7 @@ export class AccountMemberService {
       },
     });
 
-    return { message: 'Member removed successfully' };
+    return { message: 'Membro removido com sucesso' };
   }
 
   /**
@@ -398,17 +398,17 @@ export class AccountMemberService {
     });
 
     if (!invitation) {
-      throw new NotFoundError('Invitation not found');
+      throw new NotFoundError('Convite não encontrado');
     }
 
     // Verificar se o convite está pendente
     if (invitation.status !== 'pending') {
-      throw new ValidationError('Invitation has already been processed');
+      throw new ValidationError('Este convite já foi processado');
     }
 
     // Verificar se o convite expirou
     if (invitation.expires_at < new Date()) {
-      throw new ValidationError('Invitation has expired');
+      throw new ValidationError('Este convite expirou');
     }
 
     // Verificar se o usuário que está aceitando é o convidado
@@ -417,7 +417,7 @@ export class AccountMemberService {
     });
 
     if (user?.email.toLowerCase() !== invitation.invited_email.toLowerCase()) {
-      throw new ForbiddenError('You are not authorized to accept this invitation');
+      throw new ForbiddenError('Você não está autorizado a aceitar este convite');
     }
 
     // Verificar se já é membro
@@ -431,7 +431,7 @@ export class AccountMemberService {
     });
 
     if (existingMember) {
-      throw new ValidationError('You are already a member of this account');
+      throw new ValidationError('Você já é membro desta conta');
     }
 
     // Criar membro e atualizar convite em uma transação
@@ -485,17 +485,17 @@ export class AccountMemberService {
     });
 
     if (!invitation) {
-      throw new NotFoundError('Invitation not found');
+      throw new NotFoundError('Convite não encontrado');
     }
 
     // Verificar se o convite está pendente
     if (invitation.status !== 'pending') {
-      throw new ValidationError('Invitation has already been processed');
+      throw new ValidationError('Este convite já foi processado');
     }
 
     // Verificar se o convite expirou
     if (invitation.expires_at < new Date()) {
-      throw new ValidationError('Invitation has expired');
+      throw new ValidationError('Este convite expirou');
     }
 
     // Verificar se o usuário que está rejeitando é o convidado
@@ -504,7 +504,7 @@ export class AccountMemberService {
     });
 
     if (user?.email.toLowerCase() !== invitation.invited_email.toLowerCase()) {
-      throw new ForbiddenError('You are not authorized to reject this invitation');
+      throw new ForbiddenError('Você não está autorizado a rejeitar este convite');
     }
 
     // Atualizar status do convite
@@ -516,6 +516,6 @@ export class AccountMemberService {
       },
     });
 
-    return { message: 'Invitation rejected successfully', invitation: updatedInvitation };
+    return { message: 'Convite rejeitado com sucesso', invitation: updatedInvitation };
   }
 }

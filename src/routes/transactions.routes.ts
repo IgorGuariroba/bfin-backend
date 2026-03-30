@@ -488,6 +488,34 @@ router.post('/:id/mark-as-paid', (req, res, next) => {
 
 /**
  * @swagger
+ * /api/v1/transactions/{id}/mark-as-received:
+ *   post:
+ *     tags: [Transactions]
+ *     summary: Marcar receita agendada como recebida
+ *     description: Marca uma receita com status pending como recebida, aplicando a regra 30/70 e atualizando o saldo
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     responses:
+ *       200:
+ *         description: Receita marcada como recebida e saldo atualizado
+ *       400:
+ *         description: Transação não é uma receita pendente
+ *       404:
+ *         description: Transação não encontrada
+ */
+router.post('/:id/mark-as-received', (req, res, next) => {
+  transactionController.markAsReceived(req, res).catch(next);
+});
+
+/**
+ * @swagger
  * /api/v1/transactions/{id}/duplicate:
  *   post:
  *     tags: [Transactions]

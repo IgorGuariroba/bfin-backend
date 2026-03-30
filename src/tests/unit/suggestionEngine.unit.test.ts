@@ -127,7 +127,7 @@ describe('SuggestionEngine (unit)', () => {
     prismaMock.account.findUnique.mockResolvedValue(null);
 
     await expect(SuggestionEngine.calculateDailyLimit('missing')).rejects.toThrow(
-      'Account not found'
+      'Conta não encontrada'
     );
   });
 
@@ -135,10 +135,10 @@ describe('SuggestionEngine (unit)', () => {
     const SuggestionEngine = await loadEngine();
 
     await expect(SuggestionEngine.getSpendingHistory('acc-3', 0)).rejects.toThrow(
-      'Days must be between 1 and 30'
+      'Days deve ser entre 1 e 30'
     );
     await expect(SuggestionEngine.getSpendingHistory('acc-3', 31)).rejects.toThrow(
-      'Days must be between 1 and 30'
+      'Days deve ser entre 1 e 30'
     );
   });
 

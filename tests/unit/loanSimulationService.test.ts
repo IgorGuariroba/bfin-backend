@@ -81,7 +81,7 @@ describe('LoanSimulationService', () => {
       } as any);
 
       await expect(loanSimulationService.approveSimulation(userId, simulationId)).rejects.toThrow(
-        /expired/
+        /expirada/
       );
     });
 
@@ -114,7 +114,7 @@ describe('LoanSimulationService', () => {
       } as any);
 
       await expect(loanSimulationService.approveSimulation(userId, simulationId)).rejects.toThrow(
-        /exceed reserve limit/
+        /excederia o limite da reserva/
       );
     });
 
@@ -207,7 +207,7 @@ describe('LoanSimulationService', () => {
       } as any);
 
       await expect(loanSimulationService.withdrawFunds(userId, simulationId)).rejects.toThrow(
-        /Insufficient emergency reserve/
+        /Reserva de emergência insuficiente/
       );
     });
 
@@ -233,7 +233,7 @@ describe('LoanSimulationService', () => {
       } as any);
 
       await expect(loanSimulationService.withdrawFunds(userId, simulationId)).rejects.toThrow(
-        /exceed reserve limit/
+        /excederia o limite da reserva/
       );
     });
 

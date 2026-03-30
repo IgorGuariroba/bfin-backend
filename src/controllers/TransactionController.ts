@@ -120,6 +120,17 @@ export class TransactionController {
   });
 
   /**
+   * POST /api/v1/transactions/:id/mark-as-received
+   * Marca uma receita agendada como recebida e atualiza o saldo (30/70)
+   */
+  markAsReceived = withAuth(async (req, res): Promise<void> => {
+    const { id } = req.params;
+    const result = await transactionService.markIncomeAsReceived(req.user.userId, id);
+
+    res.json(result);
+  });
+
+  /**
    * POST /api/v1/transactions/:id/duplicate
    * Duplica uma transação
    */

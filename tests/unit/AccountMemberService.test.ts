@@ -267,6 +267,35 @@ describe('AccountMemberService', () => {
         ValidationError
       );
     });
+
+    it('should throw ForbiddenError when user email does not match invitation', async () => {
+      vi.mocked(prisma.accountInvitation.findUnique).mockResolvedValue(mockInvitation as any);
+      vi.mocked(prisma.user.findUnique).mockResolvedValue({
+        id: 'user-2',
+        email: 'different@example.com',
+      } as any);
+
+      await expect(service.acceptInvitation('token-123', 'user-2')).rejects.toThrow(
+        ForbiddenError
+      );
+    });
+
+    it('should throw ValidationError when user is already a member', async () => {
+      vi.mocked(prisma.accountInvitation.findUnique).mockResolvedValue(mockInvitation as any);
+      vi.mocked(prisma.user.findUnique).mockResolvedValue({
+        id: 'user-2',
+        email: 'user@example.com',
+      } as any);
+      vi.mocked(prisma.accountMember.findUnique).mockResolvedValue({
+        id: 'member-1',
+        account_id: 'account-1',
+        user_id: 'user-2',
+      } as any);
+
+      await expect(service.acceptInvitation('token-123', 'user-2')).rejects.toThrow(
+        ValidationError
+      );
+    });
   });
 
   describe('rejectInvitation', () => {
@@ -294,6 +323,29 @@ describe('AccountMemberService', () => {
 
       await expect(service.rejectInvitation('token-123', 'user-2')).rejects.toThrow(
         ValidationError
+      );
+    });
+
+    it('should throw ValidationError when invitation is expired', async () => {
+      vi.mocked(prisma.accountInvitation.findUnique).mockResolvedValue({
+        ...mockInvitation,
+        expires_at: new Date(Date.now() - 1000),
+      } as any);
+
+      await expect(service.rejectInvitation('token-123', 'user-2')).rejects.toThrow(
+        ValidationError
+      );
+    });
+
+    it('should throw ForbiddenError when user email does not match invitation', async () => {
+      vi.mocked(prisma.accountInvitation.findUnique).mockResolvedValue(mockInvitation as any);
+      vi.mocked(prisma.user.findUnique).mockResolvedValue({
+        id: 'user-2',
+        email: 'different@example.com',
+      } as any);
+
+      await expect(service.rejectInvitation('token-123', 'user-2')).rejects.toThrow(
+        ForbiddenError
       );
     });
   });

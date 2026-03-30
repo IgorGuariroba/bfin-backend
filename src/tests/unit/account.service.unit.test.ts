@@ -288,7 +288,7 @@ describe('AccountService (unit)', () => {
     expect(prismaMock.account.delete).toHaveBeenCalledWith({
       where: { id: 'acc-1' },
     });
-    expect(result).toEqual({ message: 'Account deleted successfully' });
+    expect(result).toEqual({ message: 'Conta excluída com sucesso' });
   });
 
   it('falls back to first account or throws on getDefaultAccount', async () => {

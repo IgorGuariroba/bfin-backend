@@ -81,7 +81,7 @@ export class SuggestionEngine {
     });
 
     if (!account) {
-      throw new Error('Account not found');
+      throw new Error('Conta não encontrada');
     }
 
     // Converter Decimal para número
@@ -179,7 +179,7 @@ export class SuggestionEngine {
   ): Promise<SpendingHistoryResponse> {
     // Validar parâmetros
     if (days < 1 || days > 30) {
-      throw new Error('Days must be between 1 and 30');
+      throw new Error('Days deve ser entre 1 e 30');
     }
 
     // Verificar cache no Redis

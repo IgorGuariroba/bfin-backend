@@ -67,7 +67,7 @@ describe('TransactionController Unit Tests', () => {
       await controller.createIncome(req as AuthRequest, res);
 
       expect(status).toHaveBeenCalledWith(401);
-      expect(json).toHaveBeenCalledWith({ error: 'Unauthorized' });
+      expect(json).toHaveBeenCalledWith({ error: 'Não autorizado' });
     });
 
     it('createFixedExpense should return 401 when unauthenticated', async () => {
@@ -76,7 +76,7 @@ describe('TransactionController Unit Tests', () => {
       await controller.createFixedExpense(req as AuthRequest, res);
 
       expect(status).toHaveBeenCalledWith(401);
-      expect(json).toHaveBeenCalledWith({ error: 'Unauthorized' });
+      expect(json).toHaveBeenCalledWith({ error: 'Não autorizado' });
     });
 
     it('createVariableExpense should return 401 when unauthenticated', async () => {
@@ -85,7 +85,7 @@ describe('TransactionController Unit Tests', () => {
       await controller.createVariableExpense(req as AuthRequest, res);
 
       expect(status).toHaveBeenCalledWith(401);
-      expect(json).toHaveBeenCalledWith({ error: 'Unauthorized' });
+      expect(json).toHaveBeenCalledWith({ error: 'Não autorizado' });
     });
 
     it('list should return 401 when unauthenticated', async () => {
@@ -94,7 +94,7 @@ describe('TransactionController Unit Tests', () => {
       await controller.list(req as AuthRequest, res);
 
       expect(status).toHaveBeenCalledWith(401);
-      expect(json).toHaveBeenCalledWith({ error: 'Unauthorized' });
+      expect(json).toHaveBeenCalledWith({ error: 'Não autorizado' });
     });
 
     it('getById should return 401 when unauthenticated', async () => {
@@ -103,7 +103,7 @@ describe('TransactionController Unit Tests', () => {
       await controller.getById(req as AuthRequest, res);
 
       expect(status).toHaveBeenCalledWith(401);
-      expect(json).toHaveBeenCalledWith({ error: 'Unauthorized' });
+      expect(json).toHaveBeenCalledWith({ error: 'Não autorizado' });
     });
 
     it('update should return 401 when unauthenticated', async () => {
@@ -112,7 +112,7 @@ describe('TransactionController Unit Tests', () => {
       await controller.update(req as AuthRequest, res);
 
       expect(status).toHaveBeenCalledWith(401);
-      expect(json).toHaveBeenCalledWith({ error: 'Unauthorized' });
+      expect(json).toHaveBeenCalledWith({ error: 'Não autorizado' });
     });
 
     it('markAsPaid should return 401 when unauthenticated', async () => {
@@ -121,7 +121,7 @@ describe('TransactionController Unit Tests', () => {
       await controller.markAsPaid(req as AuthRequest, res);
 
       expect(status).toHaveBeenCalledWith(401);
-      expect(json).toHaveBeenCalledWith({ error: 'Unauthorized' });
+      expect(json).toHaveBeenCalledWith({ error: 'Não autorizado' });
     });
 
     it('duplicate should return 401 when unauthenticated', async () => {
@@ -130,7 +130,7 @@ describe('TransactionController Unit Tests', () => {
       await controller.duplicate(req as AuthRequest, res);
 
       expect(status).toHaveBeenCalledWith(401);
-      expect(json).toHaveBeenCalledWith({ error: 'Unauthorized' });
+      expect(json).toHaveBeenCalledWith({ error: 'Não autorizado' });
     });
 
     it('delete should return 401 when unauthenticated', async () => {
@@ -139,7 +139,7 @@ describe('TransactionController Unit Tests', () => {
       await controller.delete(req as AuthRequest, res);
 
       expect(status).toHaveBeenCalledWith(401);
-      expect(json).toHaveBeenCalledWith({ error: 'Unauthorized' });
+      expect(json).toHaveBeenCalledWith({ error: 'Não autorizado' });
     });
   });
 

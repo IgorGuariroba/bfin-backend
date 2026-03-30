@@ -50,7 +50,7 @@ describe('withAuth', () => {
     await middleware(req, res);
 
     expect(res.status).toHaveBeenCalledWith(401);
-    expect(res.json).toHaveBeenCalledWith({ error: 'Unauthorized' });
+    expect(res.json).toHaveBeenCalledWith({ error: 'Não autorizado' });
     expect(handler).not.toHaveBeenCalled();
   });
 
@@ -64,7 +64,7 @@ describe('withAuth', () => {
     await middleware(req, res);
 
     expect(res.status).toHaveBeenCalledWith(401);
-    expect(res.json).toHaveBeenCalledWith({ error: 'Unauthorized' });
+    expect(res.json).toHaveBeenCalledWith({ error: 'Não autorizado' });
     expect(handler).not.toHaveBeenCalled();
   });
 

@@ -78,7 +78,7 @@ describe('POST /api/v1/loan-simulations/:id/approve', () => {
 
     expect(approveResponse.status).toBe(200);
     expect(approveResponse.body).toMatchObject({
-      message: 'Loan simulation approved successfully',
+      message: 'Simulação de empréstimo aprovada com sucesso',
       simulation: {
         id: simulationId,
         status: 'APPROVED',
@@ -119,7 +119,7 @@ describe('POST /api/v1/loan-simulations/:id/approve', () => {
 
     expect(response.status).toBe(404);
     expect(response.body.error).toBe('NotFoundError');
-    expect(response.body.message).toContain('not found');
+    expect(response.body.message).toContain('não encontrada');
   });
 
   it('rejects approval if simulation is already APPROVED', async () => {
@@ -143,7 +143,9 @@ describe('POST /api/v1/loan-simulations/:id/approve', () => {
 
     expect(secondApprovalResponse.status).toBe(400);
     expect(secondApprovalResponse.body.error).toBe('ValidationError');
-    expect(secondApprovalResponse.body.message).toContain('Cannot approve simulation with status');
+    expect(secondApprovalResponse.body.message).toContain(
+      'Não é possível aprovar simulação com status'
+    );
     expect(secondApprovalResponse.body.message).toContain('APPROVED');
   });
 
@@ -178,7 +180,7 @@ describe('POST /api/v1/loan-simulations/:id/approve', () => {
 
     expect(approveResponse.status).toBe(400);
     expect(approveResponse.body.error).toBe('ValidationError');
-    expect(approveResponse.body.message).toContain('exceed reserve limit');
+    expect(approveResponse.body.message).toContain('excederia o limite da reserva');
     expect(approveResponse.body.message).toContain('100%');
   });
 
@@ -208,8 +210,8 @@ describe('POST /api/v1/loan-simulations/:id/approve', () => {
 
     expect(approveResponse.status).toBe(400);
     expect(approveResponse.body.error).toBe('ValidationError');
-    expect(approveResponse.body.message).toContain('expired');
-    expect(approveResponse.body.message).toContain('30 days');
+    expect(approveResponse.body.message).toContain('expirada');
+    expect(approveResponse.body.message).toContain('30 dias');
   });
 
   it('rejects approval without authentication', async () => {
@@ -282,6 +284,6 @@ describe('POST /api/v1/loan-simulations/:id/approve', () => {
 
     expect(approveResponse.status).toBe(404);
     expect(approveResponse.body.error).toBe('NotFoundError');
-    expect(approveResponse.body.message).toContain('not found');
+    expect(approveResponse.body.message).toContain('não encontrada');
   });
 });

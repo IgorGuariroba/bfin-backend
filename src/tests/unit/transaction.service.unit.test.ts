@@ -245,8 +245,8 @@ describe('TransactionService (unit)', () => {
       categoryId: 'cat-1',
     });
 
-    expect(result.breakdown.emergency_reserve).toBe(40);
-    expect(result.breakdown.available).toBe(60);
+    expect(result.breakdown!.emergency_reserve).toBe(40);
+    expect(result.breakdown!.available).toBe(60);
     expect(suggestionEngineMock.invalidateCache).toHaveBeenCalledWith('acc-1');
     expect(redisMock.scanStream).toHaveBeenCalled();
     expect(redisMock.pipeline).toHaveBeenCalled();
@@ -380,7 +380,7 @@ describe('TransactionService (unit)', () => {
     });
   });
 
-  it('validates fixed expense due date is not in the past', async () => {
+  it('allows fixed expense with past due date (overdue debt registration)', async () => {
     const TransactionService = await loadService();
     const service = new TransactionService();
 
@@ -388,21 +388,34 @@ describe('TransactionService (unit)', () => {
     past.setDate(past.getDate() - 1);
     past.setHours(0, 0, 0, 0);
 
+    txMock.account.findUnique.mockResolvedValueOnce({
+      id: 'acc-1',
+      available_balance: 500,
+      locked_balance: 0,
+      total_balance: 500,
+      emergency_reserve: 0,
+    });
+    accessMock.checkAccess.mockResolvedValueOnce({ hasAccess: true });
+    txMock.account.update.mockResolvedValueOnce({
+      total_balance: 500,
+      available_balance: 400,
+      locked_balance: 100,
+      emergency_reserve: 0,
+    });
+    txMock.transaction.create.mockResolvedValueOnce({ id: 'txn-past', amount: 100 });
+    txMock.balanceHistory.create.mockResolvedValueOnce({ id: 'hist-1' });
+
+    // Deve criar sem erro — dívidas do passado são válidas
     await expect(
       service.createFixedExpense('user-1', {
         type: 'fixed',
         accountId: 'acc-1',
         amount: 100,
-        description: 'Rent',
+        description: 'Overdue rent',
         categoryId: 'cat-1',
         dueDate: past,
       })
-    ).rejects.toMatchObject({
-      name: 'ValidationError',
-      statusCode: 400,
-    });
-
-    expect(prismaMock.$transaction).not.toHaveBeenCalled();
+    ).resolves.toBeDefined();
   });
 
   it('throws InsufficientBalanceError when fixed expense exceeds available balance', async () => {
@@ -620,7 +633,7 @@ describe('TransactionService (unit)', () => {
       })
     );
     expect(suggestionEngineMock.invalidateCache).toHaveBeenCalledWith('acc-1');
-    expect(result.message).toBe('Transaction updated successfully');
+    expect(result.message).toBe('Transação atualizada com sucesso');
   });
 
   it('routes duplication to the appropriate creation method', async () => {
@@ -714,7 +727,7 @@ describe('TransactionService (unit)', () => {
         }),
       })
     );
-    expect(result).toEqual({ message: 'Transaction deleted successfully' });
+    expect(result).toEqual({ message: 'Transação excluída com sucesso' });
   });
 
   it('reverts locked balance when deleting a locked fixed expense transaction', async () => {
@@ -746,7 +759,7 @@ describe('TransactionService (unit)', () => {
         }),
       })
     );
-    expect(result).toEqual({ message: 'Transaction deleted successfully' });
+    expect(result).toEqual({ message: 'Transação excluída com sucesso' });
   });
 
   it('reverts balances when deleting an executed variable expense transaction', async () => {
@@ -778,7 +791,7 @@ describe('TransactionService (unit)', () => {
         }),
       })
     );
-    expect(result).toEqual({ message: 'Transaction deleted successfully' });
+    expect(result).toEqual({ message: 'Transação excluída com sucesso' });
   });
 
   it('throws ForbiddenError when deleting a transaction without access', async () => {
@@ -832,7 +845,7 @@ describe('TransactionService (unit)', () => {
     });
 
     expect(txMock.account.update).not.toHaveBeenCalled();
-    expect(result.message).toBe('Transaction updated successfully');
+    expect(result.message).toBe('Transação atualizada com sucesso');
     expect(suggestionEngineMock.invalidateCache).not.toHaveBeenCalled();
   });
 
@@ -1526,7 +1539,7 @@ describe('TransactionService (unit)', () => {
         }),
       })
     );
-    expect(result.message).toBe('Fixed expense marked as paid successfully');
+    expect(result.message).toBe('Despesa fixa marcada como paga com sucesso');
     expect(suggestionEngineMock.invalidateCache).toHaveBeenCalledWith('acc-1');
   });
 
@@ -1994,5 +2007,250 @@ describe('TransactionService (unit)', () => {
         match: 'calendar:acc-2:*',
       });
     });
+  });
+
+  // ── processIncome: receita agendada (dueDate futuro) ──────────────────────
+  describe('processIncome — receita agendada', () => {
+    it('deve criar receita como pending quando dueDate está no futuro', async () => {
+      const TransactionService = await loadService();
+      const service = new TransactionService();
+
+      const tomorrow = new Date();
+      tomorrow.setUTCHours(0, 0, 0, 0);
+      tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+
+      txMock.account.findUnique.mockResolvedValueOnce({
+        id: 'acc-1',
+        available_balance: 0,
+        locked_balance: 0,
+        total_balance: 0,
+        emergency_reserve: 0,
+      });
+      txMock.transaction.create.mockResolvedValueOnce({ id: 'txn-pending', status: 'pending' });
+
+      const result = await service.processIncome('user-1', {
+        accountId: 'acc-1',
+        amount: 200,
+        description: 'Salário futuro',
+        categoryId: 'cat-1',
+        dueDate: tomorrow,
+      });
+
+      expect(txMock.transaction.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            status: 'pending',
+          }),
+        })
+      );
+      // saldo NÃO deve ser atualizado para receita agendada
+      expect(txMock.account.update).not.toHaveBeenCalled();
+      expect(result.transaction).toMatchObject({ id: 'txn-pending' });
+    });
+
+    it('deve gerar instâncias recorrentes quando isRecurring=true e recurrencePattern está definido (receita agendada)', async () => {
+      const TransactionService = await loadService();
+      const service = new TransactionService();
+
+      const tomorrow = new Date();
+      tomorrow.setUTCHours(0, 0, 0, 0);
+      tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+
+      txMock.account.findUnique.mockResolvedValueOnce({
+        id: 'acc-1',
+        available_balance: 0,
+        locked_balance: 0,
+        total_balance: 0,
+        emergency_reserve: 0,
+      });
+      txMock.transaction.create.mockResolvedValueOnce({ id: 'txn-pending-recurring' });
+      txMock.transaction.createMany.mockResolvedValueOnce({ count: 12 });
+
+      await service.processIncome('user-1', {
+        accountId: 'acc-1',
+        amount: 300,
+        description: 'Salário recorrente futuro',
+        categoryId: 'cat-1',
+        dueDate: tomorrow,
+        isRecurring: true,
+        recurrencePattern: 'monthly',
+        indefinite: true,
+      });
+
+      expect(txMock.transaction.createMany).toHaveBeenCalled();
+      expect(txMock.account.update).not.toHaveBeenCalled();
+    });
+  });
+
+  // ── processIncome: validação de múltiplos tipos de fim de recorrência ─────
+  it('deve lançar ValidationError quando múltiplos tipos de fim de recorrência são especificados', async () => {
+    const TransactionService = await loadService();
+    const service = new TransactionService();
+
+    const tomorrow = new Date();
+    tomorrow.setUTCHours(0, 0, 0, 0);
+    tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+    const endDate = new Date(tomorrow);
+    endDate.setMonth(endDate.getMonth() + 3);
+
+    await expect(
+      service.processIncome('user-1', {
+        accountId: 'acc-1',
+        amount: 500,
+        description: 'Receita com conflito de recorrência',
+        categoryId: 'cat-1',
+        dueDate: tomorrow,
+        isRecurring: true,
+        recurrencePattern: 'monthly',
+        recurrenceCount: 5,
+        recurrenceEndDate: endDate,
+      })
+    ).rejects.toMatchObject({
+      name: 'ValidationError',
+      statusCode: 400,
+    });
+  });
+
+  // ── processIncome: receita imediata recorrente ────────────────────────────
+  it('deve gerar instâncias futuras quando receita imediata é recorrente', async () => {
+    const TransactionService = await loadService();
+    const service = new TransactionService();
+
+    txMock.account.findUnique.mockResolvedValueOnce({
+      id: 'acc-1',
+      available_balance: 1000,
+      locked_balance: 0,
+      total_balance: 1000,
+      emergency_reserve: 0,
+    });
+    txMock.financialRule.findMany.mockResolvedValue([]);
+    txMock.account.update.mockResolvedValueOnce({
+      total_balance: 1500,
+      available_balance: 1350,
+      locked_balance: 0,
+      emergency_reserve: 150,
+    });
+    txMock.transaction.create.mockResolvedValueOnce({ id: 'txn-immediate-recurring' });
+    txMock.balanceHistory.create.mockResolvedValueOnce({ id: 'hist-imm-rec' });
+    txMock.transaction.createMany.mockResolvedValueOnce({ count: 12 });
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    await service.processIncome('user-1', {
+      accountId: 'acc-1',
+      amount: 500,
+      description: 'Salário mensal recorrente',
+      categoryId: 'cat-1',
+      dueDate: today,
+      isRecurring: true,
+      recurrencePattern: 'monthly',
+      indefinite: true,
+    });
+
+    expect(txMock.transaction.createMany).toHaveBeenCalled();
+    expect(txMock.account.update).toHaveBeenCalled();
+  });
+
+  // ── createFixedExpense: despesa flutuante ────────────────────────────────
+  describe('createFixedExpense — despesa flutuante', () => {
+    it('deve criar despesa flutuante quando isFloating=true', async () => {
+      const TransactionService = await loadService();
+      const service = new TransactionService();
+
+      prismaMock.account.findUnique.mockResolvedValueOnce({
+        id: 'acc-1',
+        available_balance: 200,
+        locked_balance: 0,
+        total_balance: 200,
+        emergency_reserve: 0,
+      });
+      prismaMock.transaction.create.mockResolvedValueOnce({
+        id: 'txn-floating',
+        is_floating: true,
+        due_date: null,
+        status: 'pending',
+      });
+
+      const result = await service.createFixedExpense('user-1', {
+        type: 'fixed',
+        accountId: 'acc-1',
+        amount: 150,
+        description: 'Dívida flutuante',
+        categoryId: 'cat-1',
+        isFloating: true,
+      });
+
+      expect(prismaMock.transaction.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            is_floating: true,
+            due_date: null,
+            status: 'pending',
+          }),
+        })
+      );
+      // Não deve usar o prisma.$transaction (bloquear saldo)
+      expect(prismaMock.$transaction).not.toHaveBeenCalled();
+      expect(result.transaction).toMatchObject({ id: 'txn-floating' });
+    });
+
+    it('deve lançar ValidationError quando amount <= 0 para despesa fixa', async () => {
+      const TransactionService = await loadService();
+      const service = new TransactionService();
+
+      await expect(
+        service.createFixedExpense('user-1', {
+          type: 'fixed',
+          accountId: 'acc-1',
+          amount: -1,
+          description: 'Valor inválido',
+          categoryId: 'cat-1',
+          dueDate: new Date(),
+        })
+      ).rejects.toMatchObject({
+        name: 'ValidationError',
+        statusCode: 400,
+      });
+    });
+
+    it('deve lançar ValidationError quando dueDate não é informado para despesa fixa não flutuante', async () => {
+      const TransactionService = await loadService();
+      const service = new TransactionService();
+
+      await expect(
+        service.createFixedExpense('user-1', {
+          type: 'fixed',
+          accountId: 'acc-1',
+          amount: 100,
+          description: 'Sem dueDate',
+          categoryId: 'cat-1',
+        })
+      ).rejects.toMatchObject({
+        name: 'ValidationError',
+        statusCode: 400,
+      });
+    });
+  });
+
+  // ── createVariableExpense: validação de amount ────────────────────────────
+  it('deve lançar ValidationError quando amount <= 0 para despesa variável', async () => {
+    const TransactionService = await loadService();
+    const service = new TransactionService();
+
+    await expect(
+      service.createVariableExpense('user-1', {
+        type: 'variable',
+        accountId: 'acc-1',
+        amount: 0,
+        description: 'Valor inválido',
+        categoryId: 'cat-1',
+      })
+    ).rejects.toMatchObject({
+      name: 'ValidationError',
+      statusCode: 400,
+    });
+
+    expect(prismaMock.$transaction).not.toHaveBeenCalled();
   });
 });

@@ -35,7 +35,7 @@ app.use(
       if (allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
-        callback(new Error('Not allowed by CORS'));
+        callback(new Error('Não permitido pelo CORS'));
       }
     },
     credentials: true,
@@ -97,6 +97,7 @@ app.get('/api/v1', (_req, res) => {
 // Importar rotas
 import accountRoutes from './routes/accounts.routes';
 import authRoutes from './routes/auth.routes';
+import cashFlowRoutes from './routes/cashFlow.routes';
 import categoryRoutes from './routes/categories.routes';
 import invitationRoutes from './routes/invitations.routes';
 import loanSimulationRoutes from './routes/loanSimulations.routes';
@@ -107,6 +108,7 @@ import { swaggerToMarkdown } from './utils/swaggerToMarkdown';
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/accounts', accountRoutes);
 app.use('/api/v1/transactions', transactionRoutes);
+app.use('/api/v1/cash-flow', cashFlowRoutes);
 app.use('/api/v1/categories', categoryRoutes);
 app.use('/api/v1/suggestions', suggestionRoutes);
 app.use('/api/v1/invitations', invitationRoutes);
@@ -116,7 +118,7 @@ app.use('/api/v1/loan-simulations', loanSimulationRoutes);
 app.use((_req, res) => {
   res.status(404).json({
     error: 'Not Found',
-    message: 'The requested resource was not found',
+    message: 'O recurso solicitado não foi encontrado',
   });
 });
 

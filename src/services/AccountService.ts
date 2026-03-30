@@ -88,13 +88,13 @@ export class AccountService {
     });
 
     if (!account) {
-      throw new NotFoundError('Account not found');
+      throw new NotFoundError('Conta não encontrada');
     }
 
     // Verificar se a conta pertence ao usuário ou se ele é membro
     const access = await accountMemberService.checkAccess(accountId, userId);
     if (!access.hasAccess) {
-      throw new ForbiddenError('Access denied to this account');
+      throw new ForbiddenError('Acesso negado a esta conta');
     }
 
     return account;
@@ -106,7 +106,7 @@ export class AccountService {
   async create(userId: string, data: CreateAccountDTO) {
     // Validar dados
     if (!data.account_name || data.account_name.trim().length === 0) {
-      throw new ValidationError('Account name is required');
+      throw new ValidationError('Nome da conta é obrigatório');
     }
 
     // Se é para ser padrão, remover padrão das outras
@@ -198,13 +198,13 @@ export class AccountService {
 
     if (transactionCount > 0) {
       throw new ValidationError(
-        'Cannot delete account with transactions. Please transfer or delete all transactions first.'
+        'Não é possível excluir conta com transações. Transfira ou exclua todas as transações primeiro.'
       );
     }
 
     // Verificar se tem saldo
     if (Number(account.total_balance) !== 0) {
-      throw new ValidationError('Cannot delete account with non-zero balance');
+      throw new ValidationError('Não é possível excluir conta com saldo diferente de zero');
     }
 
     // Deletar conta (cascade vai deletar regras e histórico)
@@ -212,7 +212,7 @@ export class AccountService {
       where: { id: accountId },
     });
 
-    return { message: 'Account deleted successfully' };
+    return { message: 'Conta excluída com sucesso' };
   }
 
   /**
@@ -230,7 +230,7 @@ export class AccountService {
       });
 
       if (!firstAccount) {
-        throw new NotFoundError('No accounts found for this user');
+        throw new NotFoundError('Nenhuma conta encontrada para este usuário');
       }
 
       return firstAccount;
@@ -259,13 +259,13 @@ export class AccountService {
       }));
 
     if (!defaultAccount) {
-      throw new NotFoundError('Default account not found');
+      throw new NotFoundError('Conta padrão não encontrada');
     }
 
     const emergencyReserveAmount = Number(defaultAccount.emergency_reserve);
 
     if (emergencyReserveAmount <= 0) {
-      throw new ValidationError('Emergency reserve is required to simulate a loan');
+      throw new ValidationError('Reserva de emergência é necessária para simular um empréstimo');
     }
 
     return {

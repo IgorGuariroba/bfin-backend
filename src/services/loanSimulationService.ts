@@ -31,14 +31,14 @@ function ensureTermWithinBounds(termMonths: number) {
     termMonths > LOAN_SIMULATION_MAX_TERM_MONTHS
   ) {
     throw new ValidationError(
-      `termMonths must be between ${LOAN_SIMULATION_MIN_TERM_MONTHS} and ${LOAN_SIMULATION_MAX_TERM_MONTHS}`
+      `termMonths deve estar entre ${LOAN_SIMULATION_MIN_TERM_MONTHS} e ${LOAN_SIMULATION_MAX_TERM_MONTHS}`
     );
   }
 }
 
 function ensurePositiveAmount(amount: number) {
   if (!Number.isFinite(amount) || amount <= 0) {
-    throw new ValidationError('amount must be a positive number');
+    throw new ValidationError('amount deve ser um número positivo');
   }
 }
 
@@ -64,7 +64,7 @@ export class LoanSimulationService {
       input.interestRateMonthly ?? LOAN_SIMULATION_DEFAULT_INTEREST_RATE_MONTHLY;
 
     if (!Number.isFinite(interestRateMonthly) || interestRateMonthly <= 0) {
-      throw new ValidationError('interestRateMonthly must be a positive number');
+      throw new ValidationError('interestRateMonthly deve ser um número positivo');
     }
 
     const result = await prisma.$transaction(async (tx) => {
@@ -75,7 +75,7 @@ export class LoanSimulationService {
 
       if (input.amount > maxAllowedAmount) {
         throw new ValidationError(
-          `Simulation exceeds reserve cap of ${LOAN_SIMULATION_MAX_RESERVE_USAGE_PERCENT}%`
+          `A simulação excede o limite da reserva de ${LOAN_SIMULATION_MAX_RESERVE_USAGE_PERCENT}%`
         );
       }
 
@@ -250,13 +250,13 @@ export class LoanSimulationService {
       });
 
       if (!simulation) {
-        throw new NotFoundError('Loan simulation not found');
+        throw new NotFoundError('Simulação de empréstimo não encontrada');
       }
 
       // 2. Check status is PENDING
       if (simulation.status !== 'PENDING') {
         throw new ValidationError(
-          `Cannot approve simulation with status ${simulation.status}. Only PENDING simulations can be approved.`
+          `Não é possível aprovar simulação com status ${simulation.status}. Apenas simulações PENDING podem ser aprovadas.`
         );
       }
 
@@ -269,7 +269,7 @@ export class LoanSimulationService {
 
       if (daysSinceCreation > 30) {
         throw new ValidationError(
-          'Simulation has expired. Simulations are only valid for 30 days after creation.'
+          'Simulação expirada. Simulações são válidas apenas por 30 dias após a criação.'
         );
       }
 
@@ -299,10 +299,10 @@ export class LoanSimulationService {
 
       if (totalUsage > maxAllowedAmount) {
         throw new ValidationError(
-          `Approval would exceed reserve limit. Current active loans: ${activeLoansTotal.toFixed(2)}, ` +
-            `requested amount: ${currentSimulationAmount.toFixed(2)}, ` +
+          `Aprovação excederia o limite da reserva. Empréstimos ativos: ${activeLoansTotal.toFixed(2)}, ` +
+            `valor solicitado: ${currentSimulationAmount.toFixed(2)}, ` +
             `total: ${totalUsage.toFixed(2)}, ` +
-            `maximum allowed (${LOAN_SIMULATION_MAX_RESERVE_USAGE_PERCENT}% of ${reserveAmount.toFixed(2)}): ${maxAllowedAmount.toFixed(2)}`
+            `máximo permitido (${LOAN_SIMULATION_MAX_RESERVE_USAGE_PERCENT}% de ${reserveAmount.toFixed(2)}): ${maxAllowedAmount.toFixed(2)}`
         );
       }
 
@@ -366,7 +366,7 @@ export class LoanSimulationService {
 
       return {
         simulation: details,
-        message: 'Loan simulation approved successfully',
+        message: 'Simulação de empréstimo aprovada com sucesso',
       };
     });
 
@@ -387,13 +387,13 @@ export class LoanSimulationService {
       });
 
       if (!simulation) {
-        throw new NotFoundError('Loan simulation not found');
+        throw new NotFoundError('Simulação de empréstimo não encontrada');
       }
 
       // 2. Validate status is APPROVED
       if (simulation.status !== 'APPROVED') {
         throw new ValidationError(
-          `Cannot withdraw from simulation with status ${simulation.status}. Only APPROVED simulations can be withdrawn.`
+          `Não é possível sacar da simulação com status ${simulation.status}. Apenas simulações APPROVED podem ser sacadas.`
         );
       }
 
@@ -406,8 +406,8 @@ export class LoanSimulationService {
       // 4. Validate reserve balance is sufficient
       if (currentReserve < principalAmount) {
         throw new ValidationError(
-          `Insufficient emergency reserve. Available reserve: ${currentReserve.toFixed(2)}, ` +
-            `required: ${principalAmount.toFixed(2)}`
+          `Reserva de emergência insuficiente. Reserva disponível: ${currentReserve.toFixed(2)}, ` +
+            `necessário: ${principalAmount.toFixed(2)}`
         );
       }
 
@@ -433,10 +433,10 @@ export class LoanSimulationService {
 
       if (totalUsage > maxAllowedAmount) {
         throw new ValidationError(
-          `Withdrawal would exceed reserve limit. Current active loans: ${activeLoansTotal.toFixed(2)}, ` +
-            `requested amount: ${principalAmount.toFixed(2)}, ` +
+          `Saque excederia o limite da reserva. Empréstimos ativos: ${activeLoansTotal.toFixed(2)}, ` +
+            `valor solicitado: ${principalAmount.toFixed(2)}, ` +
             `total: ${totalUsage.toFixed(2)}, ` +
-            `maximum allowed (${LOAN_SIMULATION_MAX_RESERVE_USAGE_PERCENT}% of current reserve ${currentReserve.toFixed(2)}): ${maxAllowedAmount.toFixed(2)}`
+            `máximo permitido (${LOAN_SIMULATION_MAX_RESERVE_USAGE_PERCENT}% da reserva atual ${currentReserve.toFixed(2)}): ${maxAllowedAmount.toFixed(2)}`
         );
       }
 
@@ -566,7 +566,7 @@ export class LoanSimulationService {
           ...balancesBefore,
           ...balancesAfter,
         },
-        message: 'Funds withdrawn successfully from emergency reserve',
+        message: 'Fundos sacados com sucesso da reserva de emergência',
       };
     });
 

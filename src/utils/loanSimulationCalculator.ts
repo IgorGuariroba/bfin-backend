@@ -86,7 +86,7 @@ export function calculateReserveImpact(
   principal: number
 ): ReserveImpactResult {
   if (!Number.isFinite(reserveAmount) || reserveAmount <= 0) {
-    throw new Error('reserveAmount must be a positive number');
+    throw new Error('reserveAmount deve ser um número positivo');
   }
 
   const reserveUsagePercent = roundMoney((principal / reserveAmount) * 100);
