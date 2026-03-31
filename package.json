@@ -4,8 +4,10 @@
   "description": "BFIN - Banking Finance API",
   "main": "dist/server.js",
   "scripts": {
-    "dev": "docker-compose up -d && tsx watch src/server.ts",
-    "dev:services": "docker-compose up -d",
+    "dev": "docker-compose up",
+    "dev:build": "docker-compose up --build",
+    "dev:services": "docker-compose up -d postgres redis",
+    "dev:local": "tsx watch src/server.ts",
     "dev:down": "docker-compose down",
     "prebuild": "npm run generate:openapi",
     "build": "npm run generate:sdk && tsc -p tsconfig.build.json",
