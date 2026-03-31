@@ -101,6 +101,7 @@ import cashFlowRoutes from './routes/cashFlow.routes';
 import categoryRoutes from './routes/categories.routes';
 import invitationRoutes from './routes/invitations.routes';
 import loanSimulationRoutes from './routes/loanSimulations.routes';
+import reportRoutes from './routes/reports.routes';
 import suggestionRoutes from './routes/suggestions.routes';
 import transactionRoutes from './routes/transactions.routes';
 import { swaggerToMarkdown } from './utils/swaggerToMarkdown';
@@ -113,6 +114,7 @@ app.use('/api/v1/categories', categoryRoutes);
 app.use('/api/v1/suggestions', suggestionRoutes);
 app.use('/api/v1/invitations', invitationRoutes);
 app.use('/api/v1/loan-simulations', loanSimulationRoutes);
+app.use('/api/v1/reports', reportRoutes);
 
 // 404 Handler
 app.use((_req, res) => {
