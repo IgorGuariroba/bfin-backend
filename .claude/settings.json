@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -c \"\nimport sys, json, subprocess\nd = json.load(sys.stdin)\ncmd = d.get('tool_input', {}).get('command', '')\nif 'git commit' in cmd:\n    result = subprocess.run(['npm', 'run', 'type-check'], cwd='/home/igor/projetos/bfin-backend', capture_output=True, text=True)\n    if result.returncode != 0:\n        print(result.stdout, file=sys.stderr)\n        print(result.stderr, file=sys.stderr)\n        print(json.dumps({'decision': 'block', 'reason': 'type-check falhou. Corrija os erros de TypeScript antes de commitar.'}))\n        sys.exit(2)\n\"",
+            "timeout": 60,
+            "statusMessage": "Verificando tipos TypeScript..."
+          }
+        ]
+      }
+    ]
+  }
+}
