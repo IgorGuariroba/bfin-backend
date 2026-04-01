@@ -45,7 +45,9 @@ export class ReportService {
 
     const categoryTotals = new Map<string, { categoryName: string; total: number }>();
     for (const tx of expenseTransactions) {
-      if (!tx.category_id || !tx.category) { continue; }
+      if (!tx.category_id || !tx.category) {
+        continue;
+      }
       const existing = categoryTotals.get(tx.category_id);
       if (existing) {
         existing.total += Number(tx.amount);
@@ -57,14 +59,14 @@ export class ReportService {
       }
     }
 
-    const expensesByCategory: CategoryExpenseSummary[] = Array.from(
-      categoryTotals.entries()
-    ).map(([categoryId, { categoryName, total }]) => ({
-      categoryId,
-      categoryName,
-      total,
-      percentage: totalExpenses > 0 ? (total / totalExpenses) * 100 : 0,
-    }));
+    const expensesByCategory: CategoryExpenseSummary[] = Array.from(categoryTotals.entries()).map(
+      ([categoryId, { categoryName, total }]) => ({
+        categoryId,
+        categoryName,
+        total,
+        percentage: totalExpenses > 0 ? (total / totalExpenses) * 100 : 0,
+      })
+    );
 
     return {
       month,
