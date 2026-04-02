@@ -368,24 +368,36 @@ export class TransactionService {
         throw new ForbiddenError('Acesso negado a esta conta');
       }
 
-      // 2. Verificar saldo disponível
-      if (Number(account.available_balance) < data.amount) {
-        throw new InsufficientBalanceError(
-          `Saldo insuficiente. Disponível: R$ ${account.available_balance}, Necessário: R$ ${data.amount}`
-        );
+      // 2. Determinar se a despesa é futura
+      const now = new Date();
+      const dueDate = new Date(data.dueDate!);
+      const isFuture =
+        dueDate.getTime() >
+        new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).getTime() - 1;
+
+      let updatedAccount = account;
+
+      if (isFuture) {
+        // Despesa futura: cria como pending sem bloquear saldo
+      } else {
+        // Despesa para hoje: verificar e bloquear saldo
+        if (Number(account.available_balance) < data.amount) {
+          throw new InsufficientBalanceError(
+            `Saldo insuficiente. Disponível: R$ ${account.available_balance}, Necessário: R$ ${data.amount}`
+          );
+        }
+
+        updatedAccount = await tx.account.update({
+          where: { id: data.accountId },
+          data: {
+            available_balance: { decrement: data.amount },
+            locked_balance: { increment: data.amount },
+            updated_at: new Date(),
+          },
+        });
       }
 
-      // 3. Bloquear saldo preventivamente
-      const updatedAccount = await tx.account.update({
-        where: { id: data.accountId },
-        data: {
-          available_balance: { decrement: data.amount },
-          locked_balance: { increment: data.amount },
-          updated_at: new Date(),
-        },
-      });
-
-      // 4. Criar transação principal com status 'locked'
+      // 3. Criar transação
       const transaction = await tx.transaction.create({
         data: {
           account_id: data.accountId,
@@ -393,8 +405,8 @@ export class TransactionService {
           type: 'fixed_expense',
           amount: data.amount,
           description: data.description,
-          due_date: data.dueDate!,
-          status: 'locked',
+          due_date: dueDate,
+          status: isFuture ? 'pending' : 'locked',
           is_recurring: data.isRecurring || false,
           recurrence_pattern: data.recurrencePattern,
           recurrence_interval: data.recurrenceInterval ?? undefined,
@@ -404,7 +416,7 @@ export class TransactionService {
         },
       });
 
-      // 5. Se for recorrente, gerar parcelas futuras
+      // 4. Se for recorrente, gerar parcelas futuras
       if (data.isRecurring && data.recurrencePattern) {
         await this.generateRecurringInstallments(tx as typeof prisma, {
           ...data,
@@ -412,7 +424,7 @@ export class TransactionService {
         });
       }
 
-      // 6. Criar snapshot
+      // 5. Criar snapshot
       await tx.balanceHistory.create({
         data: {
           account_id: data.accountId,
@@ -421,11 +433,11 @@ export class TransactionService {
           available_balance: updatedAccount.available_balance,
           locked_balance: updatedAccount.locked_balance,
           emergency_reserve: updatedAccount.emergency_reserve,
-          change_reason: 'expense_locked',
+          change_reason: isFuture ? 'expense_scheduled' : 'expense_locked',
         },
       });
 
-      // 7. Invalidar cache de sugestão
+      // 6. Invalidar cache de sugestão
       await SuggestionEngine.invalidateCache(data.accountId);
       this.invalidateCalendarCache(data.accountId);
 
