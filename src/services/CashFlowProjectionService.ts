@@ -355,7 +355,9 @@ export class CashFlowProjectionService {
     totalFloatingDebt: number,
     monthStartStr: string
   ): Promise<DaySnapshot[]> {
-    const pastEnd = new Date(Math.min(+yesterday, +monthEnd));
+    const pastEndRaw = new Date(Math.min(+yesterday, +monthEnd));
+    const pastEnd = new Date(pastEndRaw);
+    pastEnd.setUTCHours(23, 59, 59, 999);
 
     const priorSnapshot = await prisma.balanceHistory.findFirst({
       where: { account_id: accountId, recorded_at: { lt: monthStart } },
