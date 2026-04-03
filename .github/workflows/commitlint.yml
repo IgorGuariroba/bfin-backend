@@ -9,7 +9,7 @@ on:
 
 jobs:
   commitlint:
-    name: CommitLintExpected
+    name: CommitLint
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
