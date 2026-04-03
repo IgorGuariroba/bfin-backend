@@ -458,7 +458,9 @@ describe('GET /api/v1/cash-flow/monthly', () => {
     expect(todayDay).toBeDefined();
     // A transação vencida deve aparecer nas transações do dia de hoje
     expect(
-      todayDay.transactions.some((t: { description: string }) => t.description === 'Receita vencida')
+      todayDay.transactions.some(
+        (t: { description: string }) => t.description === 'Receita vencida'
+      )
     ).toBe(true);
   });
 
@@ -486,8 +488,7 @@ describe('GET /api/v1/cash-flow/monthly', () => {
     expect(response.status).toBe(200);
 
     const day20 = response.body.days.find(
-      (d: { date: string }) =>
-        d.date === `${futureYear}-${String(futureMonth).padStart(2, '0')}-20`
+      (d: { date: string }) => d.date === `${futureYear}-${String(futureMonth).padStart(2, '0')}-20`
     );
     expect(day20).toBeDefined();
     expect(day20.dailyExpenses).toBe(400);
@@ -530,5 +531,198 @@ describe('GET /api/v1/cash-flow/monthly', () => {
     expect(day1).toBeDefined();
     // O saldo do dia 1 deve refletir o snapshot, não o cálculo acumulado
     expect(day1.balance).toBe(snapshotBalance);
+  });
+
+  // ── Transações executadas no mês atual ─────────────────────────────────────
+
+  it('calcula dailyIncome e dailyExpenses corretamente para dias passados do mês atual', async () => {
+    // Só faz sentido se hoje não é o primeiro dia do mês
+    if (NOW.getUTCDate() <= 1) {
+      return;
+    }
+
+    const pastDay = new Date(Date.UTC(CURRENT_YEAR, CURRENT_MONTH - 1, 1, 12, 0, 0));
+
+    // Criar transações de diferentes tipos
+    await prisma.transaction.create({
+      data: {
+        account_id: accountId,
+        type: 'income',
+        amount: 500,
+        description: 'Salário',
+        executed_date: pastDay,
+        status: 'executed',
+        is_floating: false,
+      },
+    });
+
+    await prisma.transaction.create({
+      data: {
+        account_id: accountId,
+        type: 'fixed_expense',
+        amount: 200,
+        description: 'Aluguel',
+        executed_date: pastDay,
+        status: 'executed',
+        is_floating: false,
+      },
+    });
+
+    await prisma.transaction.create({
+      data: {
+        account_id: accountId,
+        type: 'variable_expense',
+        amount: 100,
+        description: 'Mercado',
+        executed_date: pastDay,
+        status: 'executed',
+        is_floating: false,
+      },
+    });
+
+    const response = await request(app)
+      .get('/api/v1/cash-flow/monthly')
+      .set('Authorization', `Bearer ${token}`)
+      .query({ accountId, year: CURRENT_YEAR, month: CURRENT_MONTH });
+
+    expect(response.status).toBe(200);
+
+    const day1Str = `${CURRENT_YEAR}-${String(CURRENT_MONTH).padStart(2, '0')}-01`;
+    const day1 = response.body.days.find((d: { date: string }) => d.date === day1Str);
+    expect(day1).toBeDefined();
+    expect(day1.dailyIncome).toBe(500);
+    expect(day1.dailyExpenses).toBe(300); // 200 + 100
+    expect(day1.transactions).toHaveLength(3);
+  });
+
+  it('ignora transações executadas sem executed_date no mês atual', async () => {
+    // Só faz sentido se hoje não é o primeiro dia do mês
+    if (NOW.getUTCDate() <= 1) {
+      return;
+    }
+
+    const pastDay = new Date(Date.UTC(CURRENT_YEAR, CURRENT_MONTH - 1, 1, 12, 0, 0));
+
+    // Criar transação válida
+    await prisma.transaction.create({
+      data: {
+        account_id: accountId,
+        type: 'income',
+        amount: 500,
+        description: 'Salário',
+        executed_date: pastDay,
+        status: 'executed',
+        is_floating: false,
+      },
+    });
+
+    // Criar transação executada sem executed_date (estado inconsistente, deve ser ignorada)
+    await prisma.transaction.create({
+      data: {
+        account_id: accountId,
+        type: 'fixed_expense',
+        amount: 200,
+        description: 'Despesa sem data',
+        executed_date: null,
+        status: 'executed',
+        is_floating: false,
+      },
+    });
+
+    const response = await request(app)
+      .get('/api/v1/cash-flow/monthly')
+      .set('Authorization', `Bearer ${token}`)
+      .query({ accountId, year: CURRENT_YEAR, month: CURRENT_MONTH });
+
+    expect(response.status).toBe(200);
+
+    const day1Str = `${CURRENT_YEAR}-${String(CURRENT_MONTH).padStart(2, '0')}-01`;
+    const day1 = response.body.days.find((d: { date: string }) => d.date === day1Str);
+    expect(day1).toBeDefined();
+    // Apenas a transação com executed_date deve aparecer
+    expect(day1.transactions).toHaveLength(1);
+    expect(day1.transactions[0].description).toBe('Salário');
+  });
+
+  it('ignora transações pendentes sem due_date na projeção futura', async () => {
+    // Criar transação pendente sem due_date (estado inconsistente)
+    await prisma.transaction.create({
+      data: {
+        account_id: accountId,
+        type: 'income',
+        amount: 300,
+        description: 'Receita sem data',
+        due_date: null,
+        status: 'pending',
+        is_floating: false,
+      },
+    });
+
+    // Criar transação pendente normal
+    const futureDate = new Date(Date.UTC(futureYear, futureMonth - 1, 15));
+    await prisma.transaction.create({
+      data: {
+        account_id: accountId,
+        type: 'income',
+        amount: 500,
+        description: 'Receita com data',
+        due_date: futureDate,
+        status: 'pending',
+        is_floating: false,
+      },
+    });
+
+    const response = await request(app)
+      .get('/api/v1/cash-flow/monthly')
+      .set('Authorization', `Bearer ${token}`)
+      .query({ accountId, year: futureYear, month: futureMonth });
+
+    expect(response.status).toBe(200);
+
+    // A transação sem due_date não deve aparecer em nenhum dia
+    const allTransactions = response.body.days.flatMap(
+      (d: { transactions: unknown[] }) => d.transactions
+    );
+    const transactionWithDate = allTransactions.find(
+      (t: { description: string }) => t.description === 'Receita com data'
+    );
+    const transactionWithoutDate = allTransactions.find(
+      (t: { description: string }) => t.description === 'Receita sem data'
+    );
+
+    expect(transactionWithDate).toBeDefined();
+    expect(transactionWithoutDate).toBeUndefined();
+  });
+
+  it('ignora transações executadas hoje sem executed_date', async () => {
+    // Criar transação executada hoje sem executed_date (estado inconsistente)
+    await prisma.transaction.create({
+      data: {
+        account_id: accountId,
+        type: 'income',
+        amount: 200,
+        description: 'Receita executada sem data',
+        executed_date: null,
+        status: 'executed',
+        is_floating: false,
+      },
+    });
+
+    const response = await request(app)
+      .get('/api/v1/cash-flow/monthly')
+      .set('Authorization', `Bearer ${token}`)
+      .query({ accountId, year: CURRENT_YEAR, month: CURRENT_MONTH });
+
+    expect(response.status).toBe(200);
+
+    // A transação não deve aparecer no dia de hoje
+    const todayStr = `${CURRENT_YEAR}-${String(CURRENT_MONTH).padStart(2, '0')}-${String(NOW.getUTCDate()).padStart(2, '0')}`;
+    const today = response.body.days.find((d: { date: string }) => d.date === todayStr);
+    expect(today).toBeDefined();
+
+    const inconsistentTransaction = today.transactions.find(
+      (t: { description: string }) => t.description === 'Receita executada sem data'
+    );
+    expect(inconsistentTransaction).toBeUndefined();
   });
 });
