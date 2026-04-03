@@ -773,11 +773,9 @@ export class TransactionService {
     // Construir ordenação dinâmica
     const sortBy = filters.sortBy || 'due_date';
     const sortOrder = filters.sortOrder || 'desc';
-    
-    const orderBy: Prisma.TransactionOrderByWithRelationInput[] = [
-      { [sortBy]: sortOrder },
-    ];
-    
+
+    const orderBy: Prisma.TransactionOrderByWithRelationInput[] = [{ [sortBy]: sortOrder }];
+
     // Se ordenar por outro campo que não due_date, adiciona due_date como secundário
     if (sortBy !== 'due_date') {
       orderBy.push({ due_date: 'desc' });
