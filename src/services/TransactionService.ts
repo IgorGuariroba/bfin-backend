@@ -651,13 +651,17 @@ export class TransactionService {
       startDate?: Date;
       endDate?: Date;
       categoryIds?: string[];
+      search?: string;
+      sortBy?: 'due_date' | 'created_at' | 'amount' | 'description';
+      sortOrder?: 'asc' | 'desc';
       page?: number;
       limit?: number;
     }
   ) {
-    // Tentar buscar do cache se accountId estiver presente
+    // Tentar buscar do cache se accountId estiver presente e não houver search/sort personalizado
     let cacheKey = '';
-    if (filters.accountId) {
+    const canCache = filters.accountId && !filters.search && !filters.sortBy && !filters.sortOrder;
+    if (canCache) {
       // Remover propriedades undefined para criar hash consistente
       const cleanFilters = JSON.parse(JSON.stringify(filters));
       cacheKey = `calendar:${filters.accountId}:${JSON.stringify(cleanFilters)}`;
@@ -730,6 +734,14 @@ export class TransactionService {
       where.category_id = { in: filters.categoryIds };
     }
 
+    // Busca por texto na descrição
+    if (filters.search?.trim()) {
+      where.description = {
+        contains: filters.search.trim(),
+        mode: 'insensitive',
+      };
+    }
+
     if (filters.statuses && filters.statuses.length > 0) {
       const statusConditions: Prisma.TransactionWhereInput[] = [];
       const now = new Date();
@@ -781,6 +793,17 @@ export class TransactionService {
       where.due_date = dueDateFilter;
     }
 
+    // Construir ordenação dinâmica
+    const sortBy = filters.sortBy || 'due_date';
+    const sortOrder = filters.sortOrder || 'desc';
+
+    const orderBy: Prisma.TransactionOrderByWithRelationInput[] = [{ [sortBy]: sortOrder }];
+
+    // Se ordenar por outro campo que não due_date, adiciona due_date como secundário
+    if (sortBy !== 'due_date') {
+      orderBy.push({ due_date: 'desc' });
+    }
+
     // Buscar transações
     const [transactions, total] = await Promise.all([
       prisma.transaction.findMany({
@@ -802,7 +825,7 @@ export class TransactionService {
             },
           },
         },
-        orderBy: [{ due_date: 'desc' }, { created_at: 'desc' }],
+        orderBy,
         skip,
         take: limit,
       }),

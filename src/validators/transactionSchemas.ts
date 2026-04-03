@@ -77,6 +77,12 @@ export const listFiltersSchema = z.object({
     .union([z.string(), z.array(z.string())])
     .optional()
     .transform(arrayTransform),
+  search: z.string().optional(),
+  sortBy: z
+    .enum(['due_date', 'created_at', 'amount', 'description'])
+    .optional()
+    .default('due_date'),
+  sortOrder: z.enum(['asc', 'desc']).optional().default('desc'),
   page: z
     .string()
     .optional()

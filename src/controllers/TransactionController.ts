@@ -67,8 +67,18 @@ export class TransactionController {
    * Lista transações com filtros
    */
   list = withAuth(async (req, res): Promise<void> => {
-    const { type, types, status, statuses, categoryId, categories, ...otherFilters } =
-      listFiltersSchema.parse(req.query);
+    const {
+      type,
+      types,
+      status,
+      statuses,
+      categoryId,
+      categories,
+      search,
+      sortBy,
+      sortOrder,
+      ...otherFilters
+    } = listFiltersSchema.parse(req.query);
 
     // Merge singular and plural filters
     const finalTypes = types || (type ? [type] : undefined);
@@ -80,6 +90,9 @@ export class TransactionController {
       types: finalTypes,
       statuses: finalStatuses,
       categoryIds: finalCategories,
+      search,
+      sortBy,
+      sortOrder,
     });
 
     res.json(result);

@@ -1,2 +1,40 @@
-npm run type-check
-npx lint-staged
+#!/bin/bash
+
+# TypeScript check
+npm run type-check || exit 1
+
+# Verificar formatação
+npm run format:check || exit 1
+
+# Executar lint-staged
+npx lint-staged || exit 1
+
+# Verificar se há arquivos TypeScript modificados
+STAGED_TS_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(ts|tsx)$' | grep -v '\.test\.\|\.spec\.' || true)
+
+if [ -n "$STAGED_TS_FILES" ]; then
+    echo ""
+    echo "🧪 Executando testes relacionados aos arquivos modificados..."
+    
+    # Executar testes relacionados aos arquivos modificados (baseado no git)
+    # O modo changed roda testes relacionados aos arquivos modificados desde o último commit
+    npx vitest run --changed=HEAD --reporter=verbose || exit 1
+    
+    echo ""
+    echo "📊 Verificando cobertura de código..."
+    
+    # Verificar cobertura - executar testes com coverage
+    # Usando threshold de 80% conforme solicitado
+    npx vitest run --coverage --reporter=verbose --coverage.thresholds.statements=80 --coverage.thresholds.branches=80 --coverage.thresholds.functions=80 --coverage.thresholds.lines=80 || {
+        echo ""
+        echo "❌ Cobertura de testes abaixo de 80%!"
+        echo "   Por favor, adicione testes para cobrir o código modificado."
+        exit 1
+    }
+    
+    echo ""
+    echo "✅ Testes e cobertura aprovados!"
+fi
+
+echo ""
+echo "✅ Pre-commit concluído com sucesso!"
