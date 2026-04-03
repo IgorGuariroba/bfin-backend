@@ -183,6 +183,8 @@ describe('transactionSchemas', () => {
       expect(result).toEqual({
         page: 1,
         limit: 50,
+        sortBy: 'due_date',
+        sortOrder: 'desc',
       });
     });
 

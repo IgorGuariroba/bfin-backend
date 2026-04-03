@@ -56,10 +56,10 @@ export default defineConfig({
       // Nota: branches e functions são mais difíceis de cobrir completamente
       thresholds: {
         global: {
-          statements: 81,
-          branches: 75,
-          functions: 75,
-          lines: 81,
+          statements: 80,
+          branches: 80,
+          functions: 80,
+          lines: 80,
         },
       },
     },
