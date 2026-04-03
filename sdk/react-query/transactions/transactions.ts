@@ -872,6 +872,121 @@ export const usePostApiV1TransactionsIdMarkAsPaid = <
   return useMutation(getPostApiV1TransactionsIdMarkAsPaidMutationOptions(options));
 };
 /**
+ * Marca uma receita com status pending como recebida, aplicando a regra 30/70 e atualizando o saldo
+ * @summary Marcar receita agendada como recebida
+ */
+export type postApiV1TransactionsIdMarkAsReceivedResponse200 = {
+  data: void;
+  status: 200;
+};
+
+export type postApiV1TransactionsIdMarkAsReceivedResponse400 = {
+  data: void;
+  status: 400;
+};
+
+export type postApiV1TransactionsIdMarkAsReceivedResponse404 = {
+  data: void;
+  status: 404;
+};
+
+export type postApiV1TransactionsIdMarkAsReceivedResponseSuccess =
+  postApiV1TransactionsIdMarkAsReceivedResponse200 & {
+    headers: Headers;
+  };
+export type postApiV1TransactionsIdMarkAsReceivedResponseError = (
+  | postApiV1TransactionsIdMarkAsReceivedResponse400
+  | postApiV1TransactionsIdMarkAsReceivedResponse404
+) & {
+  headers: Headers;
+};
+
+export type postApiV1TransactionsIdMarkAsReceivedResponse =
+  | postApiV1TransactionsIdMarkAsReceivedResponseSuccess
+  | postApiV1TransactionsIdMarkAsReceivedResponseError;
+
+export const getPostApiV1TransactionsIdMarkAsReceivedUrl = (id: string) => {
+  return `/api/v1/transactions/${id}/mark-as-received`;
+};
+
+export const postApiV1TransactionsIdMarkAsReceived = async (
+  id: string,
+  options?: RequestInit
+): Promise<postApiV1TransactionsIdMarkAsReceivedResponse> => {
+  return customInstance<postApiV1TransactionsIdMarkAsReceivedResponse>(
+    getPostApiV1TransactionsIdMarkAsReceivedUrl(id),
+    {
+      ...options,
+      method: 'POST',
+    }
+  );
+};
+
+export const getPostApiV1TransactionsIdMarkAsReceivedMutationOptions = <
+  TError = void,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof postApiV1TransactionsIdMarkAsReceived>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customInstance>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof postApiV1TransactionsIdMarkAsReceived>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  const mutationKey = ['postApiV1TransactionsIdMarkAsReceived'];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof postApiV1TransactionsIdMarkAsReceived>>,
+    { id: string }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return postApiV1TransactionsIdMarkAsReceived(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type PostApiV1TransactionsIdMarkAsReceivedMutationResult = NonNullable<
+  Awaited<ReturnType<typeof postApiV1TransactionsIdMarkAsReceived>>
+>;
+
+export type PostApiV1TransactionsIdMarkAsReceivedMutationError = void;
+
+/**
+ * @summary Marcar receita agendada como recebida
+ */
+export const usePostApiV1TransactionsIdMarkAsReceived = <
+  TError = void,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof postApiV1TransactionsIdMarkAsReceived>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customInstance>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof postApiV1TransactionsIdMarkAsReceived>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  return useMutation(getPostApiV1TransactionsIdMarkAsReceivedMutationOptions(options));
+};
+/**
  * Cria uma nova transação com os mesmos dados da transação original (com descrição modificada)
  * @summary Duplicar transação
  */
