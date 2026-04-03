@@ -1,4 +1,5 @@
 import { AccountMemberService } from './AccountMemberService';
+import type { Prisma } from '../generated/prisma/client';
 import prisma from '../lib/prisma';
 import { NotFoundError, ForbiddenError } from '../middlewares/errorHandler';
 
@@ -214,7 +215,7 @@ export class CashFlowProjectionService {
 
   // ── Mês atual ou futuro ──────────────────────────────────────────────────────
   private async buildFutureProjection(
-    account: { available_balance: import('../generated/prisma/client').Prisma.Decimal },
+    account: { available_balance: Prisma.Decimal },
     accountId: string,
     year: number,
     month: number,
@@ -288,7 +289,9 @@ export class CashFlowProjectionService {
       const executedDayTransactions =
         dayStr === todayStr
           ? executedTodayTransactions.filter((t) => {
-              if (!t.executed_date) return false;
+              if (!t.executed_date) {
+                return false;
+              }
               return toDateStr(t.executed_date) === todayStr;
             })
           : [];

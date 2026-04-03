@@ -256,7 +256,10 @@ export class TransactionService {
     }
 
     for (let i = 1; i <= totalInstances; i++) {
-      const nextDueDate = this.addPeriods(dueDate, data.recurrencePattern!, i * interval);
+      if (!data.recurrencePattern) {
+        throw new ValidationError('Recurrence pattern is required for recurring instances');
+      }
+      const nextDueDate = this.addPeriods(dueDate, data.recurrencePattern, i * interval);
       if (data.recurrenceEndDate && nextDueDate > data.recurrenceEndDate) {
         break;
       }
@@ -370,7 +373,10 @@ export class TransactionService {
 
       // 2. Determinar se a despesa é futura
       const now = new Date();
-      const dueDate = new Date(data.dueDate!);
+      if (!data.dueDate) {
+        throw new ValidationError('Due date is required');
+      }
+      const dueDate = new Date(data.dueDate);
       const isFuture =
         dueDate.getTime() >
         new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).getTime() - 1;
@@ -460,7 +466,10 @@ export class TransactionService {
     data: CreateFixedExpenseDTO & { parentTransactionId: string }
   ): Promise<void> {
     const installments: Prisma.TransactionUncheckedCreateInput[] = [];
-    const dueDate = new Date(data.dueDate!);
+    if (!data.dueDate) {
+      throw new ValidationError('Due date is required');
+    }
+    const dueDate = new Date(data.dueDate);
 
     // Intervalo padrão é 1 (mensal, semanal, etc.)
     const interval = data.recurrenceInterval ?? 1;
@@ -489,8 +498,10 @@ export class TransactionService {
 
     // Gerar parcelas aplicando o intervalo
     for (let i = 1; i <= totalInstallments; i++) {
-      // Multiplica pelo intervalo para pular os períodos corretos
-      const nextDueDate = this.addPeriods(dueDate, data.recurrencePattern!, i * interval);
+      if (!data.recurrencePattern) {
+        throw new ValidationError('Recurrence pattern is required for recurring installments');
+      }
+      const nextDueDate = this.addPeriods(dueDate, data.recurrencePattern, i * interval);
 
       // Parar se ultrapassar a data final (quando definida)
       if (data.recurrenceEndDate && nextDueDate > data.recurrenceEndDate) {
