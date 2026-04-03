@@ -11,14 +11,12 @@ describe('DELETE /api/v1/transactions/:id', () => {
   const createdCategoryIds: string[] = [];
   let token = '';
   let accountId = '';
-  // userId is used in beforeEach but stored via createdUserIds
 
   beforeEach(async () => {
     const email = `delete-test-${Date.now()}@example.com`;
     const user = await prisma.user.create({
       data: { email, password_hash: 'test-hash', full_name: 'Delete Tester' },
     });
-    userId = user.id;
     createdUserIds.push(user.id);
 
     const account = await prisma.account.create({
