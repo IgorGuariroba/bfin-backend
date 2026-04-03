@@ -132,6 +132,19 @@ export const getTransactions = () => {
     );
   };
   /**
+   * Marca uma receita com status pending como recebida, aplicando a regra 30/70 e atualizando o saldo
+   * @summary Marcar receita agendada como recebida
+   */
+  const postApiV1TransactionsIdMarkAsReceived = (
+    id: string,
+    options?: SecondParameter<typeof customInstance<void>>
+  ) => {
+    return customInstance<void>(
+      { url: `/api/v1/transactions/${id}/mark-as-received`, method: 'POST' },
+      options
+    );
+  };
+  /**
    * Cria uma nova transação com os mesmos dados da transação original (com descrição modificada)
    * @summary Duplicar transação
    */
@@ -170,6 +183,7 @@ export const getTransactions = () => {
     putApiV1TransactionsId,
     deleteApiV1TransactionsId,
     postApiV1TransactionsIdMarkAsPaid,
+    postApiV1TransactionsIdMarkAsReceived,
     postApiV1TransactionsIdDuplicate,
     postApiV1TransactionsTransfer,
   };
@@ -194,6 +208,9 @@ export type DeleteApiV1TransactionsIdResult = NonNullable<
 >;
 export type PostApiV1TransactionsIdMarkAsPaidResult = NonNullable<
   Awaited<ReturnType<ReturnType<typeof getTransactions>['postApiV1TransactionsIdMarkAsPaid']>>
+>;
+export type PostApiV1TransactionsIdMarkAsReceivedResult = NonNullable<
+  Awaited<ReturnType<ReturnType<typeof getTransactions>['postApiV1TransactionsIdMarkAsReceived']>>
 >;
 export type PostApiV1TransactionsIdDuplicateResult = NonNullable<
   Awaited<ReturnType<ReturnType<typeof getTransactions>['postApiV1TransactionsIdDuplicate']>>
