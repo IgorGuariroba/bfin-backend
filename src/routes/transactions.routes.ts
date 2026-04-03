@@ -250,7 +250,7 @@ router.post('/expense', (req, res, next) => {
  *   get:
  *     tags: [Transactions]
  *     summary: Listar transações
- *     description: Lista transações do usuário com filtros opcionais (conta, tipo, status, data, categoria, paginação)
+ *     description: Lista transações do usuário com filtros opcionais (conta, tipo, status, data, categoria, paginação, ordenação e pesquisa)
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -287,6 +287,25 @@ router.post('/expense', (req, res, next) => {
  *           type: string
  *           format: date-time
  *         description: Data final para filtrar transações
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Pesquisa por texto na descrição da transação (case-insensitive)
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *           enum: [due_date, created_at, amount, description]
+ *           default: due_date
+ *         description: Campo para ordenação dos resultados
+ *       - in: query
+ *         name: sortOrder
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *           default: desc
+ *         description: Direção da ordenação (ascendente ou descendente)
  *       - in: query
  *         name: page
  *         schema:
