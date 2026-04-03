@@ -1,4 +1,5 @@
 import { AccountMemberService } from './AccountMemberService';
+import type { Prisma } from '../generated/prisma/client';
 import prisma from '../lib/prisma';
 import { NotFoundError, ForbiddenError } from '../middlewares/errorHandler';
 
@@ -183,7 +184,7 @@ export class CashFlowProjectionService {
         .reduce((sum, t) => sum + Number(t.amount), 0);
 
       const dailyExpenses = dayTransactions
-        .filter((t) => t.type !== 'income')
+        .filter((t) => t.type === 'fixed_expense' || t.type === 'variable_expense')
         .reduce((sum, t) => sum + Number(t.amount), 0);
 
       days.push({
@@ -214,7 +215,7 @@ export class CashFlowProjectionService {
 
   // ── Mês atual ou futuro ──────────────────────────────────────────────────────
   private async buildFutureProjection(
-    account: { available_balance: import('../generated/prisma/client').Prisma.Decimal },
+    account: { available_balance: Prisma.Decimal },
     accountId: string,
     year: number,
     month: number,
@@ -222,6 +223,8 @@ export class CashFlowProjectionService {
     monthEnd: Date,
     todayUTC: Date
   ): Promise<MonthlyProjection> {
+    const todayStr = toDateStr(todayUTC);
+
     // Buscar transações pendentes/locked até o fim do mês solicitado.
     // Inclui vencidas (due_date < hoje, status=pending) — serão aplicadas no dia de hoje.
     // Locked são excluídas de transações vencidas pois o saldo já foi bloqueado na criação.
@@ -241,6 +244,18 @@ export class CashFlowProjectionService {
       orderBy: { due_date: 'asc' },
     });
 
+    // Buscar transações executadas hoje para incluir no dia atual
+    const executedTodayTransactions = await prisma.transaction.findMany({
+      where: {
+        account_id: accountId,
+        is_floating: false,
+        status: 'executed',
+        executed_date: { gte: todayUTC },
+      },
+      include: CATEGORY_INCLUDE,
+      orderBy: { executed_date: 'asc' },
+    });
+
     // Dívidas flutuantes (sem data, status pending)
     const floatingDebts = await prisma.transaction.findMany({
       where: { account_id: accountId, is_floating: true, status: 'pending' },
@@ -250,15 +265,15 @@ export class CashFlowProjectionService {
 
     const totalFloatingDebt = floatingDebts.reduce((sum, t) => sum + Number(t.amount), 0);
     let remainingFloatingDebt = totalFloatingDebt;
+    // Saldo inicial já inclui transações executadas hoje
     let runningBalance = Number(account.available_balance);
     let debtFreeDate: string | null = null;
 
     const fullSimulation: DaySnapshot[] = [];
 
-    const todayStr = toDateStr(todayUTC);
-
     for (const dayStr of getDaysInRange(todayUTC, monthEnd)) {
-      const dayTransactions = pendingTransactions.filter((t) => {
+      // Transações pendentes/locked do dia
+      const pendingDayTransactions = pendingTransactions.filter((t) => {
         if (!t.due_date) {
           return false;
         }
@@ -270,17 +285,40 @@ export class CashFlowProjectionService {
         return txDay === dayStr;
       });
 
-      // 1. Receitas do dia
-      const dailyIncome = dayTransactions
+      // Transações executadas hoje (apenas para exibição, não afetam o saldo pois já estão incluídas)
+      const executedDayTransactions =
+        dayStr === todayStr
+          ? executedTodayTransactions.filter((t) => {
+              if (!t.executed_date) {
+                return false;
+              }
+              return toDateStr(t.executed_date) === todayStr;
+            })
+          : [];
+
+      // Combina transações pendentes do dia + executadas hoje (para exibição e cálculo de dailyExpenses/dailyIncome)
+      const allDayTransactions = [...pendingDayTransactions, ...executedDayTransactions];
+
+      // 1. Receitas do dia (para exibição: pendentes + executadas)
+      const dailyIncome = allDayTransactions
         .filter((t) => t.type === 'income')
         .reduce((sum, t) => sum + Number(t.amount), 0);
-      runningBalance += dailyIncome;
 
-      // 2. Despesas do dia
-      const dailyExpenses = dayTransactions
-        .filter((t) => t.type !== 'income')
+      // 2. Despesas do dia (para exibição: pendentes + executadas)
+      const dailyExpenses = allDayTransactions
+        .filter((t) => t.type === 'fixed_expense' || t.type === 'variable_expense')
         .reduce((sum, t) => sum + Number(t.amount), 0);
-      runningBalance -= dailyExpenses;
+
+      // 3. Ajuste do saldo: apenas transações pendentes (executadas já estão no available_balance)
+      const pendingIncome = pendingDayTransactions
+        .filter((t) => t.type === 'income')
+        .reduce((sum, t) => sum + Number(t.amount), 0);
+      runningBalance += pendingIncome;
+
+      const pendingExpenses = pendingDayTransactions
+        .filter((t) => t.type === 'fixed_expense' || t.type === 'variable_expense')
+        .reduce((sum, t) => sum + Number(t.amount), 0);
+      runningBalance -= pendingExpenses;
 
       // 3. Abater dívidas flutuantes com excedente
       let floatingDebtPayment = 0;
@@ -301,7 +339,7 @@ export class CashFlowProjectionService {
         dailyIncome,
         dailyExpenses,
         floatingDebtPayment: Math.round(floatingDebtPayment * 100) / 100,
-        transactions: dayTransactions.map(toSummary),
+        transactions: allDayTransactions.map(toSummary),
       });
     }
 
@@ -403,7 +441,7 @@ export class CashFlowProjectionService {
             .filter((t) => t.type === 'income')
             .reduce((sum, t) => sum + Number(t.amount), 0),
           dailyExpenses: dayTransactions
-            .filter((t) => t.type !== 'income')
+            .filter((t) => t.type === 'fixed_expense' || t.type === 'variable_expense')
             .reduce((sum, t) => sum + Number(t.amount), 0),
           floatingDebtPayment: 0,
           transactions: dayTransactions.map(toSummary),

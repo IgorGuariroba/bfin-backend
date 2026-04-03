@@ -1,12 +1,5 @@
 import type { Response } from 'express';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-  LOAN_SIMULATION_DEFAULT_INTEREST_RATE_MONTHLY,
-  LoanSimulationStatus,
-  type AuthRequest,
-  type LoanSimulationDetails,
-  type LoanSimulationSummary,
-} from '../../src/types';
 
 vi.mock('../../src/services/loanSimulationService', () => ({
   loanSimulationService: {
@@ -20,6 +13,13 @@ vi.mock('../../src/services/loanSimulationService', () => ({
 
 import { loanSimulationsController } from '../../src/controllers/loanSimulations.controller';
 import { loanSimulationService } from '../../src/services/loanSimulationService';
+import {
+  LOAN_SIMULATION_DEFAULT_INTEREST_RATE_MONTHLY,
+  LoanSimulationStatus,
+  type AuthRequest,
+  type LoanSimulationDetails,
+  type LoanSimulationSummary,
+} from '../../src/types';
 
 function createMockResponse() {
   const json = vi.fn();

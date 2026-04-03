@@ -418,7 +418,7 @@ describe('TransactionService (unit)', () => {
     ).resolves.toBeDefined();
   });
 
-  it('throws InsufficientBalanceError when fixed expense exceeds available balance', async () => {
+  it('throws InsufficientBalanceError when fixed expense exceeds available balance (due today)', async () => {
     const TransactionService = await loadService();
     const service = new TransactionService();
 
@@ -431,7 +431,6 @@ describe('TransactionService (unit)', () => {
     });
 
     const dueDate = new Date();
-    dueDate.setDate(dueDate.getDate() + 1);
 
     await expect(
       service.createFixedExpense('user-1', {
@@ -448,7 +447,40 @@ describe('TransactionService (unit)', () => {
     });
   });
 
-  it('locks balance and invalidates caches on fixed expense creation', async () => {
+  it('allows creating future fixed expense without sufficient balance', async () => {
+    const TransactionService = await loadService();
+    const service = new TransactionService();
+
+    txMock.account.findUnique.mockResolvedValueOnce({
+      id: 'acc-1',
+      available_balance: 0,
+      locked_balance: 0,
+      total_balance: 0,
+      emergency_reserve: 0,
+    });
+    txMock.transaction.create.mockResolvedValueOnce({ id: 'txn-future-1' });
+    txMock.balanceHistory.create.mockResolvedValueOnce({ id: 'hist-future-1' });
+
+    const dueDate = new Date();
+    dueDate.setDate(dueDate.getDate() + 7);
+
+    await expect(
+      service.createFixedExpense('user-1', {
+        type: 'fixed',
+        accountId: 'acc-1',
+        amount: 500,
+        description: 'Future Rent',
+        categoryId: 'cat-1',
+        dueDate,
+      })
+    ).resolves.toMatchObject({
+      transaction: { id: 'txn-future-1' },
+    });
+
+    expect(txMock.account.update).not.toHaveBeenCalled();
+  });
+
+  it('locks balance and invalidates caches on fixed expense creation (due today)', async () => {
     const TransactionService = await loadService();
     const service = new TransactionService();
 
@@ -469,7 +501,6 @@ describe('TransactionService (unit)', () => {
     txMock.balanceHistory.create.mockResolvedValueOnce({ id: 'hist-fixed-1' });
 
     const dueDate = new Date();
-    dueDate.setDate(dueDate.getDate() + 1);
 
     const result = await service.createFixedExpense('user-1', {
       type: 'fixed',

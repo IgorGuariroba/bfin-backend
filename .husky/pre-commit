@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# TypeScript check
+npm run type-check || exit 1
+
 # Verificar formatação
 npm run format:check || exit 1
 
