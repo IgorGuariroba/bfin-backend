@@ -58,6 +58,12 @@ prisma/generated/client/
 .gemini/
 .codex/
 .claude/settings.local.json
+.claude/commands/
+.claude/skills/
+.qwen/
+.github/prompts/
+.github/skills/
+openspec/
 
 # Reports
 zap_report.html
