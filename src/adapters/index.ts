@@ -4,6 +4,7 @@ import { makePrevisaoService } from "../core/previsao/index.js";
 import { makeIdentityService, makeMembersService } from "../core/identity/index.js";
 import { makeApiKeysService } from "../core/apikeys/index.js";
 import { makeBillingService } from "../core/billing/index.js";
+import { makeInsightsService } from "../core/insights/index.js";
 import { drizzleTagRepo } from "./drizzle/tag-repo.js";
 import { drizzleTransactionRepo } from "./drizzle/transaction-repo.js";
 import { drizzlePrevisaoRepo } from "./drizzle/previsao-repo.js";
@@ -11,6 +12,7 @@ import { drizzleIdentityRepo } from "./drizzle/identity-repo.js";
 import { drizzleMembersRepo } from "./drizzle/members-repo.js";
 import { drizzleApiKeyRepo } from "./drizzle/apikey-repo.js";
 import { drizzleBillingRepo } from "./drizzle/billing-repo.js";
+import { drizzleInsightsRepo } from "./drizzle/insights-repo.js";
 import { generateApiKey, hashApiKey } from "../lib/api-key.js";
 import { mercadoPagoGateway } from "./mercadopago-gateway.js";
 import { notifyNewSubscriptionOnDiscord } from "./discord-notify.js";
@@ -43,3 +45,4 @@ export const billingService = makeBillingService(drizzleBillingRepo, mercadoPago
   },
   notifyNewSubscription: notifyNewSubscriptionOnDiscord,
 });
+export const insightsService = makeInsightsService(drizzleInsightsRepo);
