@@ -1,0 +1,16 @@
+# Postgres local efêmero para desenvolvimento/testes — não usar em produção
+# (o compose de produção é o docker-compose.yml, com volume externo dedicado).
+services:
+  db:
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: bfin_backend_dev
+    volumes:
+      - devdata:/var/lib/postgresql/data
+
+volumes:
+  devdata:
