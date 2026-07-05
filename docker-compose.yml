@@ -2,11 +2,14 @@
 # existem (criados pelo stack do bfin-app) e são reaproveitados aqui — o
 # bfin-backend passa a ser dono do schema/migrations do mesmo Postgres.
 #
-# ATENÇÃO — NÃO FAZER DEPLOY DESTE ARQUIVO AINDA: enquanto o dokploy-compose.yml
-# do bfin-app continuar declarando seu próprio serviço `db` sobre o mesmo volume
-# externo bfin-app_pgdata, subir este compose também criaria um segundo processo
-# Postgres escrevendo no mesmo data directory (corrupção). Só fazer deploy depois
-# que a issue de remoção do `db` do compose do bfin-app for aplicada.
+# db fica só em dokploy-network (não em rede própria do projeto): é a mesma
+# rede compartilhada que o bfin-app já usa hoje pro Traefik, então o app
+# alcança o hostname `db` sem precisar criar rede nova nem mudar DATABASE_URL.
+#
+# ORDEM DE DEPLOY IMPORTA: este stack precisa subir (com healthcheck do db OK)
+# antes do dokploy-compose.yml do bfin-app ser redeployado sem seu próprio
+# `db` — do contrário, os dois processos Postgres escreveriam no mesmo volume
+# externo bfin-app_pgdata ao mesmo tempo (corrupção).
 services:
   backend:
     build: .
@@ -18,7 +21,6 @@ services:
         condition: service_healthy
     networks:
       - dokploy-network
-      - internal
     logging:
       driver: json-file
       options:
@@ -40,7 +42,7 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - internal
+      - dokploy-network
     logging:
       driver: json-file
       options:
@@ -50,7 +52,6 @@ services:
 networks:
   dokploy-network:
     external: true
-  internal:
 
 volumes:
   pgdata:
