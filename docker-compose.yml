@@ -1,0 +1,58 @@
+# Compose de produção (Dokploy). O volume pgdata e a rede dokploy-network já
+# existem (criados pelo stack do bfin-app) e são reaproveitados aqui — o
+# bfin-backend passa a ser dono do schema/migrations do mesmo Postgres.
+#
+# ATENÇÃO — NÃO FAZER DEPLOY DESTE ARQUIVO AINDA: enquanto o dokploy-compose.yml
+# do bfin-app continuar declarando seu próprio serviço `db` sobre o mesmo volume
+# externo bfin-app_pgdata, subir este compose também criaria um segundo processo
+# Postgres escrevendo no mesmo data directory (corrupção). Só fazer deploy depois
+# que a issue de remoção do `db` do compose do bfin-app for aplicada.
+services:
+  backend:
+    build: .
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - dokploy-network
+      - internal
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - internal
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  dokploy-network:
+    external: true
+  internal:
+
+volumes:
+  pgdata:
+    external: true
+    name: bfin-app_pgdata
