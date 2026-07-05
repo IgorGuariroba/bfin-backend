@@ -6,6 +6,7 @@ import { identityRoutes } from "./routes/identity.js";
 import { invitesRoutes } from "./routes/invites.js";
 import { apikeysRoutes } from "./routes/apikeys.js";
 import { billingRoutes } from "./routes/billing.js";
+import { insightsRoutes } from "./routes/insights.js";
 
 export function buildApp() {
   const app = Fastify();
@@ -18,6 +19,7 @@ export function buildApp() {
   app.register(invitesRoutes);
   app.register(apikeysRoutes);
   app.register(billingRoutes);
+  app.register(insightsRoutes);
 
   return app;
 }
