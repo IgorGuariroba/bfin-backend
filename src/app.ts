@@ -2,6 +2,9 @@ import Fastify from "fastify";
 import { tagsRoutes } from "./routes/tags.js";
 import { transactionsRoutes } from "./routes/transactions.js";
 import { previsaoRoutes } from "./routes/previsao.js";
+import { identityRoutes } from "./routes/identity.js";
+import { invitesRoutes } from "./routes/invites.js";
+import { apikeysRoutes } from "./routes/apikeys.js";
 
 export function buildApp() {
   const app = Fastify();
@@ -10,6 +13,9 @@ export function buildApp() {
   app.register(tagsRoutes);
   app.register(transactionsRoutes);
   app.register(previsaoRoutes);
+  app.register(identityRoutes);
+  app.register(invitesRoutes);
+  app.register(apikeysRoutes);
 
   return app;
 }
