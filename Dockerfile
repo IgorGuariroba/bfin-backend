@@ -20,8 +20,13 @@ RUN addgroup --system --gid 1001 nodejs && \
 COPY package*.json ./
 RUN npm ci --omit=dev && npm cache clean --force
 COPY --from=builder --chown=fastify:nodejs /app/dist ./dist
+COPY --chown=fastify:nodejs scripts/db-migrate.mjs ./scripts/db-migrate.mjs
+COPY --chown=fastify:nodejs drizzle ./drizzle
+COPY --chown=fastify:nodejs docker-entrypoint.sh ./docker-entrypoint.sh
+RUN chmod +x ./docker-entrypoint.sh
 
 USER fastify
 EXPOSE 3001
 ENV PORT=3001
+ENTRYPOINT ["./docker-entrypoint.sh"]
 CMD ["node", "dist/server.js"]

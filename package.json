@@ -9,7 +9,9 @@
     "start": "node dist/server.js",
     "test": "vitest run",
     "type-check": "tsc --noEmit",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "node scripts/db-migrate.mjs"
   },
   "type": "module",
   "repository": {
@@ -24,12 +26,18 @@
   },
   "homepage": "https://github.com/IgorGuariroba/bfin-backend#readme",
   "dependencies": {
-    "fastify": "^5.10.0"
+    "dotenv": "^17.4.2",
+    "drizzle-orm": "^0.45.2",
+    "fastify": "^5.10.0",
+    "pg": "^8.22.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/node": "^22.20.0",
+    "@types/pg": "^8.20.0",
+    "drizzle-kit": "^0.31.10",
     "eslint": "^10.6.0",
+    "globals": "^17.7.0",
     "tsx": "^4.23.0",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.62.1",
