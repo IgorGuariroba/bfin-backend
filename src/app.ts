@@ -5,6 +5,7 @@ import { previsaoRoutes } from "./routes/previsao.js";
 import { identityRoutes } from "./routes/identity.js";
 import { invitesRoutes } from "./routes/invites.js";
 import { apikeysRoutes } from "./routes/apikeys.js";
+import { billingRoutes } from "./routes/billing.js";
 
 export function buildApp() {
   const app = Fastify();
@@ -16,6 +17,7 @@ export function buildApp() {
   app.register(identityRoutes);
   app.register(invitesRoutes);
   app.register(apikeysRoutes);
+  app.register(billingRoutes);
 
   return app;
 }
