@@ -1,0 +1,36 @@
+# Pipeline de verificação local (ADR-0001):
+# pre-commit é o portão rápido (paralelo, ~3s); pre-push é o portão completo.
+pre-commit:
+  parallel: true
+  jobs:
+    - name: prettier
+      glob: "*.{ts,js,mjs,json,md,yml,yaml}"
+      run: npx prettier --write {staged_files}
+      stage_fixed: true
+    - name: eslint
+      glob: "*.{ts,js,mjs}"
+      run: npx eslint {staged_files}
+    - name: typecheck
+      glob: "*.ts"
+      run: npm run type-check
+    - name: unit-tests
+      glob: "*.ts"
+      run: npx vitest run --project unit --changed
+    - name: knip
+      glob: "*.{ts,js,mjs,json}"
+      run: npx knip
+
+pre-push:
+  piped: true
+  jobs:
+    # Sobe o Postgres dev automaticamente antes da suíte de integração (ADR-0001).
+    - name: db-up
+      run: docker compose -f docker-compose.dev.yml up -d --wait
+    - name: db-migrate
+      run: npm run db:migrate
+    - name: typecheck
+      run: npm run type-check
+    - name: tests
+      run: npm test
+    - name: build
+      run: npm run build

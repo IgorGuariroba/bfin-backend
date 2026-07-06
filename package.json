@@ -10,6 +10,7 @@
     "type-check": "tsc --noEmit",
     "lint": "eslint .",
     "format": "prettier --write .",
+    "prepare": "lefthook install",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "node scripts/db-migrate.mjs"
   },
@@ -42,6 +43,7 @@
     "eslint": "^10.6.0",
     "globals": "^17.7.0",
     "knip": "^6.24.0",
+    "lefthook": "^2.1.9",
     "prettier": "^3.9.4",
     "tsx": "^4.23.0",
     "typescript": "^5.9.3",
