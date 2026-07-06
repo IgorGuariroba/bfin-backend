@@ -8,6 +8,7 @@ import { apikeysRoutes } from "./routes/apikeys.js";
 import { billingRoutes } from "./routes/billing.js";
 import { insightsRoutes } from "./routes/insights.js";
 import { mcpRoutes } from "./routes/mcp.js";
+import { webhookMercadoPagoRoutes } from "./routes/webhook-mercadopago.js";
 
 export function buildApp() {
   const app = Fastify();
@@ -22,6 +23,7 @@ export function buildApp() {
   app.register(billingRoutes);
   app.register(insightsRoutes);
   app.register(mcpRoutes);
+  app.register(webhookMercadoPagoRoutes);
 
   return app;
 }
