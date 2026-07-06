@@ -47,6 +47,7 @@ export function webhookMercadoPagoRoutes(app: FastifyInstance) {
     const { type, data } = (request.body ?? {}) as { type?: string; data?: { id?: string } };
 
     if (type !== "subscription_preapproval" || !data?.id) {
+      console.log("mp-webhook: ignored", { type: type ?? null, hasDataId: Boolean(data?.id) });
       return { ok: true };
     }
 
@@ -54,6 +55,7 @@ export function webhookMercadoPagoRoutes(app: FastifyInstance) {
     // aceitar webhook forjado ativando Pro de graça (mesmo padrão do CRON_SECRET).
     const secret = process.env.MERCADO_PAGO_WEBHOOK_SECRET;
     if (!secret) {
+      console.error("mp-webhook: secret not configured");
       return reply.code(500).send({ error: "MERCADO_PAGO_WEBHOOK_SECRET not configured" });
     }
 
@@ -68,12 +70,21 @@ export function webhookMercadoPagoRoutes(app: FastifyInstance) {
       secret
     );
     if (!verified) {
+      console.warn("mp-webhook: invalid signature", { dataId: data.id });
       return reply.code(401).send({ error: "Invalid signature" });
     }
 
     // Verificada a origem, segue o processamento de domínio (mudança de plano).
-    await billingService.processSubscriptionEvent(data.id);
+    // Erro aqui é nosso (ou do MP upstream) — responde 500 uniforme pro MP
+    // re-tentar, sem repassar o status da chamada interna à API deles.
+    try {
+      await billingService.processSubscriptionEvent(data.id);
+    } catch (err) {
+      console.error("mp-webhook: processing failed", { dataId: data.id, err });
+      return reply.code(500).send({ error: "Failed to process event" });
+    }
 
+    console.log("mp-webhook: processed", { dataId: data.id });
     return { ok: true };
   });
 }
