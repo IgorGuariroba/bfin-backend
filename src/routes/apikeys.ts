@@ -79,11 +79,9 @@ export function apikeysRoutes(app: FastifyInstance) {
       entityId?: string;
     };
     if (!apiKeyId || !userId || !action || !entityId) {
-      return reply
-        .code(400)
-        .send({
-          error: "apiKeyId, userId, action e entityId são obrigatórios",
-        });
+      return reply.code(400).send({
+        error: "apiKeyId, userId, action e entityId são obrigatórios",
+      });
     }
     await apiKeysService.recordAgentWrite({
       apiKeyId,
