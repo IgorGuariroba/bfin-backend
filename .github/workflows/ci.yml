@@ -71,3 +71,13 @@ jobs:
         with:
           # Job falha se o quality gate reprovar — exigível como required check.
           args: -Dsonar.qualitygate.wait=true
+
+  pr-title:
+    # Squash merge usa o título do PR como commit da main — validar aqui é o
+    # que garante o histórico padronizado (ADR-0004).
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: amannn/action-semantic-pull-request@v6
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

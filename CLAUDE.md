@@ -54,7 +54,15 @@ The test: Every changed line should trace directly to the user's request.
 
 While there are errors: fix, run again. Only conclude when the command exits 0.
 
-## 5. Goal-Driven Execution
+## 5. Commit Policy
+
+**Conventional Commits everywhere: commits, branches, PR titles.**
+
+- Commit messages: `tipo(escopo opcional): assunto` — types: `feat fix chore docs refactor test perf ci build revert`. Enforced by the commit-msg hook.
+- Branches: `tipo/slug-kebab` (e.g. `feat/baixa-diaria`). Committing on main is blocked locally.
+- PR titles follow the same format — the repo squash-merges, so the PR title becomes the commit on main (required `pr-title` check).
+
+## 6. Goal-Driven Execution
 
 **Define success criteria. Loop until verified.**
 
