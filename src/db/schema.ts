@@ -193,49 +193,6 @@ export const postTopic = pgTable("PostTopic", {
 	uniqueIndex("PostTopic_slug_key").using("btree", table.slug.asc().nullsLast().op("text_ops")),
 ]);
 
-export const whatsappContact = pgTable("WhatsappContact", {
-	id: text().primaryKey().notNull(),
-	phone: text().notNull(),
-	name: text(),
-	createdAt: timestamp({ precision: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
-}, (table) => [
-	uniqueIndex("WhatsappContact_phone_key").using("btree", table.phone.asc().nullsLast().op("text_ops")),
-]);
-
-export const whatsappConversation = pgTable("WhatsappConversation", {
-	id: text().primaryKey().notNull(),
-	contactId: text().notNull(),
-	status: text().default('bot').notNull(),
-	lastMessageAt: timestamp({ precision: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
-	createdAt: timestamp({ precision: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
-}, (table) => [
-	uniqueIndex("WhatsappConversation_contactId_key").using("btree", table.contactId.asc().nullsLast().op("text_ops")),
-	index("WhatsappConversation_status_lastMessageAt_idx").using("btree", table.status.asc().nullsLast().op("text_ops"), table.lastMessageAt.asc().nullsLast().op("timestamp_ops")),
-	foreignKey({
-			columns: [table.contactId],
-			foreignColumns: [whatsappContact.id],
-			name: "WhatsappConversation_contactId_fkey"
-		}).onUpdate("cascade").onDelete("cascade"),
-]);
-
-export const whatsappMessage = pgTable("WhatsappMessage", {
-	id: text().primaryKey().notNull(),
-	conversationId: text().notNull(),
-	direction: text().notNull(),
-	sender: text().notNull(),
-	body: text().notNull(),
-	wamid: text(),
-	createdAt: timestamp({ precision: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
-}, (table) => [
-	index("WhatsappMessage_conversationId_createdAt_idx").using("btree", table.conversationId.asc().nullsLast().op("text_ops"), table.createdAt.asc().nullsLast().op("timestamp_ops")),
-	uniqueIndex("WhatsappMessage_wamid_key").using("btree", table.wamid.asc().nullsLast().op("text_ops")),
-	foreignKey({
-			columns: [table.conversationId],
-			foreignColumns: [whatsappConversation.id],
-			name: "WhatsappMessage_conversationId_fkey"
-		}).onUpdate("cascade").onDelete("cascade"),
-]);
-
 export const post = pgTable("Post", {
 	id: text().primaryKey().notNull(),
 	slug: text().notNull(),
