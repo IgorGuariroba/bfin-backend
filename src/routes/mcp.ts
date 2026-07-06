@@ -421,7 +421,11 @@ export function mcpRoutes(app: FastifyInstance) {
     done(null, body);
   });
 
-  app.post("/mcp", async (request, reply) => {
+  // Path idêntico ao público (bfin.app/api/mcp): o Traefik/Dokploy roteia por
+  // path pra esse container sem precisar de strip-path — evita ambiguidade
+  // sobre o que seria removido (a rota é a única exposta publicamente aqui,
+  // as demais deste processo são internas, atrás de INTERNAL_API_SECRET).
+  app.post("/api/mcp", async (request, reply) => {
     const token = bearerToken(request);
     if (!token) {
       console.warn("apikey: auth denied", { reason: "missing_token" });
