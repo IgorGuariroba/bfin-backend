@@ -1,0 +1,7 @@
+# Observabilidade: OpenTelemetry + Alloy no servidor + Grafana Cloud
+
+A observabilidade é o feedback loop pós-deploy: latência por endpoint, exceções novas, memória, usuário afetado, regressão introduzida. Até aqui produção rodava cega — o `Fastify()` estava sem logger, então nenhum request ou exceção era registrado.
+
+Três camadas: **(1)** logger pino do Fastify ligado (JSON no stdout, request-id, redact de Authorization/API key/cookie) e `/health` checando o Postgres; **(2)** instrumentação `@opentelemetry/auto-instrumentations-node` (HTTP, Fastify, pg) carregada via `--import` e ativa só quando `OTEL_EXPORTER_OTLP_ENDPOINT` existe — dev e testes rodam sem OTel; **(3)** Grafana Alloy como stack separado no Dokploy (`docker-compose.alloy.yml`), recebendo OTLP do app e coletando logs e métricas de todos os containers via Docker socket, encaminhando tudo ao gateway OTLP do Grafana Cloud. Credenciais só nas env vars do Dokploy.
+
+Alternativas rejeitadas: **Sentry** (resolveria erros e tracing com menos setup, mas não cobre métricas de infra com histórico — e a preferência foi por stack vendor-neutral completa); **export direto do app ao Grafana Cloud** (sem Alloy não há logs de containers nem métricas de host, e cada novo serviço repetiria as credenciais); **node_exporter no Alloy** (exigiria mounts privilegiados do host; as métricas de container do cadvisor respondem a pergunta que importa — a memória do backend — e o resto fica no painel do Dokploy).

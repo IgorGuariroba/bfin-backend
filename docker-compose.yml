@@ -28,6 +28,10 @@ services:
       GOOGLE_ADS_LOGIN_CUSTOMER_ID: ${GOOGLE_ADS_LOGIN_CUSTOMER_ID}
       GOOGLE_ADS_CUSTOMER_ID: ${GOOGLE_ADS_CUSTOMER_ID}
       GOOGLE_ADS_CONVERSION_ACTION_ID: ${GOOGLE_ADS_CONVERSION_ACTION_ID}
+      # Observabilidade (ADR-0005): aponta pro Alloy na dokploy-network.
+      # Sem valor, a instrumentação fica desligada (src/otel.ts).
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+      OTEL_SERVICE_NAME: bfin-backend
     depends_on:
       db:
         condition: service_healthy
