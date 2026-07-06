@@ -16,10 +16,13 @@ export interface ApiKeyRepo {
     prefix: string;
     hashedKey: string;
   }): Promise<IssuedApiKey>;
-  findOwned(userId: string, id: string): Promise<{ id: string; revokedAt: Date | null } | null>;
+  findOwned(
+    userId: string,
+    id: string,
+  ): Promise<{ id: string; revokedAt: Date | null } | null>;
   revoke(id: string, at: Date): Promise<void>;
   findByHashedKey(
-    hashedKey: string
+    hashedKey: string,
   ): Promise<{ id: string; userId: string; revokedAt: Date | null } | null>;
   bumpLastUsed(id: string, at: Date): Promise<void>;
 }

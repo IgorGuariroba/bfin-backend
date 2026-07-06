@@ -7,7 +7,11 @@ export const FREE_FUTURE_MONTHS = 2;
 
 export function freeOldestMonth(): string {
   const now = new Date();
-  const d = new Date(now.getFullYear(), now.getMonth() - (FREE_HISTORY_MONTHS - 1), 1);
+  const d = new Date(
+    now.getFullYear(),
+    now.getMonth() - (FREE_HISTORY_MONTHS - 1),
+    1,
+  );
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 

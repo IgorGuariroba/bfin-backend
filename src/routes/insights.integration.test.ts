@@ -42,7 +42,10 @@ afterEach(() => {
 describe("autenticação interna", () => {
   it("rejeita sem x-internal-secret com 401", async () => {
     const app = buildApp();
-    const res = await app.inject({ method: "GET", url: "/insights/totais?userId=x&month=2026-06" });
+    const res = await app.inject({
+      method: "GET",
+      url: "/insights/totais?userId=x&month=2026-06",
+    });
     expect(res.statusCode).toBe(401);
   });
 });

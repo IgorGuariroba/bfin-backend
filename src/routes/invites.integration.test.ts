@@ -35,7 +35,10 @@ describe("rotas de invites", () => {
 
   it("rejeita sem o header do segredo compartilhado", async () => {
     const app = buildApp();
-    const response = await app.inject({ method: "GET", url: "/invites?userId=x" });
+    const response = await app.inject({
+      method: "GET",
+      url: "/invites?userId=x",
+    });
     expect(response.statusCode).toBe(401);
   });
 
@@ -49,20 +52,34 @@ describe("rotas de invites", () => {
       method: "POST",
       url: "/invites",
       headers,
-      payload: { ownerId: dono.id, ownerEmail: dono.email, email: convidado.email.toUpperCase() },
+      payload: {
+        ownerId: dono.id,
+        ownerEmail: dono.email,
+        email: convidado.email.toUpperCase(),
+      },
     });
     expect(created.statusCode).toBe(201);
     const invite = created.json();
-    expect(invite).toMatchObject({ status: "pending", inviteEmail: convidado.email });
+    expect(invite).toMatchObject({
+      status: "pending",
+      inviteEmail: convidado.email,
+    });
 
     const accepted = await app.inject({
       method: "POST",
       url: "/invites/accept",
       headers,
-      payload: { userId: convidado.id, userEmail: convidado.email, token: invite.inviteToken },
+      payload: {
+        userId: convidado.id,
+        userEmail: convidado.email,
+        token: invite.inviteToken,
+      },
     });
     expect(accepted.statusCode).toBe(200);
-    expect(accepted.json().invite).toMatchObject({ memberId: convidado.id, status: "active" });
+    expect(accepted.json().invite).toMatchObject({
+      memberId: convidado.id,
+      status: "active",
+    });
 
     const listedDono = await app.inject({
       method: "GET",
@@ -96,7 +113,11 @@ describe("rotas de invites", () => {
       method: "POST",
       url: "/invites",
       headers,
-      payload: { ownerId: dono.id, ownerEmail: dono.email, email: "convidado@example.com" },
+      payload: {
+        ownerId: dono.id,
+        ownerEmail: dono.email,
+        email: "convidado@example.com",
+      },
     });
 
     expect(response.statusCode).toBe(403);
@@ -112,7 +133,11 @@ describe("rotas de invites", () => {
       method: "POST",
       url: "/invites",
       headers,
-      payload: { ownerId: dono.id, ownerEmail: dono.email, email: "alguem@example.com" },
+      payload: {
+        ownerId: dono.id,
+        ownerEmail: dono.email,
+        email: "alguem@example.com",
+      },
     });
     const invite = created.json();
 

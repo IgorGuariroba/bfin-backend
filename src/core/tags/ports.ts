@@ -16,7 +16,7 @@ export interface TagRepo {
   /** Cria system tags em lote, ignorando duplicatas (seed idempotente). */
   createSystemTags(
     userId: string,
-    tags: readonly { name: string; color: string }[]
+    tags: readonly { name: string; color: string }[],
   ): Promise<void>;
   update(id: string, patch: { name?: string; color?: string }): Promise<Tag>;
   delete(id: string): Promise<void>;

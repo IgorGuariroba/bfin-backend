@@ -23,7 +23,8 @@ function makeFakeRepo() {
         .filter((t) => t.userId === userId)
         .sort(
           (a, b) =>
-            Number(b.isSystem) - Number(a.isSystem) || a.name.localeCompare(b.name)
+            Number(b.isSystem) - Number(a.isSystem) ||
+            a.name.localeCompare(b.name),
         ),
     listSystemNames: async (userId) =>
       tags.filter((t) => t.userId === userId && t.isSystem).map((t) => t.name),
@@ -64,27 +65,33 @@ beforeEach(() => {
 describe("createTag", () => {
   it("cria com isSystem=false, nome trimado e cor default quando omitida", async () => {
     const tag = await service.createTag({ userId: "u1", name: "  Pets  " });
-    expect(tag).toMatchObject({ name: "Pets", isSystem: false, color: "#94a3b8" });
+    expect(tag).toMatchObject({
+      name: "Pets",
+      isSystem: false,
+      color: "#94a3b8",
+    });
   });
 
   it("rejeita nome vazio, nome longo e cor inválida", async () => {
-    await expect(service.createTag({ userId: "u1", name: "   " })).rejects.toThrow(
-      TagValidationError
-    );
     await expect(
-      service.createTag({ userId: "u1", name: "x".repeat(51) })
+      service.createTag({ userId: "u1", name: "   " }),
     ).rejects.toThrow(TagValidationError);
     await expect(
-      service.createTag({ userId: "u1", name: "Pets", color: "#0" })
+      service.createTag({ userId: "u1", name: "x".repeat(51) }),
+    ).rejects.toThrow(TagValidationError);
+    await expect(
+      service.createTag({ userId: "u1", name: "Pets", color: "#0" }),
     ).rejects.toThrow(TagValidationError);
   });
 
   it("rejeita nome duplicado no mesmo usuário, mas permite em outro", async () => {
     await service.createTag({ userId: "u1", name: "Pets" });
-    await expect(service.createTag({ userId: "u1", name: "Pets" })).rejects.toThrow(
-      TagValidationError
-    );
-    await expect(service.createTag({ userId: "u2", name: "Pets" })).resolves.toBeTruthy();
+    await expect(
+      service.createTag({ userId: "u1", name: "Pets" }),
+    ).rejects.toThrow(TagValidationError);
+    await expect(
+      service.createTag({ userId: "u2", name: "Pets" }),
+    ).resolves.toBeTruthy();
   });
 });
 
@@ -93,7 +100,9 @@ describe("ensureSystemTags / listTags", () => {
     await service.ensureSystemTags("u1");
     await service.ensureSystemTags("u1");
     const system = fake.tags.filter((t) => t.userId === "u1" && t.isSystem);
-    expect(system).toHaveLength(DEFAULT_SYSTEM_TAGS.length + CATEGORY_TAGS.length);
+    expect(system).toHaveLength(
+      DEFAULT_SYSTEM_TAGS.length + CATEGORY_TAGS.length,
+    );
   });
 
   it("listTags semeia antes de listar, system tags primeiro", async () => {
@@ -107,31 +116,33 @@ describe("ensureSystemTags / listTags", () => {
 describe("updateTag / deleteTag", () => {
   it("nega acesso a tag de outro usuário como not found", async () => {
     const tag = await service.createTag({ userId: "u1", name: "Pets" });
-    await expect(service.updateTag("u2", tag.id, { name: "X" })).rejects.toThrow(
-      TagNotFoundError
+    await expect(
+      service.updateTag("u2", tag.id, { name: "X" }),
+    ).rejects.toThrow(TagNotFoundError);
+    await expect(service.deleteTag("u2", tag.id)).rejects.toThrow(
+      TagNotFoundError,
     );
-    await expect(service.deleteTag("u2", tag.id)).rejects.toThrow(TagNotFoundError);
   });
 
   it("protege system tags contra edição e exclusão", async () => {
     await service.ensureSystemTags("u1");
     const system = fake.tags.find((t) => t.userId === "u1" && t.isSystem)!;
-    await expect(service.updateTag("u1", system.id, { name: "X" })).rejects.toThrow(
-      SystemTagImmutableError
-    );
+    await expect(
+      service.updateTag("u1", system.id, { name: "X" }),
+    ).rejects.toThrow(SystemTagImmutableError);
     await expect(service.deleteTag("u1", system.id)).rejects.toThrow(
-      SystemTagImmutableError
+      SystemTagImmutableError,
     );
   });
 
   it("rejeita rename para nome já existente, mas aceita re-salvar o próprio nome", async () => {
     await service.createTag({ userId: "u1", name: "Pets" });
     const other = await service.createTag({ userId: "u1", name: "Carro" });
-    await expect(service.updateTag("u1", other.id, { name: "Pets" })).rejects.toThrow(
-      TagValidationError
-    );
     await expect(
-      service.updateTag("u1", other.id, { name: "Carro", color: "#123456" })
+      service.updateTag("u1", other.id, { name: "Pets" }),
+    ).rejects.toThrow(TagValidationError);
+    await expect(
+      service.updateTag("u1", other.id, { name: "Carro", color: "#123456" }),
     ).resolves.toMatchObject({ color: "#123456" });
   });
 

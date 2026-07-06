@@ -11,7 +11,11 @@ function safeEqual(a: string, b: string): boolean {
   return timingSafeEqual(ab, bb);
 }
 
-function requireInternalSecret(request: FastifyRequest, reply: FastifyReply, done: () => void) {
+function requireInternalSecret(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  done: () => void,
+) {
   const secret = process.env.INTERNAL_API_SECRET;
   const provided = request.headers["x-internal-secret"];
   if (!secret || typeof provided !== "string" || !safeEqual(provided, secret)) {
@@ -21,8 +25,14 @@ function requireInternalSecret(request: FastifyRequest, reply: FastifyReply, don
   done();
 }
 
-function parseQuery(request: FastifyRequest, reply: FastifyReply): { userId: string; month: string } | null {
-  const { userId, month } = request.query as { userId?: string; month?: string };
+function parseQuery(
+  request: FastifyRequest,
+  reply: FastifyReply,
+): { userId: string; month: string } | null {
+  const { userId, month } = request.query as {
+    userId?: string;
+    month?: string;
+  };
   if (!userId || !month) {
     reply.code(400).send({ error: "userId e month são obrigatórios" });
     return null;

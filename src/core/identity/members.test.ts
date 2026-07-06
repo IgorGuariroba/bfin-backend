@@ -11,7 +11,12 @@ import type { AccountMember, Plan } from "./types.js";
 
 // Repo fake em memória: prova que o core é testável sem DB e sem Next (ADR-0013).
 interface FakeInvite extends AccountMember {
-  ownerProfile: { id: string; name: string; email: string; image: string | null };
+  ownerProfile: {
+    id: string;
+    name: string;
+    email: string;
+    image: string | null;
+  };
   memberProfile: { name: string; email: string; image: string | null } | null;
 }
 
@@ -39,7 +44,7 @@ function makeFakeRepo() {
         (i) =>
           i.ownerId === ownerId &&
           i.inviteEmail === inviteEmail &&
-          ["pending", "active"].includes(i.status)
+          ["pending", "active"].includes(i.status),
       ),
     createInvite: async (data) => {
       const invite: FakeInvite = {
@@ -61,7 +66,13 @@ function makeFakeRepo() {
     findByToken: async (token) => {
       const invite = invites.find((i) => i.inviteToken === token);
       if (!invite) return null;
-      return { ...invite, owner: { name: invite.ownerProfile.name, email: invite.ownerProfile.email } };
+      return {
+        ...invite,
+        owner: {
+          name: invite.ownerProfile.name,
+          email: invite.ownerProfile.email,
+        },
+      };
     },
     activate: async (id, memberId) => {
       const invite = invites.find((i) => i.id === id)!;
@@ -110,7 +121,11 @@ describe("createInvite", () => {
 
   it("dono free recebe ProRequiredError", async () => {
     await expect(
-      service.createInvite({ ownerId: "free", ownerEmail: "f@x.com", email: "a@b.com" })
+      service.createInvite({
+        ownerId: "free",
+        ownerEmail: "f@x.com",
+        email: "a@b.com",
+      }),
     ).rejects.toBeInstanceOf(ProRequiredError);
   });
 
@@ -118,10 +133,18 @@ describe("createInvite", () => {
     fake.plans.set("dono", "pro");
 
     await expect(
-      service.createInvite({ ownerId: "dono", ownerEmail: "d@x.com", email: "" })
+      service.createInvite({
+        ownerId: "dono",
+        ownerEmail: "d@x.com",
+        email: "",
+      }),
     ).rejects.toThrow("Email inválido");
     await expect(
-      service.createInvite({ ownerId: "dono", ownerEmail: "d@x.com", email: 42 as never })
+      service.createInvite({
+        ownerId: "dono",
+        ownerEmail: "d@x.com",
+        email: 42 as never,
+      }),
     ).rejects.toThrow("Email inválido");
   });
 
@@ -129,16 +152,28 @@ describe("createInvite", () => {
     fake.plans.set("dono", "pro");
 
     await expect(
-      service.createInvite({ ownerId: "dono", ownerEmail: "Dono@X.com", email: "dono@x.com" })
+      service.createInvite({
+        ownerId: "dono",
+        ownerEmail: "Dono@X.com",
+        email: "dono@x.com",
+      }),
     ).rejects.toThrow("Não pode convidar a si mesmo");
   });
 
   it("rejeita convite duplicado pending/active para o mesmo email", async () => {
     fake.plans.set("dono", "pro");
-    await service.createInvite({ ownerId: "dono", ownerEmail: "d@x.com", email: "a@b.com" });
+    await service.createInvite({
+      ownerId: "dono",
+      ownerEmail: "d@x.com",
+      email: "a@b.com",
+    });
 
     await expect(
-      service.createInvite({ ownerId: "dono", ownerEmail: "d@x.com", email: "A@B.com " })
+      service.createInvite({
+        ownerId: "dono",
+        ownerEmail: "d@x.com",
+        email: "A@B.com ",
+      }),
     ).rejects.toThrow("Convite já enviado para este email");
   });
 });
@@ -146,7 +181,11 @@ describe("createInvite", () => {
 describe("acceptInvite", () => {
   async function seedInvite(email = "convidado@example.com") {
     fake.plans.set("dono", "pro");
-    return service.createInvite({ ownerId: "dono", ownerEmail: "d@x.com", email });
+    return service.createInvite({
+      ownerId: "dono",
+      ownerEmail: "d@x.com",
+      email,
+    });
   }
 
   it("destinatário certo aceita: vira active vinculado ao membro, com dados do dono", async () => {
@@ -158,8 +197,15 @@ describe("acceptInvite", () => {
       token: invite.inviteToken,
     });
 
-    expect(result.invite).toMatchObject({ id: invite.id, memberId: "membro", status: "active" });
-    expect(result.owner).toEqual({ name: "Nome dono", email: "dono@example.com" });
+    expect(result.invite).toMatchObject({
+      id: invite.id,
+      memberId: "membro",
+      status: "active",
+    });
+    expect(result.owner).toEqual({
+      name: "Nome dono",
+      email: "dono@example.com",
+    });
   });
 
   it("token inválido, inexistente ou convite já utilizado", async () => {
@@ -171,17 +217,21 @@ describe("acceptInvite", () => {
     });
 
     await expect(
-      service.acceptInvite({ userId: "m", userEmail: "a@b.com", token: "" })
+      service.acceptInvite({ userId: "m", userEmail: "a@b.com", token: "" }),
     ).rejects.toBeInstanceOf(InviteValidationError);
     await expect(
-      service.acceptInvite({ userId: "m", userEmail: "a@b.com", token: "nao-existe" })
+      service.acceptInvite({
+        userId: "m",
+        userEmail: "a@b.com",
+        token: "nao-existe",
+      }),
     ).rejects.toBeInstanceOf(InviteNotFoundError);
     await expect(
       service.acceptInvite({
         userId: "outro",
         userEmail: "convidado@example.com",
         token: invite.inviteToken,
-      })
+      }),
     ).rejects.toThrow("Convite já utilizado");
   });
 
@@ -193,7 +243,7 @@ describe("acceptInvite", () => {
         userId: "intruso",
         userEmail: "intruso@example.com",
         token: invite.inviteToken,
-      })
+      }),
     ).rejects.toBeInstanceOf(InviteForbiddenError);
   });
 });
@@ -207,12 +257,12 @@ describe("revokeInvite", () => {
       email: "a@b.com",
     });
 
-    await expect(service.revokeInvite("intruso", invite.id)).rejects.toBeInstanceOf(
-      InviteNotFoundError
-    );
-    await expect(service.revokeInvite("dono", "nao-existe")).rejects.toBeInstanceOf(
-      InviteNotFoundError
-    );
+    await expect(
+      service.revokeInvite("intruso", invite.id),
+    ).rejects.toBeInstanceOf(InviteNotFoundError);
+    await expect(
+      service.revokeInvite("dono", "nao-existe"),
+    ).rejects.toBeInstanceOf(InviteNotFoundError);
 
     await service.revokeInvite("dono", invite.id);
     expect(fake.invites).toHaveLength(0);
@@ -239,12 +289,17 @@ describe("listInvites", () => {
     });
 
     const doDono = await service.listInvites("dono");
-    expect(doDono.sent.map((i) => i.id).sort()).toEqual([pendente.id, aceito.id].sort());
+    expect(doDono.sent.map((i) => i.id).sort()).toEqual(
+      [pendente.id, aceito.id].sort(),
+    );
     expect(doDono.received).toHaveLength(0);
 
     const doMembro = await service.listInvites("membro");
     expect(doMembro.sent).toHaveLength(0);
     expect(doMembro.received).toHaveLength(1);
-    expect(doMembro.received[0].owner).toMatchObject({ id: "dono", email: "dono@example.com" });
+    expect(doMembro.received[0].owner).toMatchObject({
+      id: "dono",
+      email: "dono@example.com",
+    });
   });
 });

@@ -1,5 +1,15 @@
-export type { Transaction, TransactionTag, TransactionWithTags } from "./types.js";
-export type { TransactionRepo, TransactionListQuery, NewTransaction, TransactionPatch, DateRange } from "./ports.js";
+export type {
+  Transaction,
+  TransactionTag,
+  TransactionWithTags,
+} from "./types.js";
+export type {
+  TransactionRepo,
+  TransactionListQuery,
+  NewTransaction,
+  TransactionPatch,
+  DateRange,
+} from "./ports.js";
 export {
   makeTransactionsService,
   MAX_LIST_RESULTS,

@@ -1,5 +1,10 @@
 import type { MembersRepo } from "./ports.js";
-import type { AccountMember, Plan, ReceivedInvite, SentInvite } from "./types.js";
+import type {
+  AccountMember,
+  Plan,
+  ReceivedInvite,
+  SentInvite,
+} from "./types.js";
 import { ProRequiredError } from "./service.js";
 
 export class InviteValidationError extends Error {}
@@ -9,7 +14,7 @@ export class InviteForbiddenError extends Error {}
 
 export function makeMembersService(
   repo: MembersRepo,
-  deps: { getUserPlan(userId: string): Promise<Plan> }
+  deps: { getUserPlan(userId: string): Promise<Plan> },
 ) {
   /** Convidar exige plano pro (gate do compartilhamento de conta). */
   async function createInvite(input: {
@@ -52,7 +57,10 @@ export function makeMembersService(
     userId: string;
     userEmail: string | null | undefined;
     token: string;
-  }): Promise<{ invite: AccountMember; owner: { name: string; email: string } }> {
+  }): Promise<{
+    invite: AccountMember;
+    owner: { name: string; email: string };
+  }> {
     const { userId, userEmail, token } = input;
 
     if (!token || typeof token !== "string") {
@@ -65,7 +73,9 @@ export function makeMembersService(
       throw new InviteValidationError("Convite já utilizado");
     }
     if (invite.inviteEmail !== userEmail?.toLowerCase()) {
-      throw new InviteForbiddenError("Este convite foi enviado para outro email");
+      throw new InviteForbiddenError(
+        "Este convite foi enviado para outro email",
+      );
     }
 
     const updated = await repo.activate(invite.id, userId);
@@ -77,7 +87,7 @@ export function makeMembersService(
    * recebidos (como convidado, só vínculos ativos).
    */
   async function listInvites(
-    userId: string
+    userId: string,
   ): Promise<{ sent: SentInvite[]; received: ReceivedInvite[] }> {
     const [sent, received] = await Promise.all([
       repo.listSent(userId),

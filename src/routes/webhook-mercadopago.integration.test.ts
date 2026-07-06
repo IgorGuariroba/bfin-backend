@@ -33,7 +33,7 @@ function sign(dataId: string, ts: string, secret = SECRET) {
 
 function inject(
   app: ReturnType<typeof buildApp>,
-  opts: { ts?: string; v1?: string; type?: string; dataId?: string } = {}
+  opts: { ts?: string; v1?: string; type?: string; dataId?: string } = {},
 ) {
   const dataId = opts.dataId ?? DATA_ID;
   const ts = opts.ts ?? String(Math.floor(Date.now() / 1000));
@@ -46,11 +46,16 @@ function inject(
       "x-signature": `ts=${ts},v1=${v1}`,
       "x-request-id": REQUEST_ID,
     },
-    payload: { type: opts.type ?? "subscription_preapproval", data: { id: dataId } },
+    payload: {
+      type: opts.type ?? "subscription_preapproval",
+      data: { id: dataId },
+    },
   });
 }
 
-async function seedUser(opts: Partial<{ plan: string; mpSubscriptionId: string }> = {}) {
+async function seedUser(
+  opts: Partial<{ plan: string; mpSubscriptionId: string }> = {},
+) {
   const [user] = await db
     .insert(userTable)
     .values({
@@ -104,7 +109,10 @@ describe("POST /api/webhook/mercadopago — verificação de assinatura", () => 
     const res = await app.inject({
       method: "POST",
       url: "/api/webhook/mercadopago",
-      headers: { "content-type": "application/json", "x-signature": `ts=${ts},v1=xx` },
+      headers: {
+        "content-type": "application/json",
+        "x-signature": `ts=${ts},v1=xx`,
+      },
       payload: { type: "payment", data: { id: "pay-1" } },
     });
 
@@ -128,7 +136,10 @@ describe("POST /api/webhook/mercadopago — verificação de assinatura", () => 
 
 describe("POST /api/webhook/mercadopago — falha no processamento", () => {
   it("responde 500 quando a consulta ao MP falha, sem vazar o status upstream", async () => {
-    mockPreApprovalGet.mockRejectedValue({ message: "Unauthorized access to resource.", status: 401 });
+    mockPreApprovalGet.mockRejectedValue({
+      message: "Unauthorized access to resource.",
+      status: 401,
+    });
 
     const res = await inject(buildApp());
 
@@ -150,7 +161,10 @@ describe("POST /api/webhook/mercadopago — evento legítimo", () => {
 
     expect(res.statusCode).toBe(200);
     expect(res.json()).toEqual({ ok: true });
-    const [inDb] = await db.select().from(userTable).where(eq(userTable.id, user.id));
+    const [inDb] = await db
+      .select()
+      .from(userTable)
+      .where(eq(userTable.id, user.id));
     expect(inDb.plan).toBe("pro");
     expect(inDb.mpSubscriptionId).toBe(DATA_ID);
   });

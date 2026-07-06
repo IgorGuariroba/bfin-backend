@@ -20,10 +20,6 @@ export function hashApiKey(plain: string): string {
   return scryptSync(plain, getPepper(), 64).toString("base64url");
 }
 
-export function verifyApiKey(plain: string, hashedKey: string): boolean {
-  return hashApiKey(plain) === hashedKey;
-}
-
 export function generateApiKey(): {
   plain: string;
   prefix: string;

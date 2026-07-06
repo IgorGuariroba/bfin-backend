@@ -39,7 +39,12 @@ function makeFakeRepo() {
         ...data,
       };
       keys.push(key);
-      return { id: key.id, prefix: key.prefix, name: key.name, createdAt: key.createdAt };
+      return {
+        id: key.id,
+        prefix: key.prefix,
+        name: key.name,
+        createdAt: key.createdAt,
+      };
     },
     findOwned: async (userId, id) => {
       const key = keys.find((k) => k.id === id && k.userId === userId);
@@ -51,7 +56,9 @@ function makeFakeRepo() {
     },
     findByHashedKey: async (hashedKey) => {
       const key = keys.find((k) => k.hashedKey === hashedKey);
-      return key ? { id: key.id, userId: key.userId, revokedAt: key.revokedAt } : null;
+      return key
+        ? { id: key.id, userId: key.userId, revokedAt: key.revokedAt }
+        : null;
     },
     bumpLastUsed: async (id, at) => {
       const key = keys.find((k) => k.id === id);
@@ -67,12 +74,18 @@ let plans: Map<string, Plan>;
 let logs: { level: string; data: Record<string, unknown> }[];
 let service: ReturnType<typeof makeApiKeysService>;
 
-function buildService(over: Partial<Parameters<typeof makeApiKeysService>[1]> = {}) {
+function buildService(
+  over: Partial<Parameters<typeof makeApiKeysService>[1]> = {},
+) {
   return makeApiKeysService(fake.repo, {
     getUserPlan: async (userId) => plans.get(userId) ?? "free",
     generateKey: () => {
       const rand = crypto.randomUUID();
-      return { plain: `sk-bfin-${rand}`, prefix: `sk-bfin-${rand.slice(0, 4)}`, hashedKey: `hash:sk-bfin-${rand}` };
+      return {
+        plain: `sk-bfin-${rand}`,
+        prefix: `sk-bfin-${rand.slice(0, 4)}`,
+        hashedKey: `hash:sk-bfin-${rand}`,
+      };
     },
     hashKey: (plain) => `hash:${plain}`,
     logger: {
@@ -99,12 +112,16 @@ describe("issueApiKey", () => {
 
     expect(segunda.plain).toMatch(/^sk-bfin-/);
     expect(segunda.name).toBe("Assistente");
-    expect(fake.keys.find((k) => k.id === primeira.id)?.revokedAt).not.toBeNull();
+    expect(
+      fake.keys.find((k) => k.id === primeira.id)?.revokedAt,
+    ).not.toBeNull();
     expect(fake.keys.find((k) => k.id === segunda.id)?.revokedAt).toBeNull();
   });
 
   it("free não emite (ProRequiredError)", async () => {
-    await expect(service.issueApiKey("free")).rejects.toBeInstanceOf(ProRequiredError);
+    await expect(service.issueApiKey("free")).rejects.toBeInstanceOf(
+      ProRequiredError,
+    );
     expect(fake.keys).toHaveLength(0);
   });
 });
@@ -141,11 +158,11 @@ describe("revokeApiKey", () => {
     const key = await service.issueApiKey("u1");
 
     await expect(service.revokeApiKey("u2", key.id)).rejects.toBeInstanceOf(
-      ApiKeyNotFoundError
+      ApiKeyNotFoundError,
     );
-    await expect(service.revokeApiKey("u1", "nao-existe")).rejects.toBeInstanceOf(
-      ApiKeyNotFoundError
-    );
+    await expect(
+      service.revokeApiKey("u1", "nao-existe"),
+    ).rejects.toBeInstanceOf(ApiKeyNotFoundError);
   });
 });
 
@@ -191,7 +208,12 @@ describe("recordAgentWrite", () => {
 
     expect(logs).toContainEqual({
       level: "info",
-      data: { apiKeyId: key.id, userId: "u1", action: "create", entityId: "tx-1" },
+      data: {
+        apiKeyId: key.id,
+        userId: "u1",
+        action: "create",
+        entityId: "tx-1",
+      },
     });
     expect(fake.keys.find((k) => k.id === key.id)?.lastUsedAt).not.toBeNull();
   });
@@ -208,7 +230,7 @@ describe("recordAgentWrite", () => {
         userId: "u1",
         action: "delete",
         entityId: "tx-9",
-      })
+      }),
     ).resolves.toBeUndefined();
 
     expect(logs.some((l) => l.level === "info")).toBe(true);

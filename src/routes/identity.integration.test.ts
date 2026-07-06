@@ -36,7 +36,10 @@ describe("rotas de identity", () => {
 
   it("rejeita sem o header do segredo compartilhado", async () => {
     const app = buildApp();
-    const response = await app.inject({ method: "GET", url: "/identity/plan?userId=x" });
+    const response = await app.inject({
+      method: "GET",
+      url: "/identity/plan?userId=x",
+    });
     expect(response.statusCode).toBe(401);
   });
 
@@ -118,7 +121,10 @@ describe("rotas de identity", () => {
       });
 
       expect(response.statusCode).toBe(204);
-      const [row] = await db.select().from(userTable).where(eq(userTable.id, user.id));
+      const [row] = await db
+        .select()
+        .from(userTable)
+        .where(eq(userTable.id, user.id));
       expect(row.autoBaixaDiario).toBe(true);
     });
 

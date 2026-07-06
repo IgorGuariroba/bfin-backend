@@ -6,7 +6,10 @@ import type {
   SubscriptionInfo,
 } from "./types.js";
 
-const CYCLE_LABELS: Record<BillingCycle, string> = { monthly: "Mensal", annual: "Anual" };
+const CYCLE_LABELS: Record<BillingCycle, string> = {
+  monthly: "Mensal",
+  annual: "Anual",
+};
 
 export class BillingValidationError extends Error {}
 
@@ -65,7 +68,7 @@ const DEFAULT_CONVERSION_AMOUNTS: Record<BillingCycle, number> = {
 export function makeBillingService(
   repo: BillingRepo,
   gateway: PaymentGateway,
-  deps: BillingDeps
+  deps: BillingDeps,
 ) {
   /** Preços correntes do pro (fonte única: PlanConfig — CONTEXT.md). */
   async function getPlanPrices(): Promise<{ monthly: number; annual: number }> {
@@ -132,7 +135,10 @@ export function makeBillingService(
       try {
         await repo.captureClickAttribution(userId, click);
       } catch (err) {
-        deps.logger.warn({ userId, err }, "falha ao capturar click id no checkout");
+        deps.logger.warn(
+          { userId, err },
+          "falha ao capturar click id no checkout",
+        );
       }
     }
 
@@ -144,7 +150,8 @@ export function makeBillingService(
     }
 
     const config = await repo.getPlanConfig();
-    const amount = cycle === "annual" ? config.annualAmount : config.monthlyAmount;
+    const amount =
+      cycle === "annual" ? config.annualAmount : config.monthlyAmount;
 
     return gateway.createSubscription({
       reason: `bfin Pro — ${CYCLE_LABELS[cycle]}`,
@@ -167,7 +174,7 @@ export function makeBillingService(
     userId: string,
     user: ClickSource,
     cycle: string | undefined,
-    txAmount: number | undefined
+    txAmount: number | undefined,
   ): Promise<void> {
     const conversions = deps.conversions;
     if (!conversions?.isConfigured()) return;
@@ -190,7 +197,10 @@ export function makeBillingService(
       if (result.ok) {
         await repo.markConversionReported(userId);
       } else if (result.reason === "error") {
-        deps.logger.error({ userId, error: result.error }, "conversion upload failed");
+        deps.logger.error(
+          { userId, error: result.error },
+          "conversion upload failed",
+        );
       }
     } catch (err) {
       deps.logger.warn({ userId, err }, "conversion report failed");
@@ -203,7 +213,9 @@ export function makeBillingService(
    * ciclo (upgrade/renovação); `cancelled`/`paused` desvincula a assinatura —
    * o downgrade em si acontece quando planExpiresAt vencer (getUserPlan).
    */
-  async function processSubscriptionEvent(subscriptionId: string): Promise<void> {
+  async function processSubscriptionEvent(
+    subscriptionId: string,
+  ): Promise<void> {
     const sub = await gateway.getSubscription(subscriptionId);
 
     const [userId, cycle] = (sub.externalReference ?? "").split(":");
@@ -211,8 +223,14 @@ export function makeBillingService(
 
     if (sub.status === "authorized") {
       const billingDays = cycle === "annual" ? 365 : 30;
-      const planExpiresAt = new Date(Date.now() + billingDays * 24 * 60 * 60 * 1000);
-      const user = await repo.activatePro(userId, planExpiresAt, sub.id ?? null);
+      const planExpiresAt = new Date(
+        Date.now() + billingDays * 24 * 60 * 60 * 1000,
+      );
+      const user = await repo.activatePro(
+        userId,
+        planExpiresAt,
+        sub.id ?? null,
+      );
 
       await maybeReportConversion(userId, user, cycle, sub.transactionAmount);
 

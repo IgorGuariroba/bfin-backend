@@ -13,7 +13,10 @@ import type {
 export interface BillingRepo {
   /** Config corrente; cria a linha default (14.9/119.9) se ainda não existir. */
   getPlanConfig(): Promise<PlanConfigRecord>;
-  updatePlanConfig(monthlyAmount: number, annualAmount: number): Promise<PlanConfigRecord>;
+  updatePlanConfig(
+    monthlyAmount: number,
+    annualAmount: number,
+  ): Promise<PlanConfigRecord>;
   /** null quando o usuário não existe. */
   findSubscription(userId: string): Promise<SubscriptionInfo | null>;
   /** Desvincula a assinatura (mpSubscriptionId = null) sem mexer no plano. */
@@ -22,10 +25,13 @@ export interface BillingRepo {
   activatePro(
     userId: string,
     planExpiresAt: Date,
-    mpSubscriptionId: string | null
+    mpSubscriptionId: string | null,
   ): Promise<ActivatedUser>;
   /** Grava os click ids só se o User ainda não tiver nenhum (não sobrescreve atribuição prévia). */
-  captureClickAttribution(userId: string, click: ClickAttribution): Promise<void>;
+  captureClickAttribution(
+    userId: string,
+    click: ClickAttribution,
+  ): Promise<void>;
   conversionAlreadyReported(userId: string): Promise<boolean>;
   markConversionReported(userId: string): Promise<void>;
 }

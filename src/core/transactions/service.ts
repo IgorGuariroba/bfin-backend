@@ -26,11 +26,17 @@ const VALID_WRITE_TYPES = VALID_TYPES.filter((t) => t !== "diario");
  */
 function parseTransactionDay(s: string): Date {
   if (typeof s !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(s)) {
-    throw new TransactionValidationError("Invalid date format. Expected YYYY-MM-DD");
+    throw new TransactionValidationError(
+      "Invalid date format. Expected YYYY-MM-DD",
+    );
   }
   const [y, m, d] = s.split("-").map(Number);
   const date = new Date(y, m - 1, d, 12, 0, 0);
-  if (date.getFullYear() !== y || date.getMonth() !== m - 1 || date.getDate() !== d) {
+  if (
+    date.getFullYear() !== y ||
+    date.getMonth() !== m - 1 ||
+    date.getDate() !== d
+  ) {
     throw new TransactionValidationError("Invalid date");
   }
   return date;
@@ -43,13 +49,19 @@ function parseTransactionDay(s: string): Date {
  */
 function parseFilterDay(s: string, endOfDay = false): Date {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) {
-    throw new TransactionValidationError("Invalid date format. Expected YYYY-MM-DD");
+    throw new TransactionValidationError(
+      "Invalid date format. Expected YYYY-MM-DD",
+    );
   }
   const [y, m, d] = s.split("-").map(Number);
   const date = endOfDay
     ? new Date(y, m - 1, d, 23, 59, 59, 999)
     : new Date(y, m - 1, d, 0, 0, 0);
-  if (date.getFullYear() !== y || date.getMonth() !== m - 1 || date.getDate() !== d) {
+  if (
+    date.getFullYear() !== y ||
+    date.getMonth() !== m - 1 ||
+    date.getDate() !== d
+  ) {
     throw new TransactionValidationError("Invalid date");
   }
   return date;
@@ -108,11 +120,12 @@ function buildRepeatDates(
   base: Date,
   repeat: string,
   repeatEnd: string,
-  count: number
+  count: number,
 ): Date[] {
   const dates: Date[] = [];
   const maxOccurrences = repeatEnd === "count" ? count - 1 : 12;
-  const advance = repeat === "daily" ? addDays : repeat === "weekly" ? addWeeks : addMonths;
+  const advance =
+    repeat === "daily" ? addDays : repeat === "weekly" ? addWeeks : addMonths;
 
   for (let i = 1; i <= maxOccurrences; i++) {
     dates.push(advance(base, i));
@@ -122,7 +135,7 @@ function buildRepeatDates(
 
 export function makeTransactionsService(
   repo: TransactionRepo,
-  deps: { logger?: CoreLogger } = {}
+  deps: { logger?: CoreLogger } = {},
 ) {
   const logger = deps.logger ?? { warn: () => {} };
 
@@ -133,7 +146,7 @@ export function makeTransactionsService(
    */
   async function listTransactions(
     userId: string,
-    filter: ListTransactionsFilter = {}
+    filter: ListTransactionsFilter = {},
   ): Promise<TransactionWithTags[]> {
     const { month, type, tagId, from, to } = filter;
     let date: DateRange | undefined;
@@ -142,7 +155,9 @@ export function makeTransactionsService(
       // Valida antes de instanciar Date: um month malformado viraria Invalid Date
       // e estouraria como 500 no adapter.
       if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) {
-        throw new TransactionValidationError("Invalid month format. Expected YYYY-MM");
+        throw new TransactionValidationError(
+          "Invalid month format. Expected YYYY-MM",
+        );
       }
       const [year, mon] = month.split("-").map(Number);
       date = { gte: new Date(year, mon - 1, 1), lt: new Date(year, mon, 1) };
@@ -154,12 +169,15 @@ export function makeTransactionsService(
     }
 
     // +1 para distinguir "exatamente o teto" de "havia mais registros".
-    const rows = await repo.list({ userId, type, tagId, date }, MAX_LIST_RESULTS + 1);
+    const rows = await repo.list(
+      { userId, type, tagId, date },
+      MAX_LIST_RESULTS + 1,
+    );
 
     if (rows.length > MAX_LIST_RESULTS) {
       logger.warn(
         { userId, filter, max: MAX_LIST_RESULTS },
-        "listTransactions truncado no teto de resultados"
+        "listTransactions truncado no teto de resultados",
       );
       return rows.slice(0, MAX_LIST_RESULTS);
     }
@@ -168,7 +186,7 @@ export function makeTransactionsService(
   }
 
   async function createTransaction(
-    input: CreateTransactionInput
+    input: CreateTransactionInput,
   ): Promise<CreateTransactionResult> {
     const { userId, type, description, amount, source = "manual" } = input;
 
@@ -193,7 +211,9 @@ export function makeTransactionsService(
     // Anti-IDOR (styleguide §39): só conecta tags que pertencem ao próprio userId.
     // Sem isso, um caller poderia anexar a Tag de outro usuário (input do body é cru).
     // Deduplica antes de validar: IDs repetidos fariam o count divergir do length.
-    const tagIds = input.tagIds?.length ? [...new Set(input.tagIds)] : undefined;
+    const tagIds = input.tagIds?.length
+      ? [...new Set(input.tagIds)]
+      : undefined;
     if (tagIds?.length) {
       const owned = await repo.countOwnedTags(userId, tagIds);
       if (owned !== tagIds.length) {
@@ -216,7 +236,16 @@ export function makeTransactionsService(
     const repeat = input.repeat ?? "none";
     const repeatEnd = input.repeatEnd ?? "forever";
     const repeatCount = input.repeatCount ?? 0;
-    const common = { userId, type, description, amount, source, repeat, repeatEnd, repeatCount };
+    const common = {
+      userId,
+      type,
+      description,
+      amount,
+      source,
+      repeat,
+      repeatEnd,
+      repeatCount,
+    };
 
     const base = await repo.create({ ...common, date: baseDate }, tagIds);
 
@@ -224,7 +253,7 @@ export function makeTransactionsService(
       const extras = buildRepeatDates(baseDate, repeat, repeatEnd, repeatCount);
       await repo.createMany(
         extras.map((d) => ({ ...common, date: d })),
-        tagIds
+        tagIds,
       );
     }
 
@@ -242,7 +271,7 @@ export function makeTransactionsService(
    * (log + bump de lastUsedAt) é responsabilidade do chamador MCP (recordAgentWrite).
    */
   async function updateTransaction(
-    input: UpdateTransactionInput
+    input: UpdateTransactionInput,
   ): Promise<TransactionWithTags> {
     const { userId, id } = input;
     if (!userId || !id) {
@@ -311,7 +340,12 @@ export function makeTransactionsService(
     }
   }
 
-  return { listTransactions, createTransaction, updateTransaction, deleteTransaction };
+  return {
+    listTransactions,
+    createTransaction,
+    updateTransaction,
+    deleteTransaction,
+  };
 }
 
 export type TransactionsService = ReturnType<typeof makeTransactionsService>;

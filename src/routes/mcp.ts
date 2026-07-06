@@ -10,14 +10,19 @@ import {
   tagsService,
   transactionsService,
 } from "../adapters/index.js";
-import { TransactionNotFoundError, TransactionValidationError } from "../core/transactions/index.js";
+import {
+  TransactionNotFoundError,
+  TransactionValidationError,
+} from "../core/transactions/index.js";
 import { suggestTag, suggestType } from "../core/transactions/suggest.js";
 import { TagValidationError } from "../core/tags/index.js";
 import { InsightsValidationError } from "../core/insights/index.js";
 import { checkRateLimit, classifyRpc, RATE_LIMITS } from "../lib/rate-limit.js";
 
 const fmt = (val: number) =>
-  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(val);
+  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
+    val,
+  );
 
 /** Empacota um resultado de leitura como conteúdo JSON para o agente consumir. */
 function jsonContent(data: unknown) {
@@ -47,7 +52,10 @@ async function readContent(produce: () => Promise<unknown>) {
       error instanceof TagValidationError ||
       error instanceof InsightsValidationError
     ) {
-      return { isError: true, content: [{ type: "text" as const, text: error.message }] };
+      return {
+        isError: true,
+        content: [{ type: "text" as const, text: error.message }],
+      };
     }
     throw error;
   }
@@ -82,21 +90,25 @@ function buildServer(userId: string, apiKeyId: string): McpServer {
           .optional()
           .describe(
             "Tipo da movimentação. Se omitido, é inferido da descrição (gasto → 'saida', receita → 'entrada'). " +
-              "Gasto real (mercado, uber, etc.) é 'saida'. 'diario' não é permitido — é reservado à projeção da Previsão."
+              "Gasto real (mercado, uber, etc.) é 'saida'. 'diario' não é permitido — é reservado à projeção da Previsão.",
           ),
         force: z
           .boolean()
           .optional()
-          .describe("Força a criação mesmo quando houver uma transação duplicata suspeita."),
+          .describe(
+            "Força a criação mesmo quando houver uma transação duplicata suspeita.",
+          ),
         repeat: z
           .enum(["daily", "weekly", "monthly"])
           .optional()
-          .describe("Recorrência: 'daily', 'weekly' ou 'monthly'. Omitido = não repete."),
+          .describe(
+            "Recorrência: 'daily', 'weekly' ou 'monthly'. Omitido = não repete.",
+          ),
         repeatEnd: z
           .enum(["forever", "count"])
           .optional()
           .describe(
-            "Fim da recorrência: 'forever' (12 ocorrências) ou 'count' (use repeatCount). Só vale com repeat."
+            "Fim da recorrência: 'forever' (12 ocorrências) ou 'count' (use repeatCount). Só vale com repeat.",
           ),
         repeatCount: z
           .number()
@@ -110,17 +122,33 @@ function buildServer(userId: string, apiKeyId: string): McpServer {
       // enum) de propósito: a candidata duplicata pode ser de qualquer tipo, e a
       // validação estrita do outputSchema não deve estourar por um tipo legítimo.
       outputSchema: {
-        id: z.string().describe("Id da movimentação criada (ou da duplicata existente)."),
+        id: z
+          .string()
+          .describe("Id da movimentação criada (ou da duplicata existente)."),
         duplicated: z
           .boolean()
-          .describe("true = nada foi criado; id/campos referem-se à duplicata existente."),
+          .describe(
+            "true = nada foi criado; id/campos referem-se à duplicata existente.",
+          ),
         type: z.string().describe("Tipo resolvido da movimentação."),
         amount: z.number().describe("Valor persistido."),
         date: z.string().describe("Data no formato YYYY-MM-DD."),
-        tagId: z.string().nullable().describe("Tag aplicada (auto-sugerida) ou null."),
+        tagId: z
+          .string()
+          .nullable()
+          .describe("Tag aplicada (auto-sugerida) ou null."),
       },
     },
-    async ({ description, amount, date, type, force, repeat, repeatEnd, repeatCount }) => {
+    async ({
+      description,
+      amount,
+      date,
+      type,
+      force,
+      repeat,
+      repeatEnd,
+      repeatCount,
+    }) => {
       try {
         // Resolve type e Tag sugerida a partir da descrição (ADR-0004) — em
         // memória, já que Tags e Transactions vivem no mesmo processo.
@@ -160,7 +188,12 @@ function buildServer(userId: string, apiKeyId: string): McpServer {
           };
         }
         const tx = result.transaction;
-        await apiKeysService.recordAgentWrite({ apiKeyId, userId, action: "create", entityId: tx.id });
+        await apiKeysService.recordAgentWrite({
+          apiKeyId,
+          userId,
+          action: "create",
+          entityId: tx.id,
+        });
         const tagName = tx.tags[0]?.name;
         const recurrenceNote =
           repeat && repeatEnd === "count" && repeatCount
@@ -194,7 +227,7 @@ function buildServer(userId: string, apiKeyId: string): McpServer {
         }
         throw error;
       }
-    }
+    },
   );
 
   server.registerTool(
@@ -204,7 +237,8 @@ function buildServer(userId: string, apiKeyId: string): McpServer {
         "Resumo do mês em uma chamada: entradas, custo de vida, quanto sobrou (sobrouNoMes) e saldo. Use para responder 'quanto sobrou este mês'.",
       inputSchema: { month: monthSchema },
     },
-    async ({ month }) => readContent(() => insightsService.getMonthSummary(userId, month))
+    async ({ month }) =>
+      readContent(() => insightsService.getMonthSummary(userId, month)),
   );
 
   server.registerTool(
@@ -214,7 +248,8 @@ function buildServer(userId: string, apiKeyId: string): McpServer {
         "Totais detalhados do mês por tipo (entrada/saida/cartao/diario/economia), custo de vida, performance, saldo e comparação com o mês anterior.",
       inputSchema: { month: monthSchema },
     },
-    async ({ month }) => readContent(() => insightsService.getTotais(userId, month))
+    async ({ month }) =>
+      readContent(() => insightsService.getTotais(userId, month)),
   );
 
   server.registerTool(
@@ -224,7 +259,8 @@ function buildServer(userId: string, apiKeyId: string): McpServer {
         "Evolução do saldo acumulado dia a dia no mês (para mostrar como o saldo varia ao longo do mês).",
       inputSchema: { month: monthSchema },
     },
-    async ({ month }) => readContent(() => insightsService.getSaldos(userId, month))
+    async ({ month }) =>
+      readContent(() => insightsService.getSaldos(userId, month)),
   );
 
   server.registerTool(
@@ -234,7 +270,8 @@ function buildServer(userId: string, apiKeyId: string): McpServer {
         "Insights financeiros proativos do mês (saldo negativo, gasto diário acima da Previsão, economia baixa, custo de vida em alta). Lista vazia = nada a sinalizar.",
       inputSchema: { month: monthSchema },
     },
-    async ({ month }) => readContent(() => insightsService.getSugestoes(userId, month))
+    async ({ month }) =>
+      readContent(() => insightsService.getSugestoes(userId, month)),
   );
 
   server.registerTool(
@@ -248,13 +285,18 @@ function buildServer(userId: string, apiKeyId: string): McpServer {
           .enum(["entrada", "saida", "diario", "cartao", "economia"])
           .optional()
           .describe(
-            "Filtra por tipo da movimentação. 'diario' é a projeção de gasto variável da Previsão (não gasto real)."
+            "Filtra por tipo da movimentação. 'diario' é a projeção de gasto variável da Previsão (não gasto real).",
           ),
-        tagId: z.string().optional().describe("Filtra pelas movimentações com esta Tag."),
+        tagId: z
+          .string()
+          .optional()
+          .describe("Filtra pelas movimentações com esta Tag."),
       },
     },
     async ({ month, type, tagId }) =>
-      readContent(() => transactionsService.listTransactions(userId, { month, type, tagId }))
+      readContent(() =>
+        transactionsService.listTransactions(userId, { month, type, tagId }),
+      ),
   );
 
   server.registerTool(
@@ -266,13 +308,20 @@ function buildServer(userId: string, apiKeyId: string): McpServer {
       inputSchema: {
         id: z.string().describe("Identificador da movimentação a editar."),
         description: z.string().optional().describe("Nova descrição."),
-        amount: z.number().positive().optional().describe("Novo valor, sempre positivo."),
-        date: z.string().optional().describe("Nova data no formato YYYY-MM-DD."),
+        amount: z
+          .number()
+          .positive()
+          .optional()
+          .describe("Novo valor, sempre positivo."),
+        date: z
+          .string()
+          .optional()
+          .describe("Nova data no formato YYYY-MM-DD."),
         type: z
           .enum(["entrada", "saida", "cartao", "economia"])
           .optional()
           .describe(
-            "Novo tipo. 'diario' não é permitido — é reservado à projeção da Previsão."
+            "Novo tipo. 'diario' não é permitido — é reservado à projeção da Previsão.",
           ),
         tagIds: z
           .array(z.string())
@@ -299,7 +348,12 @@ function buildServer(userId: string, apiKeyId: string): McpServer {
           type,
           tagIds,
         });
-        await apiKeysService.recordAgentWrite({ apiKeyId, userId, action: "update", entityId: tx.id });
+        await apiKeysService.recordAgentWrite({
+          apiKeyId,
+          userId,
+          action: "update",
+          entityId: tx.id,
+        });
         return {
           content: [
             {
@@ -316,12 +370,18 @@ function buildServer(userId: string, apiKeyId: string): McpServer {
           },
         };
       } catch (error) {
-        if (error instanceof TransactionValidationError || error instanceof TransactionNotFoundError) {
-          return { isError: true, content: [{ type: "text" as const, text: error.message }] };
+        if (
+          error instanceof TransactionValidationError ||
+          error instanceof TransactionNotFoundError
+        ) {
+          return {
+            isError: true,
+            content: [{ type: "text" as const, text: error.message }],
+          };
         }
         throw error;
       }
-    }
+    },
   );
 
   server.registerTool(
@@ -337,17 +397,30 @@ function buildServer(userId: string, apiKeyId: string): McpServer {
     async ({ id }) => {
       try {
         await transactionsService.deleteTransaction(userId, id);
-        await apiKeysService.recordAgentWrite({ apiKeyId, userId, action: "delete", entityId: id });
+        await apiKeysService.recordAgentWrite({
+          apiKeyId,
+          userId,
+          action: "delete",
+          entityId: id,
+        });
         return {
-          content: [{ type: "text" as const, text: `Movimentação ${id} removida.` }],
+          content: [
+            { type: "text" as const, text: `Movimentação ${id} removida.` },
+          ],
         };
       } catch (error) {
-        if (error instanceof TransactionValidationError || error instanceof TransactionNotFoundError) {
-          return { isError: true, content: [{ type: "text" as const, text: error.message }] };
+        if (
+          error instanceof TransactionValidationError ||
+          error instanceof TransactionNotFoundError
+        ) {
+          return {
+            isError: true,
+            content: [{ type: "text" as const, text: error.message }],
+          };
         }
         throw error;
       }
-    }
+    },
   );
 
   server.registerTool(
@@ -357,11 +430,15 @@ function buildServer(userId: string, apiKeyId: string): McpServer {
         "Cria uma Tag (categoria) na conta do usuário, para classificar movimentações. " +
         "O nome é único por usuário.",
       inputSchema: {
-        name: z.string().describe("Nome da Tag (ex.: 'Viagem'). Único por usuário."),
+        name: z
+          .string()
+          .describe("Nome da Tag (ex.: 'Viagem'). Único por usuário."),
         color: z
           .string()
           .optional()
-          .describe("Cor em hex (ex.: '#4a90e2'). Se omitida, usa uma cor neutra."),
+          .describe(
+            "Cor em hex (ex.: '#4a90e2'). Se omitida, usa uma cor neutra.",
+          ),
       },
       // Devolve o id da Tag para o agente encadear (ex.: aplicá-la num
       // update_transaction) sem re-listar (ADR-0006).
@@ -374,18 +451,28 @@ function buildServer(userId: string, apiKeyId: string): McpServer {
     async ({ name, color }) => {
       try {
         const tag = await tagsService.createTag({ userId, name, color });
-        await apiKeysService.recordAgentWrite({ apiKeyId, userId, action: "create", entityId: tag.id });
+        await apiKeysService.recordAgentWrite({
+          apiKeyId,
+          userId,
+          action: "create",
+          entityId: tag.id,
+        });
         return {
-          content: [{ type: "text" as const, text: `Tag criada: ${tag.name}.` }],
+          content: [
+            { type: "text" as const, text: `Tag criada: ${tag.name}.` },
+          ],
           structuredContent: { id: tag.id, name: tag.name, color: tag.color },
         };
       } catch (error) {
         if (error instanceof TagValidationError) {
-          return { isError: true, content: [{ type: "text" as const, text: error.message }] };
+          return {
+            isError: true,
+            content: [{ type: "text" as const, text: error.message }],
+          };
         }
         throw error;
       }
-    }
+    },
   );
 
   server.registerTool(
@@ -395,7 +482,7 @@ function buildServer(userId: string, apiKeyId: string): McpServer {
         "Lista as Tags (categorias) do usuário, para escolher um filtro ou descobrir a taxonomia disponível.",
       inputSchema: {},
     },
-    async () => readContent(() => tagsService.listTags(userId))
+    async () => readContent(() => tagsService.listTags(userId)),
   );
 
   server.registerTool(
@@ -406,7 +493,7 @@ function buildServer(userId: string, apiKeyId: string): McpServer {
         "Não aplica nem altera nada.",
       inputSchema: {},
     },
-    async () => readContent(() => previsaoService.listPrevisoes(userId))
+    async () => readContent(() => previsaoService.listPrevisoes(userId)),
   );
 
   return server;
@@ -417,9 +504,13 @@ export function mcpRoutes(app: FastifyInstance) {
   // pra classificar a chamada (classifyRpc) e reconstruir o Request Web
   // Standard que o transport do MCP espera — escopo desta rota só (contexto
   // encapsulado do Fastify), não afeta content-type parsing das demais rotas.
-  app.addContentTypeParser("application/json", { parseAs: "string" }, (_request, body, done) => {
-    done(null, body);
-  });
+  app.addContentTypeParser(
+    "application/json",
+    { parseAs: "string" },
+    (_request, body, done) => {
+      done(null, body);
+    },
+  );
 
   // Path idêntico ao público (bfin.app/api/mcp): o Traefik/Dokploy roteia por
   // path pra esse container sem precisar de strip-path — evita ambiguidade
@@ -441,9 +532,15 @@ export function mcpRoutes(app: FastifyInstance) {
     // Rate limit por ApiKey, separado por leitura/escrita (ADR-0004).
     const rawBody = (request.body as string | undefined) ?? "";
     const kind = classifyRpc(rawBody);
-    const limit = checkRateLimit(`${principal.apiKeyId}:${kind}`, RATE_LIMITS[kind]);
+    const limit = checkRateLimit(
+      `${principal.apiKeyId}:${kind}`,
+      RATE_LIMITS[kind],
+    );
     if (!limit.allowed) {
-      console.warn("apikey: rate limited", { apiKeyId: principal.apiKeyId, kind });
+      console.warn("apikey: rate limited", {
+        apiKeyId: principal.apiKeyId,
+        kind,
+      });
       reply.header("retry-after", String(limit.retryAfter));
       return reply.code(429).send({ error: "Rate limit exceeded" });
     }

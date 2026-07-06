@@ -25,7 +25,9 @@ function makeFakeRepo() {
   const repo: IdentityRepo = {
     findPlanInfo: async (userId) => {
       const user = users.get(userId);
-      return user ? { plan: user.plan, planExpiresAt: user.planExpiresAt } : null;
+      return user
+        ? { plan: user.plan, planExpiresAt: user.planExpiresAt }
+        : null;
     },
     setPlanFree: async (userId) => {
       const user = users.get(userId);
@@ -37,7 +39,10 @@ function makeFakeRepo() {
     },
     findActiveMembershipOwner: async (ownerId, memberId) => {
       const active = memberships.find(
-        (m) => m.ownerId === ownerId && m.memberId === memberId && m.status === "active"
+        (m) =>
+          m.ownerId === ownerId &&
+          m.memberId === memberId &&
+          m.status === "active",
       );
       if (!active) return null;
       const owner = users.get(ownerId)!;
@@ -70,7 +75,11 @@ describe("resolveEffectiveUser (ADR-0011)", () => {
   it("membro ativo opera como dono: resolve para o requestedOwnerId", async () => {
     fake.seedUser("dono");
     fake.seedUser("membro");
-    fake.memberships.push({ ownerId: "dono", memberId: "membro", status: "active" });
+    fake.memberships.push({
+      ownerId: "dono",
+      memberId: "membro",
+      status: "active",
+    });
 
     expect(await service.resolveEffectiveUser("membro", "dono")).toBe("dono");
   });
@@ -78,7 +87,11 @@ describe("resolveEffectiveUser (ADR-0011)", () => {
   it("sem vínculo ativo, cai no próprio sessionUserId", async () => {
     fake.seedUser("dono");
     fake.seedUser("membro");
-    fake.memberships.push({ ownerId: "dono", memberId: "membro", status: "pending" });
+    fake.memberships.push({
+      ownerId: "dono",
+      memberId: "membro",
+      status: "pending",
+    });
 
     expect(await service.resolveEffectiveUser("membro", "dono")).toBe("membro");
   });
@@ -96,7 +109,11 @@ describe("getDelegationInfo", () => {
   it("delegação ativa expõe nome e email do dono para a UI", async () => {
     fake.seedUser("dono", { name: "Dona Maria", email: "maria@example.com" });
     fake.seedUser("membro");
-    fake.memberships.push({ ownerId: "dono", memberId: "membro", status: "active" });
+    fake.memberships.push({
+      ownerId: "dono",
+      memberId: "membro",
+      status: "active",
+    });
 
     expect(await service.getDelegationInfo("membro", "dono")).toEqual({
       effectiveUserId: "dono",
@@ -156,9 +173,9 @@ describe("setAutoBaixaDiario", () => {
   it("free tentando ligar recebe ProRequiredError", async () => {
     fake.seedUser("free");
 
-    await expect(service.setAutoBaixaDiario("free", true)).rejects.toBeInstanceOf(
-      ProRequiredError
-    );
+    await expect(
+      service.setAutoBaixaDiario("free", true),
+    ).rejects.toBeInstanceOf(ProRequiredError);
     expect(fake.users.get("free")?.autoBaixaDiario).toBe(false);
   });
 

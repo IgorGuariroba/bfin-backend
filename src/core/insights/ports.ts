@@ -13,9 +13,15 @@ export interface MovementRange {
  */
 export interface InsightsRepo {
   /** Somatório de amount por type das Transactions do usuário no intervalo. */
-  sumByType(userId: string, range: MovementRange): Promise<Record<string, number>>;
+  sumByType(
+    userId: string,
+    range: MovementRange,
+  ): Promise<Record<string, number>>;
   /** Movimentos do usuário no intervalo. Contrato de ordenação: date ascendente. */
-  listMovements(userId: string, range: { gte: Date; lt: Date }): Promise<Movement[]>;
+  listMovements(
+    userId: string,
+    range: { gte: Date; lt: Date },
+  ): Promise<Movement[]>;
   /** Soma total das Previsões do usuário (projeção mensal de gasto variável). */
   sumPrevisoes(userId: string): Promise<number>;
 }

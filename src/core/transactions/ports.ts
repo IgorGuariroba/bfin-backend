@@ -41,13 +41,16 @@ export interface TransactionPatch {
  */
 export interface TransactionRepo {
   /** Contrato de ordenação: date ascendente. `take` limita o resultado. */
-  list(query: TransactionListQuery, take: number): Promise<TransactionWithTags[]>;
+  list(
+    query: TransactionListQuery,
+    take: number,
+  ): Promise<TransactionWithTags[]>;
   /** Candidata a duplicata (ADR-0004): mesmo type+amount na janela; a mais antiga. */
   findDuplicate(
     userId: string,
     type: string,
     amount: number,
-    window: { gte: Date; lte: Date }
+    window: { gte: Date; lte: Date },
   ): Promise<TransactionWithTags | null>;
   /** Quantas das tagIds pertencem ao userId — base do anti-IDOR de tags no service. */
   countOwnedTags(userId: string, tagIds: string[]): Promise<number>;
@@ -56,7 +59,11 @@ export interface TransactionRepo {
   createMany(data: NewTransaction[], tagIds?: string[]): Promise<void>;
   findById(id: string): Promise<Transaction | null>;
   /** `tagIds` undefined = não mexe nas tags; [] = desconecta todas (set). */
-  update(id: string, patch: TransactionPatch, tagIds?: string[]): Promise<TransactionWithTags>;
+  update(
+    id: string,
+    patch: TransactionPatch,
+    tagIds?: string[],
+  ): Promise<TransactionWithTags>;
   /** Deleta se pertencer ao userId; false quando nada casou (not found ≡ de outro dono). */
   deleteOwned(userId: string, id: string): Promise<boolean>;
 }

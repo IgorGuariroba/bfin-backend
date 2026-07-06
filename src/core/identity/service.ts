@@ -15,22 +15,29 @@ export function makeIdentityService(repo: IdentityRepo) {
    */
   async function resolveEffectiveUser(
     sessionUserId: string,
-    requestedOwnerId: string | null | undefined
+    requestedOwnerId: string | null | undefined,
   ): Promise<string> {
-    if (!requestedOwnerId || requestedOwnerId === sessionUserId) return sessionUserId;
-    const owner = await repo.findActiveMembershipOwner(requestedOwnerId, sessionUserId);
+    if (!requestedOwnerId || requestedOwnerId === sessionUserId)
+      return sessionUserId;
+    const owner = await repo.findActiveMembershipOwner(
+      requestedOwnerId,
+      sessionUserId,
+    );
     return owner ? requestedOwnerId : sessionUserId;
   }
 
   /** resolveEffectiveUser + dados do dono, para a UI mostrar "operando como". */
   async function getDelegationInfo(
     sessionUserId: string,
-    requestedOwnerId: string | null | undefined
+    requestedOwnerId: string | null | undefined,
   ): Promise<DelegationInfo> {
     if (!requestedOwnerId || requestedOwnerId === sessionUserId) {
       return { effectiveUserId: sessionUserId, isDelegated: false };
     }
-    const owner = await repo.findActiveMembershipOwner(requestedOwnerId, sessionUserId);
+    const owner = await repo.findActiveMembershipOwner(
+      requestedOwnerId,
+      sessionUserId,
+    );
     if (!owner) return { effectiveUserId: sessionUserId, isDelegated: false };
     return {
       effectiveUserId: requestedOwnerId,
@@ -60,14 +67,24 @@ export function makeIdentityService(repo: IdentityRepo) {
    * plano `pro`; desligar é sempre permitido (inclusive após downgrade, para o
    * usuário conseguir sair do estado). Idempotente.
    */
-  async function setAutoBaixaDiario(userId: string, enabled: boolean): Promise<void> {
+  async function setAutoBaixaDiario(
+    userId: string,
+    enabled: boolean,
+  ): Promise<void> {
     if (enabled && (await getUserPlan(userId)) !== "pro") {
-      throw new ProRequiredError("Baixa automática do gasto diário exige plano pro");
+      throw new ProRequiredError(
+        "Baixa automática do gasto diário exige plano pro",
+      );
     }
     await repo.setAutoBaixaDiario(userId, enabled);
   }
 
-  return { resolveEffectiveUser, getDelegationInfo, getUserPlan, setAutoBaixaDiario };
+  return {
+    resolveEffectiveUser,
+    getDelegationInfo,
+    getUserPlan,
+    setAutoBaixaDiario,
+  };
 }
 
 export type IdentityService = ReturnType<typeof makeIdentityService>;

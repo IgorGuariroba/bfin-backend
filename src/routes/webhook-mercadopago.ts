@@ -8,7 +8,7 @@ const SIGNATURE_TOLERANCE_MS = 5 * 60_000;
 function verifySignature(
   headers: { xSignature: string; xRequestId: string | null },
   dataId: string,
-  secret: string
+  secret: string,
 ): boolean {
   const { xSignature, xRequestId } = headers;
 
@@ -44,10 +44,16 @@ function verifySignature(
  */
 export function webhookMercadoPagoRoutes(app: FastifyInstance) {
   app.post("/api/webhook/mercadopago", async (request, reply) => {
-    const { type, data } = (request.body ?? {}) as { type?: string; data?: { id?: string } };
+    const { type, data } = (request.body ?? {}) as {
+      type?: string;
+      data?: { id?: string };
+    };
 
     if (type !== "subscription_preapproval" || !data?.id) {
-      console.log("mp-webhook: ignored", { type: type ?? null, hasDataId: Boolean(data?.id) });
+      console.log("mp-webhook: ignored", {
+        type: type ?? null,
+        hasDataId: Boolean(data?.id),
+      });
       return { ok: true };
     }
 
@@ -56,7 +62,9 @@ export function webhookMercadoPagoRoutes(app: FastifyInstance) {
     const secret = process.env.MERCADO_PAGO_WEBHOOK_SECRET;
     if (!secret) {
       console.error("mp-webhook: secret not configured");
-      return reply.code(500).send({ error: "MERCADO_PAGO_WEBHOOK_SECRET not configured" });
+      return reply
+        .code(500)
+        .send({ error: "MERCADO_PAGO_WEBHOOK_SECRET not configured" });
     }
 
     const xSignature = request.headers["x-signature"];
@@ -67,7 +75,7 @@ export function webhookMercadoPagoRoutes(app: FastifyInstance) {
         xRequestId: typeof xRequestId === "string" ? xRequestId : null,
       },
       data.id,
-      secret
+      secret,
     );
     if (!verified) {
       console.warn("mp-webhook: invalid signature", { dataId: data.id });

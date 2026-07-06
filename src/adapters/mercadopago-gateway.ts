@@ -30,8 +30,9 @@ export const mercadoPagoGateway: PaymentGateway = {
   getSubscription: async (id) => {
     const preApproval = new PreApproval(mpClient);
     const sub = await preApproval.get({ id });
-    const txAmount = (sub as { auto_recurring?: { transaction_amount?: number } })
-      .auto_recurring?.transaction_amount;
+    const txAmount = (
+      sub as { auto_recurring?: { transaction_amount?: number } }
+    ).auto_recurring?.transaction_amount;
     return {
       id: sub.id,
       status: sub.status,

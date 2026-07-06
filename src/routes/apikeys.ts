@@ -12,7 +12,11 @@ function safeEqual(a: string, b: string): boolean {
   return timingSafeEqual(ab, bb);
 }
 
-function requireInternalSecret(request: FastifyRequest, reply: FastifyReply, done: () => void) {
+function requireInternalSecret(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  done: () => void,
+) {
   const secret = process.env.INTERNAL_API_SECRET;
   const provided = request.headers["x-internal-secret"];
   if (!secret || typeof provided !== "string" || !safeEqual(provided, secret)) {
@@ -75,9 +79,16 @@ export function apikeysRoutes(app: FastifyInstance) {
       entityId?: string;
     };
     if (!apiKeyId || !userId || !action || !entityId) {
-      return reply.code(400).send({ error: "apiKeyId, userId, action e entityId são obrigatórios" });
+      return reply.code(400).send({
+        error: "apiKeyId, userId, action e entityId são obrigatórios",
+      });
     }
-    await apiKeysService.recordAgentWrite({ apiKeyId, userId, action, entityId });
+    await apiKeysService.recordAgentWrite({
+      apiKeyId,
+      userId,
+      action,
+      entityId,
+    });
     return reply.code(204).send();
   });
 }

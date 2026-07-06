@@ -4,7 +4,10 @@ import type { InsightsRepo } from "./ports.js";
 import type { Movement } from "./types.js";
 
 // Repo fake em memória: prova que o core é testável sem DB e sem Next (ADR-0013).
-function makeFakeRepo(movements: Movement[] = [], previsoes: number[] = []): InsightsRepo {
+function makeFakeRepo(
+  movements: Movement[] = [],
+  previsoes: number[] = [],
+): InsightsRepo {
   const inRange = (d: Date, range: { gte?: Date; lt: Date }) =>
     (!range.gte || d >= range.gte) && d < range.lt;
 
@@ -12,7 +15,8 @@ function makeFakeRepo(movements: Movement[] = [], previsoes: number[] = []): Ins
     sumByType: async (_userId, range) => {
       const byType: Record<string, number> = {};
       for (const m of movements) {
-        if (inRange(m.date, range)) byType[m.type] = (byType[m.type] ?? 0) + m.amount;
+        if (inRange(m.date, range))
+          byType[m.type] = (byType[m.type] ?? 0) + m.amount;
       }
       return byType;
     },
@@ -75,7 +79,9 @@ describe("getTotais", () => {
   });
 
   it("prevMonth é null quando o mês anterior não teve movimento", async () => {
-    const service = makeService([mov("entrada", 1000, new Date(2026, 5, 2, 12))]);
+    const service = makeService([
+      mov("entrada", 1000, new Date(2026, 5, 2, 12)),
+    ]);
 
     const t = await service.getTotais("u1", "2026-06");
 
@@ -85,7 +91,7 @@ describe("getTotais", () => {
   it("no mês corrente, diarioMedio divide pelos dias decorridos (clock injetado)", async () => {
     const service = makeInsightsService(
       makeFakeRepo([mov("diario", 100, new Date(2026, 5, 3, 12))], [300]),
-      { now: () => new Date(2026, 5, 10, 15) } // 10/jun/2026
+      { now: () => new Date(2026, 5, 10, 15) }, // 10/jun/2026
     );
 
     const t = await service.getTotais("u1", "2026-06");
@@ -99,11 +105,11 @@ describe("getTotais", () => {
   it("rejeita mês malformado", async () => {
     const service = makeService();
     await expect(service.getTotais("u1", "2026/06")).rejects.toBeInstanceOf(
-      InsightsValidationError
+      InsightsValidationError,
     );
     // mês 00 casa o regex mas é inválido — não pode escapar como NaN.
     await expect(service.getTotais("u1", "2026-00")).rejects.toBeInstanceOf(
-      InsightsValidationError
+      InsightsValidationError,
     );
   });
 });
@@ -179,7 +185,7 @@ describe("getSugestoes", () => {
         mov("entrada", 9000, new Date(2026, 4, 1, 12)), // mantém saldo positivo
         mov("diario", 3000, new Date(2026, 4, 10, 12)),
       ],
-      [30]
+      [30],
     );
 
     const sugestoes = await service.getSugestoes("u1", "2026-05");

@@ -52,7 +52,10 @@ export function classifyRpc(rawBody: string): RateLimitKind {
     const msg = JSON.parse(rawBody);
     const calls = Array.isArray(msg) ? msg : [msg];
     for (const call of calls) {
-      if (call?.method === "tools/call" && WRITE_TOOLS.has(call?.params?.name)) {
+      if (
+        call?.method === "tools/call" &&
+        WRITE_TOOLS.has(call?.params?.name)
+      ) {
         return "write";
       }
     }
@@ -85,7 +88,7 @@ function evictExpired(now: number): void {
  */
 export function checkRateLimit(
   key: string,
-  config: RateLimitConfig
+  config: RateLimitConfig,
 ): RateLimitResult {
   const now = Date.now();
   const bucket = buckets.get(key);
@@ -97,7 +100,10 @@ export function checkRateLimit(
   }
 
   if (bucket.count >= config.limit) {
-    return { allowed: false, retryAfter: Math.ceil((bucket.resetAt - now) / 1000) };
+    return {
+      allowed: false,
+      retryAfter: Math.ceil((bucket.resetAt - now) / 1000),
+    };
   }
 
   bucket.count++;

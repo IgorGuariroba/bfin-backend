@@ -10,7 +10,12 @@ const SECRET = "test-secret";
 async function seedUser() {
   const [row] = await db
     .insert(userTable)
-    .values({ id: crypto.randomUUID(), name: "Tag User", email: `tags-route-${crypto.randomUUID()}@example.com`, plan: "pro" })
+    .values({
+      id: crypto.randomUUID(),
+      name: "Tag User",
+      email: `tags-route-${crypto.randomUUID()}@example.com`,
+      plan: "pro",
+    })
     .returning();
   trackUser(row.id);
   return row;
@@ -59,9 +64,15 @@ describe("rotas de tags", () => {
     const tag = created.json();
     expect(tag.name).toBe("Viagem");
 
-    const listed = await app.inject({ method: "GET", url: `/tags?userId=${user.id}`, headers });
+    const listed = await app.inject({
+      method: "GET",
+      url: `/tags?userId=${user.id}`,
+      headers,
+    });
     expect(listed.statusCode).toBe(200);
-    expect(listed.json().some((t: { id: string }) => t.id === tag.id)).toBe(true);
+    expect(listed.json().some((t: { id: string }) => t.id === tag.id)).toBe(
+      true,
+    );
 
     const updated = await app.inject({
       method: "PUT",

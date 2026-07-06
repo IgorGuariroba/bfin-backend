@@ -15,7 +15,11 @@ function safeEqual(a: string, b: string): boolean {
   return timingSafeEqual(ab, bb);
 }
 
-function requireInternalSecret(request: FastifyRequest, reply: FastifyReply, done: () => void) {
+function requireInternalSecret(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  done: () => void,
+) {
   const secret = process.env.INTERNAL_API_SECRET;
   const provided = request.headers["x-internal-secret"];
   if (!secret || typeof provided !== "string" || !safeEqual(provided, secret)) {
@@ -64,7 +68,8 @@ export function tagsRoutes(app: FastifyInstance) {
       name?: string;
       color?: string;
     };
-    if (!userId || !name) return reply.code(400).send({ error: "userId e name são obrigatórios" });
+    if (!userId || !name)
+      return reply.code(400).send({ error: "userId e name são obrigatórios" });
     try {
       const tag = await tagsService.createTag({ userId, name, color });
       return reply.code(201).send(tag);

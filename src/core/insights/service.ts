@@ -1,12 +1,20 @@
 import type { InsightsRepo } from "./ports.js";
-import type { MonthSummary, SaldoDia, SaldosResult, Sugestao, TotaisResult } from "./types.js";
+import type {
+  MonthSummary,
+  SaldoDia,
+  SaldosResult,
+  Sugestao,
+  TotaisResult,
+} from "./types.js";
 
 export class InsightsValidationError extends Error {}
 
 // Formatação BRL dos textos de Sugestao. Duplica o fmt de @/lib/utils de
 // propósito: o core não importa @/lib (ADR-0013) e Intl é padrão da linguagem.
 const fmt = (val: number) =>
-  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(val);
+  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
+    val,
+  );
 
 /** Parseia "YYYY-MM" em [year, month(1-12)], rejeitando formato/valor inválido. */
 function parseMonth(month: string): [number, number] {
@@ -42,7 +50,7 @@ function netSaldo(byType: Record<string, number>): number {
 
 export function makeInsightsService(
   repo: InsightsRepo,
-  deps: { now?: () => Date } = {}
+  deps: { now?: () => Date } = {},
 ) {
   const now = deps.now ?? (() => new Date());
 
@@ -52,7 +60,10 @@ export function makeInsightsService(
    * MCP. Não decide entitlement (gate de plano fica na borda HTTP) — só computa
    * dado um userId + mês.
    */
-  async function getTotais(userId: string, month: string): Promise<TotaisResult> {
+  async function getTotais(
+    userId: string,
+    month: string,
+  ): Promise<TotaisResult> {
     const [year, mon] = parseMonth(month);
 
     const start = new Date(year, mon - 1, 1);
@@ -62,12 +73,13 @@ export function makeInsightsService(
     const prevMonStart = new Date(year, mon - 2, 1);
     const prevDaysInMonth = new Date(year, mon - 1, 0).getDate();
 
-    const [monthByType, previsaoTotal, prevByType, prevMonByType] = await Promise.all([
-      repo.sumByType(userId, { gte: start, lt: end }),
-      repo.sumPrevisoes(userId),
-      repo.sumByType(userId, { lt: start }),
-      repo.sumByType(userId, { gte: prevMonStart, lt: start }),
-    ]);
+    const [monthByType, previsaoTotal, prevByType, prevMonByType] =
+      await Promise.all([
+        repo.sumByType(userId, { gte: start, lt: end }),
+        repo.sumPrevisoes(userId),
+        repo.sumByType(userId, { lt: start }),
+        repo.sumByType(userId, { gte: prevMonStart, lt: start }),
+      ]);
 
     const totals = { ...TYPE_ZEROS, ...monthByType };
     const saldoAnterior = netSaldo(prevByType);
@@ -84,12 +96,17 @@ export function makeInsightsService(
     const diarioPrev = daysInMonth > 0 ? previsaoTotal / daysInMonth : 0;
 
     const prevTotals = { ...TYPE_ZEROS, ...prevMonByType };
-    const prevCustoVida = prevTotals.saida + prevTotals.cartao + prevTotals.diario;
+    const prevCustoVida =
+      prevTotals.saida + prevTotals.cartao + prevTotals.diario;
     const prevPerformance = prevTotals.entrada - prevCustoVida;
-    const prevDiarioMedio = prevDaysInMonth > 0 ? prevTotals.diario / prevDaysInMonth : 0;
+    const prevDiarioMedio =
+      prevDaysInMonth > 0 ? prevTotals.diario / prevDaysInMonth : 0;
     const prevEconomiaPct =
       prevTotals.entrada > 0
-        ? Math.min(100, Math.round((prevTotals.economia / prevTotals.entrada) * 100))
+        ? Math.min(
+            100,
+            Math.round((prevTotals.economia / prevTotals.entrada) * 100),
+          )
         : 0;
     // Registro vazio = nenhum movimento no mês anterior (sem grupo por type).
     const hasPrevData = Object.keys(prevMonByType).length > 0;
@@ -125,7 +142,10 @@ export function makeInsightsService(
    * meses anteriores (prevByType). economia não entra no saldo (é reserva, não
    * custo de vida).
    */
-  async function getSaldos(userId: string, month: string): Promise<SaldosResult> {
+  async function getSaldos(
+    userId: string,
+    month: string,
+  ): Promise<SaldosResult> {
     const [year, mon] = parseMonth(month);
 
     const start = new Date(year, mon - 1, 1);
@@ -168,7 +188,10 @@ export function makeInsightsService(
    * Compõe getTotais e expõe o subconjunto relevante para conversa, com o campo
    * sobrouNoMes nomeando a performance (renda − custo de vida).
    */
-  async function getMonthSummary(userId: string, month: string): Promise<MonthSummary> {
+  async function getMonthSummary(
+    userId: string,
+    month: string,
+  ): Promise<MonthSummary> {
     const t = await getTotais(userId, month);
     return {
       month,
@@ -191,7 +214,10 @@ export function makeInsightsService(
    * Cada regra acionada vira uma Sugestao com texto pronto para o agente repassar.
    * Lista vazia = nada digno de nota — não força conselho onde não há sinal.
    */
-  async function getSugestoes(userId: string, month: string): Promise<Sugestao[]> {
+  async function getSugestoes(
+    userId: string,
+    month: string,
+  ): Promise<Sugestao[]> {
     const t = await getTotais(userId, month);
     const sugestoes: Sugestao[] = [];
 

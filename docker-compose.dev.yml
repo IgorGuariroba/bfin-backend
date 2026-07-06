@@ -4,13 +4,20 @@ services:
   db:
     image: postgres:16-alpine
     ports:
-      - "5432:5432"
+      # 5433 no host para não colidir com o Postgres do bfin-app (5432).
+      - "5433:5432"
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: bfin_backend_dev
     volumes:
       - devdata:/var/lib/postgresql/data
+    # Necessário para o `up -d --wait` do hook pre-push (ADR-0001).
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
 
 volumes:
   devdata:

@@ -4,11 +4,12 @@ import { db } from "../lib/drizzle.js";
 import { planConfig, user as userTable } from "../db/schema.js";
 import { trackCreatedUsers } from "../adapters/drizzle/test-helpers.js";
 
-const { mockPreApprovalGet, mockPreApprovalCreate, mockPreApprovalUpdate } = vi.hoisted(() => ({
-  mockPreApprovalGet: vi.fn(),
-  mockPreApprovalCreate: vi.fn(),
-  mockPreApprovalUpdate: vi.fn(),
-}));
+const { mockPreApprovalGet, mockPreApprovalCreate, mockPreApprovalUpdate } =
+  vi.hoisted(() => ({
+    mockPreApprovalGet: vi.fn(),
+    mockPreApprovalCreate: vi.fn(),
+    mockPreApprovalUpdate: vi.fn(),
+  }));
 
 vi.mock("mercadopago", async (importOriginal) => ({
   ...(await importOriginal<typeof import("mercadopago")>()),
@@ -24,7 +25,9 @@ const { buildApp } = await import("../app.js");
 const SECRET = "test-internal-secret";
 const trackUser = trackCreatedUsers();
 
-async function seedUser(opts: Partial<{ plan: string; mpSubscriptionId: string }> = {}) {
+async function seedUser(
+  opts: Partial<{ plan: string; mpSubscriptionId: string }> = {},
+) {
   const [user] = await db
     .insert(userTable)
     .values({
@@ -52,7 +55,10 @@ afterEach(async () => {
 describe("autenticação interna", () => {
   it("rejeita sem x-internal-secret com 401", async () => {
     const app = buildApp();
-    const res = await app.inject({ method: "GET", url: "/billing/plan-prices" });
+    const res = await app.inject({
+      method: "GET",
+      url: "/billing/plan-prices",
+    });
     expect(res.statusCode).toBe(401);
   });
 });
@@ -79,7 +85,11 @@ describe("GET/PUT /billing/plan-config", () => {
       headers: { "x-internal-secret": SECRET },
     });
     expect(res.statusCode).toBe(200);
-    expect(res.json()).toMatchObject({ id: "default", monthlyAmount: 14.9, annualAmount: 119.9 });
+    expect(res.json()).toMatchObject({
+      id: "default",
+      monthlyAmount: 14.9,
+      annualAmount: 119.9,
+    });
   });
 
   it("PUT atualiza e 400 em valores inválidos", async () => {
@@ -91,7 +101,10 @@ describe("GET/PUT /billing/plan-config", () => {
       payload: { monthlyAmount: 19.9, annualAmount: 199.9 },
     });
     expect(ok.statusCode).toBe(200);
-    expect(ok.json()).toMatchObject({ monthlyAmount: 19.9, annualAmount: 199.9 });
+    expect(ok.json()).toMatchObject({
+      monthlyAmount: 19.9,
+      annualAmount: 199.9,
+    });
 
     const bad = await app.inject({
       method: "PUT",
@@ -112,7 +125,11 @@ describe("GET/DELETE /billing/subscription", () => {
       headers: { "x-internal-secret": SECRET },
     });
     expect(res.statusCode).toBe(200);
-    expect(res.json()).toEqual({ plan: "free", planExpiresAt: null, mpSubscriptionId: null });
+    expect(res.json()).toEqual({
+      plan: "free",
+      planExpiresAt: null,
+      mpSubscriptionId: null,
+    });
   });
 
   it("DELETE cancela no gateway e 400 sem assinatura ativa", async () => {
@@ -148,7 +165,12 @@ describe("POST /billing/checkout", () => {
       method: "POST",
       url: "/billing/checkout",
       headers: { "x-internal-secret": SECRET },
-      payload: { userId: user.id, email: user.email, cycle: "monthly", origin: "https://bfin.app" },
+      payload: {
+        userId: user.id,
+        email: user.email,
+        cycle: "monthly",
+        origin: "https://bfin.app",
+      },
     });
 
     expect(res.statusCode).toBe(200);
@@ -163,10 +185,14 @@ describe("POST /billing/checkout", () => {
       method: "POST",
       url: "/billing/checkout",
       headers: { "x-internal-secret": SECRET },
-      payload: { userId: user.id, email: user.email, cycle: "weekly", origin: "https://bfin.app" },
+      payload: {
+        userId: user.id,
+        email: user.email,
+        cycle: "weekly",
+        origin: "https://bfin.app",
+      },
     });
 
     expect(res.statusCode).toBe(400);
   });
 });
-

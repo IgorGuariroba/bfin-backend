@@ -35,7 +35,10 @@ describe("rotas de transactions", () => {
 
   it("rejeita sem o header do segredo compartilhado", async () => {
     const app = buildApp();
-    const response = await app.inject({ method: "GET", url: "/transactions?userId=x" });
+    const response = await app.inject({
+      method: "GET",
+      url: "/transactions?userId=x",
+    });
     expect(response.statusCode).toBe(401);
   });
 
@@ -69,7 +72,9 @@ describe("rotas de transactions", () => {
       headers,
     });
     expect(listed.statusCode).toBe(200);
-    expect(listed.json().some((t: { id: string }) => t.id === tx.id)).toBe(true);
+    expect(listed.json().some((t: { id: string }) => t.id === tx.id)).toBe(
+      true,
+    );
 
     const updated = await app.inject({
       method: "PUT",

@@ -14,7 +14,11 @@ export interface PrevisaoPatch {
 export interface PrevisaoRepo {
   /** Contrato de ordenação: name ascendente. */
   listByUser(userId: string): Promise<Previsao[]>;
-  create(data: { userId: string; name: string; amount: number }): Promise<Previsao>;
+  create(data: {
+    userId: string;
+    name: string;
+    amount: number;
+  }): Promise<Previsao>;
   findById(id: string): Promise<Previsao | null>;
   update(id: string, patch: PrevisaoPatch): Promise<Previsao>;
   delete(id: string): Promise<void>;
@@ -24,7 +28,10 @@ export interface PrevisaoRepo {
    * Nunca toca importados (source=pluggy/agent) nem outros types
    * (CONTEXT.md › Previsão; ADR-0004 §4).
    */
-  deleteManualDiario(userId: string, window: { gte: Date; lt: Date }): Promise<void>;
+  deleteManualDiario(
+    userId: string,
+    window: { gte: Date; lt: Date },
+  ): Promise<void>;
   /** Persiste os placeholders da projeção (type=diario, source=manual). */
   createDiarios(rows: NewDiario[]): Promise<void>;
   /**
@@ -33,5 +40,8 @@ export interface PrevisaoRepo {
    * autoBaixaDiario=true e plano vigente em `now` (planExpiresAt nulo ou > now,
    * replicando getUserPlan). Retorna o total deletado.
    */
-  deleteManualDiarioForAutoBaixa(window: { gte: Date; lt: Date }, now: Date): Promise<number>;
+  deleteManualDiarioForAutoBaixa(
+    window: { gte: Date; lt: Date },
+    now: Date,
+  ): Promise<number>;
 }

@@ -1,8 +1,18 @@
 import { afterEach, describe, it, expect, vi } from "vitest";
 import { and, eq, inArray } from "drizzle-orm";
 import { db } from "../lib/drizzle.js";
-import { apiKey, previsao, tag, tagToTransaction, transaction, user as userTable } from "../db/schema.js";
-import { fromDbTimestamp, toDbTimestamp } from "../adapters/drizzle/timestamp.js";
+import {
+  apiKey,
+  previsao,
+  tag,
+  tagToTransaction,
+  transaction,
+  user as userTable,
+} from "../db/schema.js";
+import {
+  fromDbTimestamp,
+  toDbTimestamp,
+} from "../adapters/drizzle/timestamp.js";
 import { apiKeysService } from "../adapters/index.js";
 import { RATE_LIMITS } from "../lib/rate-limit.js";
 import { buildApp } from "../app.js";
@@ -51,7 +61,13 @@ async function seedTx(data: {
 }
 
 async function seedTxBatch(
-  rows: Array<{ userId: string; type: string; description: string; amount: number; date: Date }>
+  rows: Array<{
+    userId: string;
+    type: string;
+    description: string;
+    amount: number;
+    date: Date;
+  }>,
 ) {
   const now = toDbTimestamp(new Date());
   await db.insert(transaction).values(
@@ -63,12 +79,15 @@ async function seedTxBatch(
       amount: r.amount,
       date: toDbTimestamp(r.date),
       updatedAt: now,
-    }))
+    })),
   );
 }
 
 async function findTxsByUser(userId: string) {
-  const rows = await db.select().from(transaction).where(eq(transaction.userId, userId));
+  const rows = await db
+    .select()
+    .from(transaction)
+    .where(eq(transaction.userId, userId));
   return rows.map((r) => ({ ...r, date: fromDbTimestamp(r.date) }));
 }
 
@@ -77,7 +96,10 @@ async function countTx(userId: string) {
 }
 
 async function findTx(id: string) {
-  const [row] = await db.select().from(transaction).where(eq(transaction.id, id));
+  const [row] = await db
+    .select()
+    .from(transaction)
+    .where(eq(transaction.id, id));
   return row ? { ...row, date: fromDbTimestamp(row.date) } : null;
 }
 
@@ -94,7 +116,10 @@ async function tagsOfTx(txId: string) {
 }
 
 async function seedTag(userId: string, name: string, color: string) {
-  const [row] = await db.insert(tag).values({ id: crypto.randomUUID(), userId, name, color }).returning();
+  const [row] = await db
+    .insert(tag)
+    .values({ id: crypto.randomUUID(), userId, name, color })
+    .returning();
   return row;
 }
 
@@ -107,27 +132,43 @@ async function countTags(userId: string) {
 }
 
 async function findFirstTag(userId: string, name: string) {
-  const rows = await db.select().from(tag).where(and(eq(tag.userId, userId), eq(tag.name, name)));
+  const rows = await db
+    .select()
+    .from(tag)
+    .where(and(eq(tag.userId, userId), eq(tag.name, name)));
   return rows[0] ?? null;
 }
 
 async function seedPrevisao(userId: string, name: string, amount: number) {
-  await db.insert(previsao).values({ id: crypto.randomUUID(), userId, name, amount });
+  await db
+    .insert(previsao)
+    .values({ id: crypto.randomUUID(), userId, name, amount });
 }
 
-function mcpInject(app: ReturnType<typeof buildApp>, token: string | null, body: unknown) {
+function mcpInject(
+  app: ReturnType<typeof buildApp>,
+  token: string | null,
+  body: unknown,
+) {
   const headers: Record<string, string> = {
     "content-type": "application/json",
     accept: "application/json, text/event-stream",
   };
   if (token) headers.authorization = `Bearer ${token}`;
-  return app.inject({ method: "POST", url: "/api/mcp", headers, payload: JSON.stringify(body) });
+  return app.inject({
+    method: "POST",
+    url: "/api/mcp",
+    headers,
+    payload: JSON.stringify(body),
+  });
 }
 
 /** Extrai o `result` da resposta JSON-RPC (corpo pode vir como SSE: linha "data: {…}"). */
 function parseRpcResult(body: string) {
   const dataLine = body.split("\n").find((l) => l.startsWith("data:"));
-  const json = JSON.parse(dataLine ? dataLine.slice("data:".length).trim() : body);
+  const json = JSON.parse(
+    dataLine ? dataLine.slice("data:".length).trim() : body,
+  );
   return json.result as {
     content: { type: string; text: string }[];
     structuredContent?: Record<string, unknown>;
@@ -148,10 +189,16 @@ describe("POST /mcp", () => {
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     const app = buildApp();
 
-    const res = await mcpInject(app, null, { jsonrpc: "2.0", method: "tools/list", id: 1 });
+    const res = await mcpInject(app, null, {
+      jsonrpc: "2.0",
+      method: "tools/list",
+      id: 1,
+    });
 
     expect(res.statusCode).toBe(401);
-    expect(warnSpy).toHaveBeenCalledWith("apikey: auth denied", { reason: "missing_token" });
+    expect(warnSpy).toHaveBeenCalledWith("apikey: auth denied", {
+      reason: "missing_token",
+    });
   });
 
   it("retorna 401 com token inválido", async () => {
@@ -165,7 +212,9 @@ describe("POST /mcp", () => {
     });
 
     expect(res.statusCode).toBe(401);
-    expect(warnSpy).toHaveBeenCalledWith("apikey: auth denied", { reason: "invalid_token" });
+    expect(warnSpy).toHaveBeenCalledWith("apikey: auth denied", {
+      reason: "invalid_token",
+    });
   });
 
   it("cria uma Transaction com source=agent via create_transaction", async () => {
@@ -178,7 +227,12 @@ describe("POST /mcp", () => {
       method: "tools/call",
       params: {
         name: "create_transaction",
-        arguments: { description: "Café", amount: 9.5, date: "2026-06-15", type: "saida" },
+        arguments: {
+          description: "Café",
+          amount: 9.5,
+          date: "2026-06-15",
+          type: "saida",
+        },
       },
     });
 
@@ -202,7 +256,12 @@ describe("POST /mcp", () => {
       method: "tools/call",
       params: {
         name: "create_transaction",
-        arguments: { description: "Mercado", amount: 50, date: "2026-06-15", type: "diario" },
+        arguments: {
+          description: "Mercado",
+          amount: 50,
+          date: "2026-06-15",
+          type: "diario",
+        },
       },
     });
     void res;
@@ -227,7 +286,12 @@ describe("POST /mcp", () => {
       method: "tools/call",
       params: {
         name: "create_transaction",
-        arguments: { description: "Café", amount: 9.5, date: "2026-06-15", type: "saida" },
+        arguments: {
+          description: "Café",
+          amount: 9.5,
+          date: "2026-06-15",
+          type: "saida",
+        },
       },
     });
 
@@ -254,7 +318,13 @@ describe("POST /mcp", () => {
       method: "tools/call",
       params: {
         name: "create_transaction",
-        arguments: { description: "Café", amount: 9.5, date: "2026-06-15", type: "saida", force: true },
+        arguments: {
+          description: "Café",
+          amount: 9.5,
+          date: "2026-06-15",
+          type: "saida",
+          force: true,
+        },
       },
     });
 
@@ -306,7 +376,9 @@ describe("POST /mcp", () => {
 
     expect(res.statusCode).toBe(200);
     expect(res.body).toContain("Movimentação criada");
-    const all = (await findTxsByUser(user.id)).sort((a, b) => a.date.getTime() - b.date.getTime());
+    const all = (await findTxsByUser(user.id)).sort(
+      (a, b) => a.date.getTime() - b.date.getTime(),
+    );
     expect(all).toHaveLength(3);
     expect(all.map((t) => t.date.getMonth())).toEqual([5, 6, 7]); // jun, jul, ago
   });
@@ -322,7 +394,11 @@ describe("POST /mcp", () => {
       method: "tools/call",
       params: {
         name: "create_transaction",
-        arguments: { description: "uber pro aeroporto", amount: 40, date: "2026-06-15" },
+        arguments: {
+          description: "uber pro aeroporto",
+          amount: 40,
+          date: "2026-06-15",
+        },
       },
     });
 
@@ -338,8 +414,20 @@ describe("POST /mcp", () => {
     const app = buildApp();
     const { user, plain } = await seedProKey();
     await seedTxBatch([
-      { userId: user.id, type: "entrada", description: "Salário", amount: 5000, date: new Date(2026, 5, 1, 12) },
-      { userId: user.id, type: "saida", description: "Mercado", amount: 800, date: new Date(2026, 5, 5, 12) },
+      {
+        userId: user.id,
+        type: "entrada",
+        description: "Salário",
+        amount: 5000,
+        date: new Date(2026, 5, 1, 12),
+      },
+      {
+        userId: user.id,
+        type: "saida",
+        description: "Mercado",
+        amount: 800,
+        date: new Date(2026, 5, 5, 12),
+      },
     ]);
 
     const res = await mcpInject(app, plain, {
@@ -358,8 +446,20 @@ describe("POST /mcp", () => {
     const app = buildApp();
     const { user, plain } = await seedProKey();
     await seedTxBatch([
-      { userId: user.id, type: "entrada", description: "Salário", amount: 5000, date: new Date(2026, 5, 1, 12) },
-      { userId: user.id, type: "cartao", description: "Fatura", amount: 1200, date: new Date(2026, 5, 5, 12) },
+      {
+        userId: user.id,
+        type: "entrada",
+        description: "Salário",
+        amount: 5000,
+        date: new Date(2026, 5, 1, 12),
+      },
+      {
+        userId: user.id,
+        type: "cartao",
+        description: "Fatura",
+        amount: 1200,
+        date: new Date(2026, 5, 5, 12),
+      },
     ]);
 
     const res = await mcpInject(app, plain, {
@@ -377,7 +477,13 @@ describe("POST /mcp", () => {
   it("get_saldos responde a evolução diária do saldo via MCP", async () => {
     const app = buildApp();
     const { user, plain } = await seedProKey();
-    await seedTx({ userId: user.id, type: "entrada", description: "Renda", amount: 1000, date: new Date(2026, 5, 1, 12) });
+    await seedTx({
+      userId: user.id,
+      type: "entrada",
+      description: "Renda",
+      amount: 1000,
+      date: new Date(2026, 5, 1, 12),
+    });
 
     const res = await mcpInject(app, plain, {
       jsonrpc: "2.0",
@@ -412,16 +518,37 @@ describe("POST /mcp", () => {
     const app = buildApp();
     const { user, plain } = await seedProKey();
     await seedTxBatch([
-      { userId: user.id, type: "saida", description: "JunhoGasto", amount: 20, date: new Date(2026, 5, 10, 12) },
-      { userId: user.id, type: "entrada", description: "JunhoRenda", amount: 500, date: new Date(2026, 5, 11, 12) },
-      { userId: user.id, type: "saida", description: "MaioGasto", amount: 99, date: new Date(2026, 4, 10, 12) },
+      {
+        userId: user.id,
+        type: "saida",
+        description: "JunhoGasto",
+        amount: 20,
+        date: new Date(2026, 5, 10, 12),
+      },
+      {
+        userId: user.id,
+        type: "entrada",
+        description: "JunhoRenda",
+        amount: 500,
+        date: new Date(2026, 5, 11, 12),
+      },
+      {
+        userId: user.id,
+        type: "saida",
+        description: "MaioGasto",
+        amount: 99,
+        date: new Date(2026, 4, 10, 12),
+      },
     ]);
 
     const res = await mcpInject(app, plain, {
       jsonrpc: "2.0",
       id: 1,
       method: "tools/call",
-      params: { name: "list_transactions", arguments: { month: "2026-06", type: "saida" } },
+      params: {
+        name: "list_transactions",
+        arguments: { month: "2026-06", type: "saida" },
+      },
     });
 
     expect(res.statusCode).toBe(200);
@@ -434,8 +561,20 @@ describe("POST /mcp", () => {
     const app = buildApp();
     const { user, plain } = await seedProKey();
     await seedTxBatch([
-      { userId: user.id, type: "entrada", description: "Pouco", amount: 100, date: new Date(2026, 5, 1, 12) },
-      { userId: user.id, type: "saida", description: "Muito", amount: 900, date: new Date(2026, 5, 2, 12) },
+      {
+        userId: user.id,
+        type: "entrada",
+        description: "Pouco",
+        amount: 100,
+        date: new Date(2026, 5, 1, 12),
+      },
+      {
+        userId: user.id,
+        type: "saida",
+        description: "Muito",
+        amount: 900,
+        date: new Date(2026, 5, 2, 12),
+      },
     ]);
 
     const res = await mcpInject(app, plain, {
@@ -460,7 +599,11 @@ describe("POST /mcp", () => {
       method: "tools/call",
       params: {
         name: "create_transaction",
-        arguments: { description: "aluguel do apartamento", amount: 1800, date: "2026-06-05" },
+        arguments: {
+          description: "aluguel do apartamento",
+          amount: 1800,
+          date: "2026-06-05",
+        },
       },
     });
 
@@ -531,7 +674,10 @@ describe("POST /mcp", () => {
       jsonrpc: "2.0",
       id: 1,
       method: "tools/call",
-      params: { name: "create_tag", arguments: { name: "Viagem", color: "#4a90e2" } },
+      params: {
+        name: "create_tag",
+        arguments: { name: "Viagem", color: "#4a90e2" },
+      },
     });
 
     expect(res.statusCode).toBe(200);
@@ -551,7 +697,10 @@ describe("POST /mcp", () => {
       jsonrpc: "2.0",
       id: 1,
       method: "tools/call",
-      params: { name: "create_tag", arguments: { name: "Viagem", color: "#000000" } },
+      params: {
+        name: "create_tag",
+        arguments: { name: "Viagem", color: "#000000" },
+      },
     });
 
     expect(res.statusCode).toBe(200);
@@ -568,7 +717,10 @@ describe("POST /mcp", () => {
       jsonrpc: "2.0",
       id: 1,
       method: "tools/call",
-      params: { name: "create_tag", arguments: { name: "a".repeat(51), color: "#4a90e2" } },
+      params: {
+        name: "create_tag",
+        arguments: { name: "a".repeat(51), color: "#4a90e2" },
+      },
     });
 
     expect(res.statusCode).toBe(200);
@@ -584,7 +736,10 @@ describe("POST /mcp", () => {
       jsonrpc: "2.0",
       id: 1,
       method: "tools/call",
-      params: { name: "create_tag", arguments: { name: "Viagem", color: "xx" } },
+      params: {
+        name: "create_tag",
+        arguments: { name: "Viagem", color: "xx" },
+      },
     });
 
     expect(res.statusCode).toBe(200);
@@ -631,7 +786,11 @@ describe("POST /mcp", () => {
     const app = buildApp();
     const { plain } = await seedProKey();
 
-    const res = await mcpInject(app, plain, { jsonrpc: "2.0", id: 1, method: "tools/list" });
+    const res = await mcpInject(app, plain, {
+      jsonrpc: "2.0",
+      id: 1,
+      method: "tools/list",
+    });
 
     expect(res.statusCode).toBe(200);
     expect(res.body).not.toContain("apply_previsao");
@@ -685,7 +844,12 @@ describe("POST /mcp", () => {
       method: "tools/call",
       params: {
         name: "create_transaction",
-        arguments: { description: "Café", amount: 9.5, date: "2026-06-15", type: "saida" },
+        arguments: {
+          description: "Café",
+          amount: 9.5,
+          date: "2026-06-15",
+          type: "saida",
+        },
       },
     });
 
@@ -712,7 +876,12 @@ describe("POST /mcp", () => {
       method: "tools/call",
       params: {
         name: "create_transaction",
-        arguments: { description: "Mercado", amount: 100, date: "2026-06-15", type: "saida" },
+        arguments: {
+          description: "Mercado",
+          amount: 100,
+          date: "2026-06-15",
+          type: "saida",
+        },
       },
     });
     const created = parseRpcResult(createRes.body);
@@ -725,7 +894,11 @@ describe("POST /mcp", () => {
       params: { name: "update_transaction", arguments: { id, amount: 150 } },
     });
     const updated = parseRpcResult(updRes.body);
-    expect(updated.structuredContent).toMatchObject({ id, type: "saida", amount: 150 });
+    expect(updated.structuredContent).toMatchObject({
+      id,
+      type: "saida",
+      amount: 150,
+    });
 
     const stored = await findTx(id);
     expect(stored?.amount).toBe(150);
@@ -748,7 +921,12 @@ describe("POST /mcp", () => {
       method: "tools/call",
       params: {
         name: "create_transaction",
-        arguments: { description: "Café", amount: 9.5, date: "2026-06-15", type: "saida" },
+        arguments: {
+          description: "Café",
+          amount: 9.5,
+          date: "2026-06-15",
+          type: "saida",
+        },
       },
     });
 
@@ -770,7 +948,10 @@ describe("POST /mcp", () => {
       jsonrpc: "2.0",
       id: 1,
       method: "tools/call",
-      params: { name: "create_tag", arguments: { name: "Viagem", color: "#4a90e2" } },
+      params: {
+        name: "create_tag",
+        arguments: { name: "Viagem", color: "#4a90e2" },
+      },
     });
 
     expect(res.statusCode).toBe(200);
@@ -794,13 +975,21 @@ describe("POST /mcp", () => {
       method: "tools/call",
       params: {
         name: "create_transaction",
-        arguments: { description: "Café", amount: 9.5, date: "2026-06-15", type: "saida" },
+        arguments: {
+          description: "Café",
+          amount: 9.5,
+          date: "2026-06-15",
+          type: "saida",
+        },
       },
     });
 
     expect(res.statusCode).toBe(200);
 
-    const [refreshed] = await db.select().from(apiKey).where(eq(apiKey.id, key.id));
+    const [refreshed] = await db
+      .select()
+      .from(apiKey)
+      .where(eq(apiKey.id, key.id));
     expect(refreshed?.lastUsedAt).not.toBeNull();
   });
 });

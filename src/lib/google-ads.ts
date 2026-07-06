@@ -32,12 +32,12 @@ function required(key: string): string {
 export function isGoogleAdsConfigured(): boolean {
   return Boolean(
     process.env.GOOGLE_ADS_DEVELOPER_TOKEN &&
-      process.env.GOOGLE_ADS_CLIENT_ID &&
-      process.env.GOOGLE_ADS_CLIENT_SECRET &&
-      process.env.GOOGLE_ADS_REFRESH_TOKEN &&
-      process.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID &&
-      process.env.GOOGLE_ADS_CUSTOMER_ID &&
-      process.env.GOOGLE_ADS_CONVERSION_ACTION_ID,
+    process.env.GOOGLE_ADS_CLIENT_ID &&
+    process.env.GOOGLE_ADS_CLIENT_SECRET &&
+    process.env.GOOGLE_ADS_REFRESH_TOKEN &&
+    process.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID &&
+    process.env.GOOGLE_ADS_CUSTOMER_ID &&
+    process.env.GOOGLE_ADS_CONVERSION_ACTION_ID,
   );
 }
 
@@ -53,7 +53,9 @@ async function getAccessToken(): Promise<string> {
     }),
   });
   if (!res.ok) {
-    throw new Error(`token refresh falhou (${res.status}): ${await res.text()}`);
+    throw new Error(
+      `token refresh falhou (${res.status}): ${await res.text()}`,
+    );
   }
   const data = (await res.json()) as { access_token: string };
   return data.access_token;
@@ -179,7 +181,11 @@ export async function uploadConversion(
     );
 
     if (!res.ok) {
-      return { ok: false, reason: "error", error: `upload falhou (${res.status}): ${await res.text()}` };
+      return {
+        ok: false,
+        reason: "error",
+        error: `upload falhou (${res.status}): ${await res.text()}`,
+      };
     }
 
     const data = (await res.json()) as { partialFailureError?: unknown };

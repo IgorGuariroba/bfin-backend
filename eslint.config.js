@@ -30,7 +30,12 @@ export default tseslint.config(
                 "src/core não conhece ORM — acesso a dados só via portas implementadas em src/adapters (ADR-0013).",
             },
             {
-              group: ["**/adapters/**", "**/lib/**", "**/routes/**", "**/db/**"],
+              group: [
+                "**/adapters/**",
+                "**/lib/**",
+                "**/routes/**",
+                "**/db/**",
+              ],
               message:
                 "Dependência aponta para dentro: src/core não importa adapters, lib, routes ou db (ADR-0013).",
             },

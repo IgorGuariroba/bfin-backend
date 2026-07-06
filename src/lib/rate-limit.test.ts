@@ -51,7 +51,12 @@ describe("checkRateLimit", () => {
 
 describe("classifyRpc", () => {
   const call = (name: string) =>
-    JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name } });
+    JSON.stringify({
+      jsonrpc: "2.0",
+      id: 1,
+      method: "tools/call",
+      params: { name },
+    });
 
   it("classifica tools/call de uma write-tool como write", () => {
     for (const name of [
@@ -65,18 +70,27 @@ describe("classifyRpc", () => {
   });
 
   it("classifica tools/call de uma read-tool como read", () => {
-    for (const name of ["get_month_summary", "list_transactions", "list_tag", "get_previsao"]) {
+    for (const name of [
+      "get_month_summary",
+      "list_transactions",
+      "list_tag",
+      "get_previsao",
+    ]) {
       expect(classifyRpc(call(name))).toBe("read");
     }
   });
 
   it("classifica tools/list e initialize (handshake de protocolo) como read", () => {
-    expect(classifyRpc(JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list" }))).toBe(
-      "read"
-    );
-    expect(classifyRpc(JSON.stringify({ jsonrpc: "2.0", id: 1, method: "initialize" }))).toBe(
-      "read"
-    );
+    expect(
+      classifyRpc(
+        JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list" }),
+      ),
+    ).toBe("read");
+    expect(
+      classifyRpc(
+        JSON.stringify({ jsonrpc: "2.0", id: 1, method: "initialize" }),
+      ),
+    ).toBe("read");
   });
 
   it("trata body não-JSON como read (não onera a cota de escrita)", () => {
@@ -86,8 +100,18 @@ describe("classifyRpc", () => {
   it("classifica batch JSON-RPC com qualquer write-tool como write (sem bypass)", () => {
     const batch = JSON.stringify([
       { jsonrpc: "2.0", id: 1, method: "tools/list" },
-      { jsonrpc: "2.0", id: 2, method: "tools/call", params: { name: "list_tag" } },
-      { jsonrpc: "2.0", id: 3, method: "tools/call", params: { name: "create_transaction" } },
+      {
+        jsonrpc: "2.0",
+        id: 2,
+        method: "tools/call",
+        params: { name: "list_tag" },
+      },
+      {
+        jsonrpc: "2.0",
+        id: 3,
+        method: "tools/call",
+        params: { name: "create_transaction" },
+      },
     ]);
     expect(classifyRpc(batch)).toBe("write");
   });
@@ -95,7 +119,12 @@ describe("classifyRpc", () => {
   it("classifica batch JSON-RPC só de leituras como read", () => {
     const batch = JSON.stringify([
       { jsonrpc: "2.0", id: 1, method: "tools/list" },
-      { jsonrpc: "2.0", id: 2, method: "tools/call", params: { name: "get_month_summary" } },
+      {
+        jsonrpc: "2.0",
+        id: 2,
+        method: "tools/call",
+        params: { name: "get_month_summary" },
+      },
     ]);
     expect(classifyRpc(batch)).toBe("read");
   });
