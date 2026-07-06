@@ -170,26 +170,3 @@ describe("POST /billing/checkout", () => {
   });
 });
 
-describe("POST /billing/process-subscription-event", () => {
-  it("authorized ativa o pro do usuário", async () => {
-    const app = buildApp();
-    const user = await seedUser({ plan: "free" });
-    mockPreApprovalGet.mockResolvedValue({
-      id: "sub-9",
-      status: "authorized",
-      external_reference: `${user.id}:monthly`,
-    });
-
-    const res = await app.inject({
-      method: "POST",
-      url: "/billing/process-subscription-event",
-      headers: { "x-internal-secret": SECRET },
-      payload: { subscriptionId: "sub-9" },
-    });
-
-    expect(res.statusCode).toBe(200);
-    const [inDb] = await db.select().from(userTable).where(eq(userTable.id, user.id));
-    expect(inDb.plan).toBe("pro");
-    expect(inDb.mpSubscriptionId).toBe("sub-9");
-  });
-});

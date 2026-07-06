@@ -100,11 +100,4 @@ export function billingRoutes(app: FastifyInstance) {
     }
   });
 
-  // Chamada internamente pelo webhook do MercadoPago no bfin-app (que valida
-  // a assinatura HTTP antes de repassar) — aqui só o efeito de domínio.
-  app.post("/billing/process-subscription-event", async (request) => {
-    const { subscriptionId } = request.body as { subscriptionId: string };
-    await billingService.processSubscriptionEvent(subscriptionId);
-    return { ok: true };
-  });
 }
