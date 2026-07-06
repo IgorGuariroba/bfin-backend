@@ -121,7 +121,7 @@ function mcpInject(app: ReturnType<typeof buildApp>, token: string | null, body:
     accept: "application/json, text/event-stream",
   };
   if (token) headers.authorization = `Bearer ${token}`;
-  return app.inject({ method: "POST", url: "/mcp", headers, payload: JSON.stringify(body) });
+  return app.inject({ method: "POST", url: "/api/mcp", headers, payload: JSON.stringify(body) });
 }
 
 /** Extrai o `result` da resposta JSON-RPC (corpo pode vir como SSE: linha "data: {…}"). */
