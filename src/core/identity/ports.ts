@@ -20,7 +20,10 @@ export interface IdentityRepo {
    * Dono da delegação quando existe AccountMember ativo ownerId←memberId
    * (ADR-0011); null quando não há vínculo ativo.
    */
-  findActiveMembershipOwner(ownerId: string, memberId: string): Promise<MembershipOwner | null>;
+  findActiveMembershipOwner(
+    ownerId: string,
+    memberId: string,
+  ): Promise<MembershipOwner | null>;
 }
 
 /** Campos de um convite novo — id/createdAt são responsabilidade do adapter. */
@@ -42,11 +45,16 @@ export interface MembersRepo {
   /** Vínculos ativos onde o usuário é o convidado. Ordenação: createdAt desc. */
   listReceivedActive(memberId: string): Promise<ReceivedInvite[]>;
   /** Já existe convite pending/active do dono para este email? (dedup do invite) */
-  hasPendingOrActiveInvite(ownerId: string, inviteEmail: string): Promise<boolean>;
+  hasPendingOrActiveInvite(
+    ownerId: string,
+    inviteEmail: string,
+  ): Promise<boolean>;
   createInvite(data: NewInvite): Promise<AccountMember>;
   findByToken(
-    token: string
-  ): Promise<(AccountMember & { owner: { name: string; email: string } }) | null>;
+    token: string,
+  ): Promise<
+    (AccountMember & { owner: { name: string; email: string } }) | null
+  >;
   /** Vincula o convidado e ativa o convite. */
   activate(id: string, memberId: string): Promise<AccountMember>;
   findById(id: string): Promise<AccountMember | null>;

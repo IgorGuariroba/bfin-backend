@@ -15,7 +15,11 @@ function safeEqual(a: string, b: string): boolean {
   return timingSafeEqual(ab, bb);
 }
 
-function requireInternalSecret(request: FastifyRequest, reply: FastifyReply, done: () => void) {
+function requireInternalSecret(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  done: () => void,
+) {
   const secret = process.env.INTERNAL_API_SECRET;
   const provided = request.headers["x-internal-secret"];
   if (!secret || typeof provided !== "string" || !safeEqual(provided, secret)) {
@@ -42,10 +46,19 @@ export function transactionsRoutes(app: FastifyInstance) {
   app.addHook("onRequest", requireInternalSecret);
 
   app.get("/transactions", async (request, reply) => {
-    const { userId, month, type, tagId, from, to } = request.query as Record<string, string | undefined>;
+    const { userId, month, type, tagId, from, to } = request.query as Record<
+      string,
+      string | undefined
+    >;
     if (!userId) return reply.code(400).send({ error: "userId é obrigatório" });
     try {
-      return await transactionsService.listTransactions(userId, { month, type, tagId, from, to });
+      return await transactionsService.listTransactions(userId, {
+        month,
+        type,
+        tagId,
+        from,
+        to,
+      });
     } catch (error) {
       if (domainErrorResponse(error, reply)) return;
       throw error;
@@ -59,7 +72,9 @@ export function transactionsRoutes(app: FastifyInstance) {
       type?: string;
     };
     if (!userId || !description) {
-      return reply.code(400).send({ error: "userId e description são obrigatórios" });
+      return reply
+        .code(400)
+        .send({ error: "userId e description são obrigatórios" });
     }
     const resolvedType = type ?? suggestType(description);
     const userTags = await tagsService.listTags(userId);
@@ -81,7 +96,8 @@ export function transactionsRoutes(app: FastifyInstance) {
       tagIds?: string[];
       force?: boolean;
     };
-    if (!body.userId) return reply.code(400).send({ error: "userId é obrigatório" });
+    if (!body.userId)
+      return reply.code(400).send({ error: "userId é obrigatório" });
     try {
       const result = await transactionsService.createTransaction({
         userId: body.userId,
@@ -113,7 +129,8 @@ export function transactionsRoutes(app: FastifyInstance) {
       date?: string;
       tagIds?: string[];
     };
-    if (!body.userId) return reply.code(400).send({ error: "userId é obrigatório" });
+    if (!body.userId)
+      return reply.code(400).send({ error: "userId é obrigatório" });
     try {
       return await transactionsService.updateTransaction({
         userId: body.userId,

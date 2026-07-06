@@ -24,24 +24,42 @@ function makeFakes() {
     updatedAt: new Date(2026, 0, 1),
   };
   const users = new Map<string, FakeUser>();
-  const gatewayCalls: Record<string, unknown[]> = { create: [], get: [], cancel: [] };
+  const gatewayCalls: Record<string, unknown[]> = {
+    create: [],
+    get: [],
+    cancel: [],
+  };
   let remoteSubscription: {
     id: string | undefined;
     status: string | undefined;
     externalReference: string | undefined;
     transactionAmount: number | undefined;
-  } = { id: undefined, status: undefined, externalReference: undefined, transactionAmount: undefined };
+  } = {
+    id: undefined,
+    status: undefined,
+    externalReference: undefined,
+    transactionAmount: undefined,
+  };
 
   const repo: BillingRepo = {
     getPlanConfig: async () => config,
     updatePlanConfig: async (monthlyAmount, annualAmount) => {
-      config = { ...config, monthlyAmount, annualAmount, updatedAt: new Date() };
+      config = {
+        ...config,
+        monthlyAmount,
+        annualAmount,
+        updatedAt: new Date(),
+      };
       return config;
     },
     findSubscription: async (userId) => {
       const u = users.get(userId);
       return u
-        ? { plan: u.plan, planExpiresAt: u.planExpiresAt, mpSubscriptionId: u.mpSubscriptionId }
+        ? {
+            plan: u.plan,
+            planExpiresAt: u.planExpiresAt,
+            mpSubscriptionId: u.mpSubscriptionId,
+          }
         : null;
     },
     clearSubscription: async (userId) => {
@@ -53,7 +71,12 @@ function makeFakes() {
       u.plan = "pro";
       u.planExpiresAt = planExpiresAt;
       u.mpSubscriptionId = mpSubscriptionId;
-      return { email: u.email, gclid: u.gclid, gbraid: u.gbraid, wbraid: u.wbraid };
+      return {
+        email: u.email,
+        gclid: u.gclid,
+        gbraid: u.gbraid,
+        wbraid: u.wbraid,
+      };
     },
     captureClickAttribution: async (userId, click) => {
       const u = users.get(userId);
@@ -121,24 +144,39 @@ beforeEach(() => {
 
 describe("getPlanPrices", () => {
   it("expõe os preços correntes do PlanConfig", async () => {
-    expect(await service.getPlanPrices()).toEqual({ monthly: 14.9, annual: 119.9 });
+    expect(await service.getPlanPrices()).toEqual({
+      monthly: 14.9,
+      annual: 119.9,
+    });
   });
 });
 
 describe("updatePlanConfig", () => {
   it("persiste valores numéricos e devolve a config completa", async () => {
-    const updated = await service.updatePlanConfig({ monthlyAmount: 19.9, annualAmount: 149.9 });
+    const updated = await service.updatePlanConfig({
+      monthlyAmount: 19.9,
+      annualAmount: 149.9,
+    });
 
     expect(updated).toMatchObject({ monthlyAmount: 19.9, annualAmount: 149.9 });
-    expect(await service.getPlanPrices()).toEqual({ monthly: 19.9, annual: 149.9 });
+    expect(await service.getPlanPrices()).toEqual({
+      monthly: 19.9,
+      annual: 149.9,
+    });
   });
 
   it("rejeita valores não numéricos", async () => {
     await expect(
-      service.updatePlanConfig({ monthlyAmount: "19.9" as never, annualAmount: 149.9 })
+      service.updatePlanConfig({
+        monthlyAmount: "19.9" as never,
+        annualAmount: 149.9,
+      }),
     ).rejects.toBeInstanceOf(BillingValidationError);
     await expect(
-      service.updatePlanConfig({ monthlyAmount: 19.9, annualAmount: undefined as never })
+      service.updatePlanConfig({
+        monthlyAmount: 19.9,
+        annualAmount: undefined as never,
+      }),
     ).rejects.toBeInstanceOf(BillingValidationError);
   });
 });
@@ -172,7 +210,9 @@ describe("cancelSubscription", () => {
   it("sem assinatura ativa é erro de validação e o gateway não é chamado", async () => {
     fake.seedUser("u1");
 
-    await expect(service.cancelSubscription("u1")).rejects.toThrow("Nenhuma assinatura ativa");
+    await expect(service.cancelSubscription("u1")).rejects.toThrow(
+      "Nenhuma assinatura ativa",
+    );
     expect(fake.gatewayCalls.cancel).toHaveLength(0);
   });
 });
@@ -186,7 +226,10 @@ describe("checkout", () => {
 
   it("cria a assinatura no gateway com preço do PlanConfig e external_reference userId:cycle", async () => {
     fake.seedUser("u1");
-    await service.updatePlanConfig({ monthlyAmount: 14.9, annualAmount: 149.9 });
+    await service.updatePlanConfig({
+      monthlyAmount: 14.9,
+      annualAmount: 149.9,
+    });
 
     const result = await service.checkout({ ...base, cycle: "annual" });
 
@@ -206,17 +249,21 @@ describe("checkout", () => {
     fake.seedUser("u1");
 
     await expect(
-      service.checkout({ ...base, cycle: "weekly" as never })
+      service.checkout({ ...base, cycle: "weekly" as never }),
     ).rejects.toThrow("Ciclo inválido");
     await expect(
-      service.checkout({ ...base, email: null, cycle: "monthly" })
+      service.checkout({ ...base, email: null, cycle: "monthly" }),
     ).rejects.toThrow("Conta sem e-mail");
     expect(fake.gatewayCalls.create).toHaveLength(0);
   });
 
   it("captura atribuição de clique quando presente; falha na captura não bloqueia", async () => {
     fake.seedUser("u1");
-    await service.checkout({ ...base, cycle: "monthly", click: { gclid: "g-123" } });
+    await service.checkout({
+      ...base,
+      cycle: "monthly",
+      click: { gclid: "g-123" },
+    });
     expect(fake.users.get("u1")?.gclid).toBe("g-123");
 
     fake.seedUser("u2");
@@ -237,7 +284,11 @@ describe("checkout", () => {
 describe("processSubscriptionEvent", () => {
   it("authorized ativa o pro com a janela do ciclo e vincula a assinatura", async () => {
     fake.seedUser("u1");
-    fake.setRemote({ id: "mp-9", status: "authorized", externalReference: "u1:annual" });
+    fake.setRemote({
+      id: "mp-9",
+      status: "authorized",
+      externalReference: "u1:annual",
+    });
 
     const before = Date.now();
     await service.processSubscriptionEvent("mp-9");
@@ -252,17 +303,30 @@ describe("processSubscriptionEvent", () => {
 
   it("cancelled/paused desvincula a assinatura sem mexer no plano", async () => {
     fake.seedUser("u1", { plan: "pro", mpSubscriptionId: "mp-9" });
-    fake.setRemote({ id: "mp-9", status: "cancelled", externalReference: "u1:monthly" });
+    fake.setRemote({
+      id: "mp-9",
+      status: "cancelled",
+      externalReference: "u1:monthly",
+    });
 
     await service.processSubscriptionEvent("mp-9");
 
-    expect(fake.users.get("u1")).toMatchObject({ plan: "pro", mpSubscriptionId: null });
+    expect(fake.users.get("u1")).toMatchObject({
+      plan: "pro",
+      mpSubscriptionId: null,
+    });
   });
 
   it("evento sem userId no external_reference é ignorado", async () => {
-    fake.setRemote({ id: "mp-9", status: "authorized", externalReference: undefined });
+    fake.setRemote({
+      id: "mp-9",
+      status: "authorized",
+      externalReference: undefined,
+    });
 
-    await expect(service.processSubscriptionEvent("mp-9")).resolves.toBeUndefined();
+    await expect(
+      service.processSubscriptionEvent("mp-9"),
+    ).resolves.toBeUndefined();
   });
 
   it("reporta conversão uma única vez (dedup) e notifica a nova assinatura", async () => {
@@ -272,7 +336,8 @@ describe("processSubscriptionEvent", () => {
       logger: { warn: () => {}, error: () => {} },
       conversions: {
         isConfigured: () => true,
-        resolveClickId: (u) => (u.gclid ? { type: "gclid", value: u.gclid } : null),
+        resolveClickId: (u) =>
+          u.gclid ? { type: "gclid", value: u.gclid } : null,
         upload: async (input) => {
           uploads.push(input);
           return { ok: true };
@@ -294,7 +359,10 @@ describe("processSubscriptionEvent", () => {
     await service.processSubscriptionEvent("mp-9"); // renovação/reenvio
 
     expect(uploads).toHaveLength(1);
-    expect(uploads[0]).toMatchObject({ clickId: { type: "gclid", value: "g-1" }, value: 14.9 });
+    expect(uploads[0]).toMatchObject({
+      clickId: { type: "gclid", value: "g-1" },
+      value: 14.9,
+    });
     expect(notified).toHaveLength(2);
     expect(notified[0]).toMatchObject({
       email: "u1@example.com",
@@ -318,9 +386,15 @@ describe("processSubscriptionEvent", () => {
       },
     });
     fake.seedUser("u1", { gclid: "g-1" });
-    fake.setRemote({ id: "mp-9", status: "authorized", externalReference: "u1:monthly" });
+    fake.setRemote({
+      id: "mp-9",
+      status: "authorized",
+      externalReference: "u1:monthly",
+    });
 
-    await expect(service.processSubscriptionEvent("mp-9")).resolves.toBeUndefined();
+    await expect(
+      service.processSubscriptionEvent("mp-9"),
+    ).resolves.toBeUndefined();
     expect(fake.users.get("u1")?.plan).toBe("pro");
   });
 });

@@ -1,5 +1,10 @@
 import type { ApiKeyRepo } from "./ports.js";
-import type { AgentPrincipal, AgentWrite, ApiKeySummary, IssuedApiKey } from "./types.js";
+import type {
+  AgentPrincipal,
+  AgentWrite,
+  ApiKeySummary,
+  IssuedApiKey,
+} from "./types.js";
 import { ProRequiredError, type Plan } from "../identity/index.js";
 
 export class ApiKeyNotFoundError extends Error {}
@@ -30,7 +35,9 @@ export function makeApiKeysService(repo: ApiKeyRepo, deps: ApiKeysDeps) {
    * ativa por vez — revoga as anteriores antes de criar. O plain é devolvido
    * apenas aqui e nunca mais é recuperável (armazenada hasheada).
    */
-  async function issueApiKey(userId: string): Promise<IssuedApiKey & { plain: string }> {
+  async function issueApiKey(
+    userId: string,
+  ): Promise<IssuedApiKey & { plain: string }> {
     if ((await deps.getUserPlan(userId)) !== "pro") {
       throw new ProRequiredError("Emissão de token exige plano pro");
     }
@@ -38,7 +45,12 @@ export function makeApiKeysService(repo: ApiKeyRepo, deps: ApiKeysDeps) {
     await repo.revokeAllActive(userId, new Date());
 
     const { plain, prefix, hashedKey } = deps.generateKey();
-    const created = await repo.create({ userId, name: "Assistente", prefix, hashedKey });
+    const created = await repo.create({
+      userId,
+      name: "Assistente",
+      prefix,
+      hashedKey,
+    });
 
     return { ...created, plain };
   }
@@ -65,7 +77,9 @@ export function makeApiKeysService(repo: ApiKeyRepo, deps: ApiKeysDeps) {
    * existente, não revogada e de dono pro (downgrade corta o acesso do agente).
    * Sucesso carimba lastUsedAt; falha resolve null sem tocar em nada.
    */
-  async function resolvePrincipal(token: string): Promise<AgentPrincipal | null> {
+  async function resolvePrincipal(
+    token: string,
+  ): Promise<AgentPrincipal | null> {
     const record = await repo.findByHashedKey(deps.hashKey(token));
     if (!record || record.revokedAt) return null;
 
@@ -84,7 +98,12 @@ export function makeApiKeysService(repo: ApiKeyRepo, deps: ApiKeysDeps) {
    * compartilhado com REST e não conhece ApiKey) — o canal chama após cada
    * create/update/delete.
    */
-  async function recordAgentWrite({ apiKeyId, userId, action, entityId }: AgentWrite): Promise<void> {
+  async function recordAgentWrite({
+    apiKeyId,
+    userId,
+    action,
+    entityId,
+  }: AgentWrite): Promise<void> {
     deps.logger.info({ apiKeyId, userId, action, entityId }, "agent write");
     try {
       await repo.bumpLastUsed(apiKeyId, new Date());
@@ -97,7 +116,13 @@ export function makeApiKeysService(repo: ApiKeyRepo, deps: ApiKeysDeps) {
     }
   }
 
-  return { issueApiKey, listApiKeys, revokeApiKey, resolvePrincipal, recordAgentWrite };
+  return {
+    issueApiKey,
+    listApiKeys,
+    revokeApiKey,
+    resolvePrincipal,
+    recordAgentWrite,
+  };
 }
 
 export type ApiKeysService = ReturnType<typeof makeApiKeysService>;

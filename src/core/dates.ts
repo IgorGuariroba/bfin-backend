@@ -22,7 +22,10 @@ export function addMonths(date: Date, n: number): Date {
  * (12:00 no container UTC — ADR-0005), então a janela do dia tem ~9–12h de
  * folga das bordas, imune a off-by-one perto da virada. Default: agora.
  */
-export function saoPauloTodayRange(now: Date = new Date()): { gte: Date; lt: Date } {
+export function saoPauloTodayRange(now: Date = new Date()): {
+  gte: Date;
+  lt: Date;
+} {
   // en-CA formata como YYYY-MM-DD; com timeZone, dá a data-calendário em SP.
   const [y, m, d] = new Intl.DateTimeFormat("en-CA", {
     timeZone: "America/Sao_Paulo",

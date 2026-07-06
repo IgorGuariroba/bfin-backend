@@ -34,7 +34,7 @@ function normalize(s: string): string {
  */
 export function suggestTag(
   description: string,
-  tags: { id: string; name: string }[]
+  tags: { id: string; name: string }[],
 ): string | null {
   const d = normalize(description);
   if (!d) return null;

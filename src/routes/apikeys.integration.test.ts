@@ -35,7 +35,10 @@ describe("rotas de apikeys", () => {
 
   it("rejeita sem o header do segredo compartilhado", async () => {
     const app = buildApp();
-    const response = await app.inject({ method: "GET", url: "/apikeys?userId=x" });
+    const response = await app.inject({
+      method: "GET",
+      url: "/apikeys?userId=x",
+    });
     expect(response.statusCode).toBe(401);
   });
 
@@ -54,7 +57,11 @@ describe("rotas de apikeys", () => {
     const key = issued.json();
     expect(key.plain).toMatch(/^sk-bfin-/);
 
-    const listed = await app.inject({ method: "GET", url: `/apikeys?userId=${user.id}`, headers });
+    const listed = await app.inject({
+      method: "GET",
+      url: `/apikeys?userId=${user.id}`,
+      headers,
+    });
     expect(listed.json()).toHaveLength(1);
 
     const revoked = await app.inject({
@@ -71,7 +78,12 @@ describe("rotas de apikeys", () => {
     const user = await seedUser("free");
     const headers = { "x-internal-secret": SECRET };
 
-    const response = await app.inject({ method: "POST", url: "/apikeys", headers, payload: { userId: user.id } });
+    const response = await app.inject({
+      method: "POST",
+      url: "/apikeys",
+      headers,
+      payload: { userId: user.id },
+    });
 
     expect(response.statusCode).toBe(403);
   });
@@ -130,7 +142,12 @@ describe("rotas de apikeys", () => {
       method: "POST",
       url: "/apikeys/record-write",
       headers,
-      payload: { apiKeyId: key.id, userId: user.id, action: "create", entityId: "tx-1" },
+      payload: {
+        apiKeyId: key.id,
+        userId: user.id,
+        action: "create",
+        entityId: "tx-1",
+      },
     });
 
     expect(response.statusCode).toBe(204);

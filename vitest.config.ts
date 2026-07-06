@@ -8,7 +8,10 @@ export default defineConfig({
     projects: [
       {
         extends: true,
-        test: { name: "unit", exclude: [...defaultExclude, "**/*.integration.test.ts"] },
+        test: {
+          name: "unit",
+          exclude: [...defaultExclude, "**/*.integration.test.ts"],
+        },
       },
       {
         extends: true,

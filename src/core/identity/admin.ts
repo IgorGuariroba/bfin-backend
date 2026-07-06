@@ -5,7 +5,7 @@
  */
 export function isAdminEmail(
   email: string | null | undefined,
-  adminEmails: string[]
+  adminEmails: string[],
 ): boolean {
   if (!email) return false;
   const normalized = email.toLowerCase();

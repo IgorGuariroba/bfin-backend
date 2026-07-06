@@ -17,24 +17,34 @@ import pg from "pg";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 
-const migrationsFolder = join(dirname(fileURLToPath(import.meta.url)), "..", "drizzle");
+const migrationsFolder = join(
+  dirname(fileURLToPath(import.meta.url)),
+  "..",
+  "drizzle",
+);
 
-const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL, max: 1 });
+const pool = new pg.Pool({
+  connectionString: process.env.DATABASE_URL,
+  max: 1,
+});
 
 try {
-  const { rows: [{ t: hasUserTable }] } = await pool.query(
-    `select to_regclass('public."User"') as t`
-  );
+  const {
+    rows: [{ t: hasUserTable }],
+  } = await pool.query(`select to_regclass('public."User"') as t`);
   const journal = await pool
     .query(`select count(*)::int as n from drizzle.__drizzle_migrations`)
     .catch(() => null); // schema/tabela ainda não existem
 
   if (hasUserTable !== null && (journal === null || journal.rows[0].n === 0)) {
     const { entries } = JSON.parse(
-      readFileSync(join(migrationsFolder, "meta", "_journal.json"), "utf8")
+      readFileSync(join(migrationsFolder, "meta", "_journal.json"), "utf8"),
     );
     const first = entries[0];
-    const sqlText = readFileSync(join(migrationsFolder, `${first.tag}.sql`), "utf8");
+    const sqlText = readFileSync(
+      join(migrationsFolder, `${first.tag}.sql`),
+      "utf8",
+    );
     const hash = createHash("sha256").update(sqlText).digest("hex");
 
     await pool.query(`CREATE SCHEMA IF NOT EXISTS drizzle`);
@@ -43,13 +53,15 @@ try {
         id SERIAL PRIMARY KEY,
         hash text NOT NULL,
         created_at bigint
-      )`
+      )`,
     );
     await pool.query(
       `INSERT INTO drizzle.__drizzle_migrations (hash, created_at) VALUES ($1, $2)`,
-      [hash, first.when]
+      [hash, first.when],
     );
-    console.log(`[db-migrate] baseline: ${first.tag} marcada como aplicada (banco pré-existente)`);
+    console.log(
+      `[db-migrate] baseline: ${first.tag} marcada como aplicada (banco pré-existente)`,
+    );
   }
 
   await migrate(drizzle(pool), { migrationsFolder });

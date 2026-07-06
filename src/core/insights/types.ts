@@ -9,10 +9,7 @@ export interface Movement {
 }
 
 export type SugestaoTipo =
-  | "saldo_negativo"
-  | "diario_acima"
-  | "economia_baixa"
-  | "custo_subiu";
+  "saldo_negativo" | "diario_acima" | "economia_baixa" | "custo_subiu";
 
 export interface Sugestao {
   tipo: SugestaoTipo;

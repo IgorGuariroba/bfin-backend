@@ -1,7 +1,10 @@
 import { makeTagsService } from "../core/tags/index.js";
 import { makeTransactionsService } from "../core/transactions/index.js";
 import { makePrevisaoService } from "../core/previsao/index.js";
-import { makeIdentityService, makeMembersService } from "../core/identity/index.js";
+import {
+  makeIdentityService,
+  makeMembersService,
+} from "../core/identity/index.js";
 import { makeApiKeysService } from "../core/apikeys/index.js";
 import { makeBillingService } from "../core/billing/index.js";
 import { makeInsightsService } from "../core/insights/index.js";
@@ -16,12 +19,19 @@ import { drizzleInsightsRepo } from "./drizzle/insights-repo.js";
 import { generateApiKey, hashApiKey } from "../lib/api-key.js";
 import { mercadoPagoGateway } from "./mercadopago-gateway.js";
 import { notifyNewSubscriptionOnDiscord } from "./discord-notify.js";
-import { isGoogleAdsConfigured, resolveClickId, uploadConversion } from "../lib/google-ads.js";
+import {
+  isGoogleAdsConfigured,
+  resolveClickId,
+  uploadConversion,
+} from "../lib/google-ads.js";
 
 export const tagsService = makeTagsService(drizzleTagRepo);
-export const transactionsService = makeTransactionsService(drizzleTransactionRepo, {
-  logger: { warn: (data, msg) => console.warn(msg, data) },
-});
+export const transactionsService = makeTransactionsService(
+  drizzleTransactionRepo,
+  {
+    logger: { warn: (data, msg) => console.warn(msg, data) },
+  },
+);
 export const previsaoService = makePrevisaoService(drizzlePrevisaoRepo);
 export const identityService = makeIdentityService(drizzleIdentityRepo);
 export const membersService = makeMembersService(drizzleMembersRepo, {
@@ -36,13 +46,20 @@ export const apiKeysService = makeApiKeysService(drizzleApiKeyRepo, {
     warn: (data, msg) => console.warn(msg, data),
   },
 });
-export const billingService = makeBillingService(drizzleBillingRepo, mercadoPagoGateway, {
-  logger: { warn: (data, msg) => console.warn(msg, data), error: (data, msg) => console.error(msg, data) },
-  conversions: {
-    isConfigured: isGoogleAdsConfigured,
-    resolveClickId,
-    upload: uploadConversion,
+export const billingService = makeBillingService(
+  drizzleBillingRepo,
+  mercadoPagoGateway,
+  {
+    logger: {
+      warn: (data, msg) => console.warn(msg, data),
+      error: (data, msg) => console.error(msg, data),
+    },
+    conversions: {
+      isConfigured: isGoogleAdsConfigured,
+      resolveClickId,
+      upload: uploadConversion,
+    },
+    notifyNewSubscription: notifyNewSubscriptionOnDiscord,
   },
-  notifyNewSubscription: notifyNewSubscriptionOnDiscord,
-});
+);
 export const insightsService = makeInsightsService(drizzleInsightsRepo);

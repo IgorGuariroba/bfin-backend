@@ -18,14 +18,21 @@ function fakeRepo() {
   const ownedTags = new Map<string, Set<string>>();
   let seq = 0;
 
-  const materialize = (data: NewTransaction, tagIds?: string[]): TransactionWithTags => ({
+  const materialize = (
+    data: NewTransaction,
+    tagIds?: string[],
+  ): TransactionWithTags => ({
     ...data,
     id: `t${++seq}`,
     createdAt: new Date(),
     updatedAt: new Date(),
     externalId: null,
     pluggyItemId: null,
-    tags: (tagIds ?? []).map((id) => ({ id, name: `tag-${id}`, color: "#000" })),
+    tags: (tagIds ?? []).map((id) => ({
+      id,
+      name: `tag-${id}`,
+      color: "#000",
+    })),
   });
 
   const repo: TransactionRepo = {
@@ -33,7 +40,9 @@ function fakeRepo() {
       return rows
         .filter((r) => r.userId === query.userId)
         .filter((r) => (query.type ? r.type === query.type : true))
-        .filter((r) => (query.tagId ? r.tags.some((t) => t.id === query.tagId) : true))
+        .filter((r) =>
+          query.tagId ? r.tags.some((t) => t.id === query.tagId) : true,
+        )
         .filter((r) => {
           const { date } = query;
           if (!date) return true;
@@ -54,7 +63,7 @@ function fakeRepo() {
               r.type === type &&
               r.amount === amount &&
               r.date >= window.gte &&
-              r.date <= window.lte
+              r.date <= window.lte,
           )
           .sort((a, b) => a.date.getTime() - b.date.getTime())[0] ?? null
       );
@@ -78,7 +87,11 @@ function fakeRepo() {
       const row = rows.find((r) => r.id === id)!;
       Object.assign(row, patch, { updatedAt: new Date() });
       if (tagIds !== undefined) {
-        row.tags = tagIds.map((tid) => ({ id: tid, name: `tag-${tid}`, color: "#000" }));
+        row.tags = tagIds.map((tid) => ({
+          id: tid,
+          name: `tag-${tid}`,
+          color: "#000",
+        }));
       }
       return row;
     },
@@ -134,24 +147,24 @@ describe("createTransaction", () => {
     };
 
     await expect(
-      svc.createTransaction({ ...valid, description: "" })
+      svc.createTransaction({ ...valid, description: "" }),
     ).rejects.toBeInstanceOf(TransactionValidationError);
     await expect(
-      svc.createTransaction({ ...valid, type: "investimento" })
+      svc.createTransaction({ ...valid, type: "investimento" }),
     ).rejects.toBeInstanceOf(TransactionValidationError);
     // `diario` é reservado à projeção (apply_previsao) — escrita de usuário/agente
     // jamais o cria (ADR-0004 §4).
     await expect(
-      svc.createTransaction({ ...valid, type: "diario" })
+      svc.createTransaction({ ...valid, type: "diario" }),
     ).rejects.toBeInstanceOf(TransactionValidationError);
     await expect(
-      svc.createTransaction({ ...valid, amount: 0 })
+      svc.createTransaction({ ...valid, amount: 0 }),
     ).rejects.toBeInstanceOf(TransactionValidationError);
     await expect(
-      svc.createTransaction({ ...valid, date: "2026-02-30" })
+      svc.createTransaction({ ...valid, date: "2026-02-30" }),
     ).rejects.toBeInstanceOf(TransactionValidationError);
     await expect(
-      svc.createTransaction({ ...valid, date: 20260610 as unknown as string })
+      svc.createTransaction({ ...valid, date: 20260610 as unknown as string }),
     ).rejects.toBeInstanceOf(TransactionValidationError);
 
     expect(rows).toHaveLength(0);
@@ -170,7 +183,7 @@ describe("createTransaction", () => {
         amount: 120,
         date: "2026-06-10",
         tagIds: ["tag-alheia"],
-      })
+      }),
     ).rejects.toBeInstanceOf(TransactionValidationError);
     expect(rows).toHaveLength(0);
   });
@@ -226,7 +239,10 @@ describe("createTransaction — dedup defensivo (ADR-0004)", () => {
     const forced = await svc.createTransaction({ ...base, force: true });
     expect(forced.duplicated).toBe(false);
 
-    const distant = await svc.createTransaction({ ...base, date: "2026-06-13" }); // +3 dias
+    const distant = await svc.createTransaction({
+      ...base,
+      date: "2026-06-13",
+    }); // +3 dias
     expect(distant.duplicated).toBe(false);
     expect(rows).toHaveLength(3);
   });
@@ -280,16 +296,36 @@ describe("createTransaction — recorrência", () => {
 describe("listTransactions", () => {
   async function seed(svc: TransactionsService) {
     await svc.createTransaction({
-      userId: "u1", type: "saida", description: "Maio", amount: 10, date: "2026-05-20", force: true,
+      userId: "u1",
+      type: "saida",
+      description: "Maio",
+      amount: 10,
+      date: "2026-05-20",
+      force: true,
     });
     await svc.createTransaction({
-      userId: "u1", type: "saida", description: "Junho", amount: 20, date: "2026-06-10", force: true,
+      userId: "u1",
+      type: "saida",
+      description: "Junho",
+      amount: 20,
+      date: "2026-06-10",
+      force: true,
     });
     await svc.createTransaction({
-      userId: "u1", type: "entrada", description: "Salário", amount: 5000, date: "2026-06-05", force: true,
+      userId: "u1",
+      type: "entrada",
+      description: "Salário",
+      amount: 5000,
+      date: "2026-06-05",
+      force: true,
     });
     await svc.createTransaction({
-      userId: "u2", type: "saida", description: "Alheia", amount: 30, date: "2026-06-10", force: true,
+      userId: "u2",
+      type: "saida",
+      description: "Alheia",
+      amount: 30,
+      date: "2026-06-10",
+      force: true,
     });
   }
 
@@ -307,7 +343,10 @@ describe("listTransactions", () => {
     const svc = makeTransactionsService(repo);
     await seed(svc);
 
-    const range = await svc.listTransactions("u1", { from: "2026-06-05", to: "2026-06-05" });
+    const range = await svc.listTransactions("u1", {
+      from: "2026-06-05",
+      to: "2026-06-05",
+    });
     expect(range.map((t) => t.description)).toEqual(["Salário"]);
 
     const byType = await svc.listTransactions("u1", { type: "saida" });
@@ -318,15 +357,15 @@ describe("listTransactions", () => {
     const { repo } = fakeRepo();
     const svc = makeTransactionsService(repo);
 
-    await expect(svc.listTransactions("u1", { month: "2026-13" })).rejects.toBeInstanceOf(
-      TransactionValidationError
-    );
-    await expect(svc.listTransactions("u1", { from: "10/06/2026" })).rejects.toBeInstanceOf(
-      TransactionValidationError
-    );
-    await expect(svc.listTransactions("u1", { to: "2026-02-30" })).rejects.toBeInstanceOf(
-      TransactionValidationError
-    );
+    await expect(
+      svc.listTransactions("u1", { month: "2026-13" }),
+    ).rejects.toBeInstanceOf(TransactionValidationError);
+    await expect(
+      svc.listTransactions("u1", { from: "10/06/2026" }),
+    ).rejects.toBeInstanceOf(TransactionValidationError);
+    await expect(
+      svc.listTransactions("u1", { to: "2026-02-30" }),
+    ).rejects.toBeInstanceOf(TransactionValidationError);
   });
 
   it("corta no teto MAX_LIST_RESULTS e avisa o logger injetado", async () => {
@@ -338,11 +377,17 @@ describe("listTransactions", () => {
     for (let i = 0; i < MAX_LIST_RESULTS + 1; i++) {
       await repo.create(
         {
-          userId: "u1", type: "saida", description: `tx-${i}`, amount: 1,
-          date: new Date(2026, 0, 1, 12), source: "manual",
-          repeat: "none", repeatEnd: "forever", repeatCount: 0,
+          userId: "u1",
+          type: "saida",
+          description: `tx-${i}`,
+          amount: 1,
+          date: new Date(2026, 0, 1, 12),
+          source: "manual",
+          repeat: "none",
+          repeatEnd: "forever",
+          repeatCount: 0,
         },
-        undefined
+        undefined,
       );
     }
 
@@ -355,7 +400,12 @@ describe("listTransactions", () => {
 describe("updateTransaction", () => {
   async function seedTx(svc: TransactionsService, type = "saida") {
     const { transaction } = await svc.createTransaction({
-      userId: "u1", type, description: "Mercado", amount: 120, date: "2026-06-10", force: true,
+      userId: "u1",
+      type,
+      description: "Mercado",
+      amount: 120,
+      date: "2026-06-10",
+      force: true,
     });
     return transaction;
   }
@@ -366,7 +416,10 @@ describe("updateTransaction", () => {
     const tx = await seedTx(svc);
 
     const updated = await svc.updateTransaction({
-      userId: "u1", id: tx.id, amount: 150, date: "2026-06-11",
+      userId: "u1",
+      id: tx.id,
+      amount: 150,
+      date: "2026-06-11",
     });
 
     expect(updated.amount).toBe(150);
@@ -380,12 +433,16 @@ describe("updateTransaction", () => {
     const tx = await seedTx(svc);
 
     await expect(
-      svc.updateTransaction({ userId: "atacante", id: tx.id, description: "Hackeado" })
+      svc.updateTransaction({
+        userId: "atacante",
+        id: tx.id,
+        description: "Hackeado",
+      }),
     ).rejects.toBeInstanceOf(TransactionNotFoundError);
     // NotFound é subtipo de validação: consumidores que mapeiam
     // TransactionValidationError → 400/tool-error continuam cobertos.
     await expect(
-      svc.updateTransaction({ userId: "u1", id: "nao-existe", amount: 1 })
+      svc.updateTransaction({ userId: "u1", id: "nao-existe", amount: 1 }),
     ).rejects.toBeInstanceOf(TransactionValidationError);
     expect(rows[0].description).toBe("Mercado");
   });
@@ -396,18 +453,18 @@ describe("updateTransaction", () => {
     const tx = await seedTx(svc);
 
     await expect(
-      svc.updateTransaction({ userId: "u1", id: tx.id, type: "investimento" })
+      svc.updateTransaction({ userId: "u1", id: tx.id, type: "investimento" }),
     ).rejects.toBeInstanceOf(TransactionValidationError);
     // Transformar uma Transaction real em `diario` a exporia ao deleteMany do
     // apply_previsao (ADR-0004 §4) — nunca permitido.
     await expect(
-      svc.updateTransaction({ userId: "u1", id: tx.id, type: "diario" })
+      svc.updateTransaction({ userId: "u1", id: tx.id, type: "diario" }),
     ).rejects.toBeInstanceOf(TransactionValidationError);
     await expect(
-      svc.updateTransaction({ userId: "u1", id: tx.id, amount: 0 })
+      svc.updateTransaction({ userId: "u1", id: tx.id, amount: 0 }),
     ).rejects.toBeInstanceOf(TransactionValidationError);
     await expect(
-      svc.updateTransaction({ userId: "u1", id: tx.id, date: "2026-02-30" })
+      svc.updateTransaction({ userId: "u1", id: tx.id, date: "2026-02-30" }),
     ).rejects.toBeInstanceOf(TransactionValidationError);
     expect(rows[0].type).toBe("saida");
   });
@@ -419,15 +476,24 @@ describe("updateTransaction", () => {
     // simulado direto na porta.
     const placeholder = await repo.create(
       {
-        userId: "u1", type: "diario", description: "Diário", amount: 50,
-        date: new Date(2026, 5, 10, 12), source: "manual",
-        repeat: "none", repeatEnd: "forever", repeatCount: 0,
+        userId: "u1",
+        type: "diario",
+        description: "Diário",
+        amount: 50,
+        date: new Date(2026, 5, 10, 12),
+        source: "manual",
+        repeat: "none",
+        repeatEnd: "forever",
+        repeatCount: 0,
       },
-      undefined
+      undefined,
     );
 
     const updated = await svc.updateTransaction({
-      userId: "u1", id: placeholder.id, type: "diario", amount: 75,
+      userId: "u1",
+      id: placeholder.id,
+      type: "diario",
+      amount: 75,
     });
 
     expect(updated.type).toBe("diario");
@@ -442,13 +508,25 @@ describe("updateTransaction", () => {
     const tx = await seedTx(svc);
 
     await expect(
-      svc.updateTransaction({ userId: "u1", id: tx.id, tagIds: ["tag-alheia"] })
+      svc.updateTransaction({
+        userId: "u1",
+        id: tx.id,
+        tagIds: ["tag-alheia"],
+      }),
     ).rejects.toBeInstanceOf(TransactionValidationError);
 
-    const withTag = await svc.updateTransaction({ userId: "u1", id: tx.id, tagIds: ["tag-a"] });
+    const withTag = await svc.updateTransaction({
+      userId: "u1",
+      id: tx.id,
+      tagIds: ["tag-a"],
+    });
     expect(withTag.tags.map((t) => t.id)).toEqual(["tag-a"]);
 
-    const cleared = await svc.updateTransaction({ userId: "u1", id: tx.id, tagIds: [] });
+    const cleared = await svc.updateTransaction({
+      userId: "u1",
+      id: tx.id,
+      tagIds: [],
+    });
     expect(cleared.tags).toEqual([]);
   });
 });
@@ -458,11 +536,15 @@ describe("deleteTransaction", () => {
     const { repo, rows } = fakeRepo();
     const svc = makeTransactionsService(repo);
     const { transaction } = await svc.createTransaction({
-      userId: "u1", type: "saida", description: "X", amount: 10, date: "2026-06-10",
+      userId: "u1",
+      type: "saida",
+      description: "X",
+      amount: 10,
+      date: "2026-06-10",
     });
 
     await expect(
-      svc.deleteTransaction("atacante", transaction.id)
+      svc.deleteTransaction("atacante", transaction.id),
     ).rejects.toBeInstanceOf(TransactionNotFoundError);
     expect(rows).toHaveLength(1);
 

@@ -35,7 +35,10 @@ describe("rotas de previsão", () => {
 
   it("rejeita sem o header do segredo compartilhado", async () => {
     const app = buildApp();
-    const response = await app.inject({ method: "GET", url: "/previsao?userId=x" });
+    const response = await app.inject({
+      method: "GET",
+      url: "/previsao?userId=x",
+    });
     expect(response.statusCode).toBe(401);
   });
 
@@ -70,7 +73,9 @@ describe("rotas de previsão", () => {
       headers,
     });
     expect(listed.statusCode).toBe(200);
-    expect(listed.json().some((p: { id: string }) => p.id === previsao.id)).toBe(true);
+    expect(
+      listed.json().some((p: { id: string }) => p.id === previsao.id),
+    ).toBe(true);
 
     const updated = await app.inject({
       method: "PUT",

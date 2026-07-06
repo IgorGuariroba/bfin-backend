@@ -11,7 +11,11 @@ function safeEqual(a: string, b: string): boolean {
   return timingSafeEqual(ab, bb);
 }
 
-function requireInternalSecret(request: FastifyRequest, reply: FastifyReply, done: () => void) {
+function requireInternalSecret(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  done: () => void,
+) {
   const secret = process.env.INTERNAL_API_SECRET;
   const provided = request.headers["x-internal-secret"];
   if (!secret || typeof provided !== "string" || !safeEqual(provided, secret)) {
@@ -84,7 +88,9 @@ export function billingRoutes(app: FastifyInstance) {
       click?: { gclid?: string; gbraid?: string; wbraid?: string };
     };
     if (!userId || !origin) {
-      return reply.code(400).send({ error: "userId e origin são obrigatórios" });
+      return reply
+        .code(400)
+        .send({ error: "userId e origin são obrigatórios" });
     }
     try {
       return await billingService.checkout({
@@ -99,5 +105,4 @@ export function billingRoutes(app: FastifyInstance) {
       throw error;
     }
   });
-
 }

@@ -16,7 +16,11 @@ function safeEqual(a: string, b: string): boolean {
   return timingSafeEqual(ab, bb);
 }
 
-function requireInternalSecret(request: FastifyRequest, reply: FastifyReply, done: () => void) {
+function requireInternalSecret(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  done: () => void,
+) {
   const secret = process.env.INTERNAL_API_SECRET;
   const provided = request.headers["x-internal-secret"];
   if (!secret || typeof provided !== "string" || !safeEqual(provided, secret)) {
@@ -62,9 +66,14 @@ export function invitesRoutes(app: FastifyInstance) {
       ownerEmail?: string | null;
       email?: string;
     };
-    if (!ownerId) return reply.code(400).send({ error: "ownerId é obrigatório" });
+    if (!ownerId)
+      return reply.code(400).send({ error: "ownerId é obrigatório" });
     try {
-      const invite = await membersService.createInvite({ ownerId, ownerEmail, email: email ?? "" });
+      const invite = await membersService.createInvite({
+        ownerId,
+        ownerEmail,
+        email: email ?? "",
+      });
       return reply.code(201).send(invite);
     } catch (error) {
       if (domainErrorResponse(error, reply)) return;
@@ -80,7 +89,11 @@ export function invitesRoutes(app: FastifyInstance) {
     };
     if (!userId) return reply.code(400).send({ error: "userId é obrigatório" });
     try {
-      const result = await membersService.acceptInvite({ userId, userEmail, token: token ?? "" });
+      const result = await membersService.acceptInvite({
+        userId,
+        userEmail,
+        token: token ?? "",
+      });
       return result;
     } catch (error) {
       if (domainErrorResponse(error, reply)) return;
@@ -91,7 +104,8 @@ export function invitesRoutes(app: FastifyInstance) {
   app.delete("/invites/:id", async (request, reply) => {
     const { id } = request.params as { id: string };
     const { ownerId } = request.body as { ownerId?: string };
-    if (!ownerId) return reply.code(400).send({ error: "ownerId é obrigatório" });
+    if (!ownerId)
+      return reply.code(400).send({ error: "ownerId é obrigatório" });
     try {
       await membersService.revokeInvite(ownerId, id);
       return { success: true };

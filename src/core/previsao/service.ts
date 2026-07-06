@@ -71,15 +71,29 @@ export function makePrevisaoService(repo: PrevisaoRepo) {
    */
   async function applyPrevisao(
     input: { userId: string; amount: number },
-    now: Date = new Date()
+    now: Date = new Date(),
   ): Promise<{ count: number }> {
     const { userId, amount } = input;
     if (!isValidAmount(amount)) {
       throw new PrevisaoValidationError("Invalid parameters");
     }
 
-    const startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
-    const endDate = new Date(now.getFullYear(), now.getMonth() + 12, now.getDate(), 0, 0, 0);
+    const startDate = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+      0,
+      0,
+      0,
+    );
+    const endDate = new Date(
+      now.getFullYear(),
+      now.getMonth() + 12,
+      now.getDate(),
+      0,
+      0,
+      0,
+    );
 
     await repo.deleteManualDiario(userId, { gte: startDate, lt: endDate });
 
@@ -94,7 +108,14 @@ export function makePrevisaoService(repo: PrevisaoRepo) {
         // o container roda UTC → 12:00Z, o que dá ~12h de folga das bordas da janela
         // da baixa automática (saoPauloTodayRange/ADR-0005 §7). A invariante "diário
         // ao meio-dia UTC" da baixa depende desse deploy em UTC.
-        date: new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate(), 12, 0, 0),
+        date: new Date(
+          cursor.getFullYear(),
+          cursor.getMonth(),
+          cursor.getDate(),
+          12,
+          0,
+          0,
+        ),
       });
       cursor.setDate(cursor.getDate() + 1);
     }
@@ -110,7 +131,9 @@ export function makePrevisaoService(repo: PrevisaoRepo) {
    * só o dia corrente — não recupera dias passados nem futuros. Elegibilidade e
    * atomicidade (delete único filtrado pela relação) são contrato da porta.
    */
-  async function baixaDiaria(now: Date = new Date()): Promise<{ count: number }> {
+  async function baixaDiaria(
+    now: Date = new Date(),
+  ): Promise<{ count: number }> {
     const window = saoPauloTodayRange(now);
     const count = await repo.deleteManualDiarioForAutoBaixa(window, now);
     return { count };

@@ -1,6 +1,9 @@
 import { timingSafeEqual } from "node:crypto";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { PrevisaoNotFoundError, PrevisaoValidationError } from "../core/previsao/index.js";
+import {
+  PrevisaoNotFoundError,
+  PrevisaoValidationError,
+} from "../core/previsao/index.js";
 import { previsaoService } from "../adapters/index.js";
 
 /** Compara em tempo constante; length-mismatch → false (timingSafeEqual exige buffers do mesmo tamanho). */
@@ -11,7 +14,11 @@ function safeEqual(a: string, b: string): boolean {
   return timingSafeEqual(ab, bb);
 }
 
-function requireInternalSecret(request: FastifyRequest, reply: FastifyReply, done: () => void) {
+function requireInternalSecret(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  done: () => void,
+) {
   const secret = process.env.INTERNAL_API_SECRET;
   const provided = request.headers["x-internal-secret"];
   if (!secret || typeof provided !== "string" || !safeEqual(provided, secret)) {
@@ -93,10 +100,16 @@ export function previsaoRoutes(app: FastifyInstance) {
   });
 
   app.post("/previsao/aplicar", async (request, reply) => {
-    const { userId, amount } = request.body as { userId?: string; amount?: number };
+    const { userId, amount } = request.body as {
+      userId?: string;
+      amount?: number;
+    };
     if (!userId) return reply.code(400).send({ error: "userId é obrigatório" });
     try {
-      const { count } = await previsaoService.applyPrevisao({ userId, amount: amount as number });
+      const { count } = await previsaoService.applyPrevisao({
+        userId,
+        amount: amount as number,
+      });
       return { count };
     } catch (error) {
       if (domainErrorResponse(error, reply)) return;

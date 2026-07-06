@@ -28,12 +28,14 @@ export interface CreateTagInput {
 function validateName(name: string): string {
   const trimmed = name.trim();
   if (!trimmed) throw new TagValidationError("Nome da Tag é obrigatório.");
-  if (trimmed.length > 50) throw new TagValidationError("Nome da Tag muito longo (máx. 50).");
+  if (trimmed.length > 50)
+    throw new TagValidationError("Nome da Tag muito longo (máx. 50).");
   return trimmed;
 }
 
 function validateColor(color: string): string {
-  if (color.length < 4 || color.length > 30) throw new TagValidationError("Cor da Tag inválida.");
+  if (color.length < 4 || color.length > 30)
+    throw new TagValidationError("Cor da Tag inválida.");
   return color;
 }
 
@@ -54,7 +56,11 @@ export function makeTagsService(repo: TagRepo) {
    * duplicado vira TagValidationError (o handler MCP a converte em tool error).
    * Sempre isSystem=false — só o seeding cria system tags.
    */
-  async function createTag({ userId, name, color }: CreateTagInput): Promise<Tag> {
+  async function createTag({
+    userId,
+    name,
+    color,
+  }: CreateTagInput): Promise<Tag> {
     const trimmed = validateName(name);
     const resolvedColor = validateColor(color ?? DEFAULT_TAG_COLOR);
 
@@ -63,7 +69,12 @@ export function makeTagsService(repo: TagRepo) {
       throw new TagValidationError(`Tag "${trimmed}" já existe.`);
     }
 
-    return repo.create({ userId, name: trimmed, color: resolvedColor, isSystem: false });
+    return repo.create({
+      userId,
+      name: trimmed,
+      color: resolvedColor,
+      isSystem: false,
+    });
   }
 
   /**
@@ -83,14 +94,16 @@ export function makeTagsService(repo: TagRepo) {
   async function updateTag(
     userId: string,
     tagId: string,
-    patch: { name?: string; color?: string }
+    patch: { name?: string; color?: string },
   ): Promise<Tag> {
     const existing = await repo.findById(tagId);
     if (!existing || existing.userId !== userId) {
       throw new TagNotFoundError("Tag não encontrada.");
     }
     if (existing.isSystem) {
-      throw new SystemTagImmutableError("Tags do sistema não podem ser editadas");
+      throw new SystemTagImmutableError(
+        "Tags do sistema não podem ser editadas",
+      );
     }
 
     const changes: { name?: string; color?: string } = {};
@@ -98,7 +111,8 @@ export function makeTagsService(repo: TagRepo) {
       changes.name = validateName(patch.name);
       if (changes.name !== existing.name) {
         const duplicate = await repo.findByName(userId, changes.name);
-        if (duplicate) throw new TagValidationError("Tag com este nome já existe");
+        if (duplicate)
+          throw new TagValidationError("Tag com este nome já existe");
       }
     }
     if (patch.color !== undefined) {
@@ -115,7 +129,9 @@ export function makeTagsService(repo: TagRepo) {
       throw new TagNotFoundError("Tag não encontrada.");
     }
     if (existing.isSystem) {
-      throw new SystemTagImmutableError("Tags do sistema não podem ser excluídas");
+      throw new SystemTagImmutableError(
+        "Tags do sistema não podem ser excluídas",
+      );
     }
     await repo.delete(tagId);
   }

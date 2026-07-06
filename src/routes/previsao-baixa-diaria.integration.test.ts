@@ -16,7 +16,11 @@ function todayInside(): Date {
   return new Date(gte.getTime() + 12 * 60 * 60 * 1000);
 }
 
-async function makeUser(opts: { plan: string; autoBaixaDiario: boolean; planExpiresAt?: Date }) {
+async function makeUser(opts: {
+  plan: string;
+  autoBaixaDiario: boolean;
+  planExpiresAt?: Date;
+}) {
   const [row] = await db
     .insert(userTable)
     .values({
@@ -25,7 +29,9 @@ async function makeUser(opts: { plan: string; autoBaixaDiario: boolean; planExpi
       email: `cron-${crypto.randomUUID()}@example.com`,
       plan: opts.plan,
       autoBaixaDiario: opts.autoBaixaDiario,
-      planExpiresAt: opts.planExpiresAt ? toDbTimestamp(opts.planExpiresAt) : undefined,
+      planExpiresAt: opts.planExpiresAt
+        ? toDbTimestamp(opts.planExpiresAt)
+        : undefined,
     })
     .returning();
   trackUser(row.id);
@@ -51,7 +57,10 @@ async function makeDiario(userId: string, date: Date, source?: string) {
 }
 
 async function findTx(id: string) {
-  const [row] = await db.select().from(transaction).where(eq(transaction.id, id));
+  const [row] = await db
+    .select()
+    .from(transaction)
+    .where(eq(transaction.id, id));
   return row ?? null;
 }
 
@@ -78,7 +87,10 @@ describe("POST /previsao/baixa-diaria", () => {
 
   it("rejeita sem o header do segredo compartilhado", async () => {
     const app = buildApp();
-    const response = await app.inject({ method: "POST", url: "/previsao/baixa-diaria" });
+    const response = await app.inject({
+      method: "POST",
+      url: "/previsao/baixa-diaria",
+    });
     expect(response.statusCode).toBe(401);
   });
 
