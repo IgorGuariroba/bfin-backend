@@ -126,6 +126,17 @@ describe("POST /api/webhook/mercadopago — verificação de assinatura", () => 
   });
 });
 
+describe("POST /api/webhook/mercadopago — falha no processamento", () => {
+  it("responde 500 quando a consulta ao MP falha, sem vazar o status upstream", async () => {
+    mockPreApprovalGet.mockRejectedValue({ message: "Unauthorized access to resource.", status: 401 });
+
+    const res = await inject(buildApp());
+
+    expect(res.statusCode).toBe(500);
+    expect(res.json()).toEqual({ error: "Failed to process event" });
+  });
+});
+
 describe("POST /api/webhook/mercadopago — evento legítimo", () => {
   it("authorized com assinatura válida ativa o pro do usuário", async () => {
     const user = await seedUser({ plan: "free" });
