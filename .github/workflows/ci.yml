@@ -36,3 +36,38 @@ jobs:
       - run: npm run db:migrate
       - run: npm test
       - run: npm run build
+
+  semgrep:
+    runs-on: ubuntu-latest
+    container:
+      image: semgrep/semgrep
+    steps:
+      - uses: actions/checkout@v4
+      - run: semgrep scan --config p/typescript --config p/security-audit --error
+
+  jscpd:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # Threshold calibrado no ADR-0003 (5,45% na adoção); apertar conforme refatora.
+      - run: npx jscpd src --ignore "**/*.test.ts" --threshold 6
+
+  sonar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Histórico completo para o SonarCloud calcular new code corretamente.
+          fetch-depth: 0
+      - uses: SonarSource/sonarqube-scan-action@v6
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: https://sonarcloud.io
+        with:
+          # Job falha se o quality gate reprovar — exigível como required check.
+          args: -Dsonar.qualitygate.wait=true
