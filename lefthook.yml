@@ -1,8 +1,33 @@
 # Pipeline de verificação local (ADR-0001):
 # pre-commit é o portão rápido (paralelo, ~3s); pre-push é o portão completo.
+# Commit Policy (ADR-0004): Conventional Commits + branches tipo/slug.
+commit-msg:
+  jobs:
+    - name: conventional-commit
+      skip:
+        - merge
+        - rebase
+      run: |
+        head -n1 {1} | grep -qE '^((Merge|Revert) |(feat|fix|chore|docs|refactor|test|perf|ci|build|revert)(\([a-z0-9./-]+\))?!?: .+)' || {
+          echo "Mensagem fora do Conventional Commits: 'tipo(escopo)?: assunto'"
+          echo "Tipos: feat fix chore docs refactor test perf ci build revert"
+          exit 1
+        }
+
 pre-commit:
   parallel: true
   jobs:
+    - name: branch-name
+      skip:
+        - merge
+        - rebase
+      run: |
+        branch=$(git branch --show-current)
+        echo "$branch" | grep -qE '^(feat|fix|chore|docs|refactor|test|perf|ci|build|revert)/[a-z0-9._-]+$' || {
+          echo "Branch '$branch' fora do padrão 'tipo/slug-kebab' (ex.: feat/baixa-diaria)."
+          echo "Commits na main são bloqueados — crie uma branch."
+          exit 1
+        }
     - name: prettier
       glob: "*.{ts,js,mjs,json,md,yml,yaml}"
       run: npx prettier --write {staged_files}
