@@ -7,7 +7,12 @@ export default defineConfig({
     // Só ativa com --coverage (o CI envia o lcov pro SonarCloud).
     coverage: {
       include: ["src/**"],
-      exclude: ["src/**/*.test.ts", "src/test/**"],
+      exclude: [
+        "src/**/*.test.ts",
+        "src/test/**",
+        "src/server.ts",
+        "src/otel.ts",
+      ],
       reporter: ["text-summary", "lcov"],
     },
     // unit: sem dependência de Postgres. integration: precisa de DATABASE_URL real.
