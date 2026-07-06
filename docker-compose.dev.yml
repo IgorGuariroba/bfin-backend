@@ -4,7 +4,8 @@ services:
   db:
     image: postgres:16-alpine
     ports:
-      - "5432:5432"
+      # 5433 no host para não colidir com o Postgres do bfin-app (5432).
+      - "5433:5432"
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
