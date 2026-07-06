@@ -32,4 +32,4 @@ USER fastify
 EXPOSE 3001
 ENV PORT=3001
 ENTRYPOINT ["./docker-entrypoint.sh"]
-CMD ["node", "dist/server.js"]
+CMD ["node", "--import", "./dist/otel.js", "dist/server.js"]

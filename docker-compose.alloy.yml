@@ -1,0 +1,29 @@
+# Grafana Alloy (ADR-0005) — deployar como stack separado no Dokploy.
+# Recebe OTLP do bfin-backend, coleta logs de todos os containers e métricas
+# de containers, e encaminha tudo ao Grafana Cloud.
+#
+# Env vars exigidas (configurar no painel do Dokploy, nunca no repo):
+#   GCLOUD_OTLP_ENDPOINT  ex.: https://otlp-gateway-prod-sa-east-1.grafana.net/otlp
+#   GCLOUD_INSTANCE_ID    instance ID do stack no Grafana Cloud
+#   GCLOUD_API_TOKEN      token com escopo de escrita (metrics/logs/traces)
+services:
+  alloy:
+    image: grafana/alloy:latest
+    restart: unless-stopped
+    command:
+      - run
+      - /etc/alloy/config.alloy
+      - --server.http.listen-addr=0.0.0.0:12345
+    environment:
+      GCLOUD_OTLP_ENDPOINT: ${GCLOUD_OTLP_ENDPOINT}
+      GCLOUD_INSTANCE_ID: ${GCLOUD_INSTANCE_ID}
+      GCLOUD_API_TOKEN: ${GCLOUD_API_TOKEN}
+    volumes:
+      - ./alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - dokploy-network
+
+networks:
+  dokploy-network:
+    external: true

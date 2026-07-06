@@ -34,8 +34,13 @@ jobs:
       - run: npm run lint
       - run: npm run type-check
       - run: npm run db:migrate
-      - run: npm test
+      - run: npm test -- --coverage
       - run: npm run build
+      # O job sonar consome o lcov (quality gate exige coverage em new code).
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage/lcov.info
 
   semgrep:
     runs-on: ubuntu-latest
@@ -58,12 +63,18 @@ jobs:
       - run: npx jscpd src --ignore "**/*.test.ts" --threshold 6
 
   sonar:
+    # Depende do ci só pelo artifact de coverage.
+    needs: ci
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           # Histórico completo para o SonarCloud calcular new code corretamente.
           fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          name: coverage
+          path: coverage
       - uses: SonarSource/sonarqube-scan-action@v6
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
