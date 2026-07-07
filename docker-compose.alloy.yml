@@ -27,6 +27,8 @@ services:
       - /:/rootfs:ro
       - /sys:/sys:ro
       - /var/lib/docker:/var/lib/docker:ro
+      # cadvisor resolve metadados via containerd (Docker+overlayfs).
+      - /run/containerd/containerd.sock:/run/containerd/containerd.sock:ro
     networks:
       - dokploy-network
 

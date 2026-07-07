@@ -76,6 +76,9 @@ otelcol.receiver.loki "docker" {
 // ── Fonte 3: métricas de containers (CPU/memória com histórico) ─────────
 prometheus.exporter.cadvisor "containers" {
   docker_host = "unix:///var/run/docker.sock"
+
+  // Só containers Docker — sem system slices do host.
+  docker_only = true
 }
 
 prometheus.scrape "containers" {
