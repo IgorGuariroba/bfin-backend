@@ -13,6 +13,20 @@ otelcol.exporter.otlphttp "grafana_cloud" {
     endpoint = sys.env("GCLOUD_OTLP_ENDPOINT")
     auth     = otelcol.auth.basic.grafana_cloud.handler
   }
+
+  // Fila maior absorve o backlog da primeira leitura dos logs do host.
+  sending_queue {
+    queue_size = 5000
+  }
+}
+
+// Batch amortece picos entre receivers e exporter (evita "sending queue is full").
+otelcol.processor.batch "default" {
+  output {
+    traces  = [otelcol.exporter.otlphttp.grafana_cloud.input]
+    metrics = [otelcol.exporter.otlphttp.grafana_cloud.input]
+    logs    = [otelcol.exporter.otlphttp.grafana_cloud.input]
+  }
 }
 
 // ── Fonte 1: OTLP do bfin-backend (traces + métricas de runtime) ────────
@@ -26,9 +40,9 @@ otelcol.receiver.otlp "app" {
   }
 
   output {
-    traces  = [otelcol.exporter.otlphttp.grafana_cloud.input]
-    metrics = [otelcol.exporter.otlphttp.grafana_cloud.input]
-    logs    = [otelcol.exporter.otlphttp.grafana_cloud.input]
+    traces  = [otelcol.processor.batch.default.input]
+    metrics = [otelcol.processor.batch.default.input]
+    logs    = [otelcol.processor.batch.default.input]
   }
 }
 
@@ -55,7 +69,7 @@ loki.source.docker "containers" {
 
 otelcol.receiver.loki "docker" {
   output {
-    logs = [otelcol.exporter.otlphttp.grafana_cloud.input]
+    logs = [otelcol.processor.batch.default.input]
   }
 }
 
@@ -73,6 +87,6 @@ prometheus.scrape "containers" {
 
 otelcol.receiver.prometheus "containers" {
   output {
-    metrics = [otelcol.exporter.otlphttp.grafana_cloud.input]
+    metrics = [otelcol.processor.batch.default.input]
   }
 }

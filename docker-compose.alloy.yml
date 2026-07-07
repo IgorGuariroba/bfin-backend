@@ -18,9 +18,15 @@ services:
       GCLOUD_OTLP_ENDPOINT: ${GCLOUD_OTLP_ENDPOINT}
       GCLOUD_INSTANCE_ID: ${GCLOUD_INSTANCE_ID}
       GCLOUD_API_TOKEN: ${GCLOUD_API_TOKEN}
+    # privileged + mounts do host: exigidos pelo cadvisor embutido para ler
+    # cgroups por container (sem eles só o cgroup raiz "/" é reportado).
+    privileged: true
     volumes:
       - ./alloy/config.alloy:/etc/alloy/config.alloy:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /:/rootfs:ro
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
     networks:
       - dokploy-network
 
