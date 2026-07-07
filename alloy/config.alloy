@@ -69,6 +69,26 @@ loki.source.docker "containers" {
 
 otelcol.receiver.loki "docker" {
   output {
+    logs = [otelcol.processor.transform.docker_logs.input]
+  }
+}
+
+// stdout de container não carrega OTEL_SERVICE_NAME e o Grafana Cloud
+// classificava tudo como "unknown_service" (bfin-app#232). Nome fixo e
+// estável para o canal: o container de origem continua consultável no
+// atributo `container` (| container="..."). Os logs estruturados dos apps
+// seguem chegando com service_name próprio pelo caminho OTLP (Fonte 1).
+otelcol.processor.transform "docker_logs" {
+  error_mode = "ignore"
+
+  log_statements {
+    context    = "resource"
+    statements = [
+      "set(attributes[\"service.name\"], \"docker-stdout\")",
+    ]
+  }
+
+  output {
     logs = [otelcol.processor.batch.default.input]
   }
 }
