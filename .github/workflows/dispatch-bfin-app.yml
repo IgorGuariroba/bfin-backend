@@ -1,0 +1,28 @@
+name: Dispatch bfin-app CI
+
+# Lado emissor do CI reverso (ADR-0018 do bfin-app, issue #22): a cada merge
+# na main, dispara o CI do bfin-app (que testa contra bfin-backend@main) para
+# que uma quebra de contrato causada aqui apareça no momento do merge,
+# atribuída a este repo. O receptor aceita o event type backend-merged.
+#
+# Requer o secret BFIN_APP_DISPATCH_TOKEN: fine-grained PAT com acesso só ao
+# IgorGuariroba/bfin-app e permissão Contents: read-write (repository_dispatch
+# usa esse escopo). O GITHUB_TOKEN do workflow não alcança outro repo.
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Disparar CI do bfin-app (backend-merged)
+        env:
+          GH_TOKEN: ${{ secrets.BFIN_APP_DISPATCH_TOKEN }}
+        # Falha do disparo (token expirado, etc.) falha o workflow — não passa
+        # silenciosa. O SHA no payload vincula o run lá ao merge daqui.
+        run: |
+          gh api repos/IgorGuariroba/bfin-app/dispatches \
+            -f event_type=backend-merged \
+            -f "client_payload[sha]=$GITHUB_SHA"
