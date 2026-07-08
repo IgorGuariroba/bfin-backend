@@ -82,6 +82,19 @@ For multi-step tasks, state a brief plan:
 
 Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
 
+## 7. Self-learning
+
+**Lessons live in `docs/knowledge/lessons.md` (Open Knowledge Format). Read them before starting work.**
+
+When the user corrects you, or you catch yourself making a mistake: before continuing, add the lesson as a one-line rule to `docs/knowledge/lessons.md`, so it never happens again.
+
+Admission criteria — a lesson only enters if it:
+
+- References something concrete of this project (a command, file, version, convention). Generic advice ("verify before assuming") is not a lesson.
+- Would change future behavior. If an existing rule already covers it, update that rule instead of adding a duplicate.
+
+Housekeeping: update the `timestamp` in the frontmatter when editing. The lesson rides the current branch/PR (context and lesson reviewed together); if there is no active branch, create `chore/lesson-<slug>`.
+
 ---
 
 **These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.
