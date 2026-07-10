@@ -1,9 +1,9 @@
-import { and, asc, eq, gt, gte, inArray, isNull, lt, or } from "drizzle-orm";
+import { and, asc, eq, gte, inArray, lt } from "drizzle-orm";
 import { db } from "../../lib/drizzle.js";
 import { previsao, transaction, user } from "../../db/schema.js";
 import { PrevisaoNotFoundError, type PrevisaoRepo } from "../../core/previsao/index.js";
 import { newId } from "./id.js";
-import { toDbTimestamp } from "./timestamp.js";
+import { fromDbTimestampOrNull, toDbTimestamp } from "./timestamp.js";
 
 // IDs novos nascem como UUID (crypto.randomUUID), não cuid — mesma convenção
 // do drizzleTagRepo: a coluna é `text` sem formato imposto pelo Postgres.
@@ -76,22 +76,23 @@ export const drizzlePrevisaoRepo: PrevisaoRepo = {
     );
   },
 
-  deleteManualDiarioForAutoBaixa: async (window, now) => {
-    // Único delete, filtrado por subquery na relação (ADR-0005) — DELETE não
-    // suporta join direto no Drizzle/Postgres, mesmo padrão do subquery de
-    // tagId em drizzleTransactionRepo.list. planExpiresAt replica getUserPlan
-    // (plan.ts): pro vencido conta como free.
-    const eligibleUserIds = db
-      .select({ id: user.id })
+  listAutoBaixaCandidates: async () => {
+    const rows = await db
+      .select({
+        userId: user.id,
+        plan: user.plan,
+        planExpiresAt: user.planExpiresAt,
+      })
       .from(user)
-      .where(
-        and(
-          eq(user.autoBaixaDiario, true),
-          eq(user.plan, "pro"),
-          or(isNull(user.planExpiresAt), gt(user.planExpiresAt, toDbTimestamp(now)))
-        )
-      );
+      .where(eq(user.autoBaixaDiario, true));
+    return rows.map((row) => ({
+      userId: row.userId,
+      plan: row.plan,
+      planExpiresAt: fromDbTimestampOrNull(row.planExpiresAt),
+    }));
+  },
 
+  deleteManualDiarioForUsers: async (userIds, window) => {
     const deleted = await db
       .delete(transaction)
       .where(
@@ -100,7 +101,7 @@ export const drizzlePrevisaoRepo: PrevisaoRepo = {
           eq(transaction.source, "manual"),
           gte(transaction.date, toDbTimestamp(window.gte)),
           lt(transaction.date, toDbTimestamp(window.lt)),
-          inArray(transaction.userId, eligibleUserIds)
+          inArray(transaction.userId, userIds)
         )
       )
       .returning({ id: transaction.id });
