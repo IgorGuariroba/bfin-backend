@@ -1,6 +1,7 @@
 import type { DateRange, TransactionPatch, TransactionRepo } from "./ports.js";
 import type { TransactionWithTags } from "./types.js";
 import { addDays, addWeeks, addMonths } from "../dates.js";
+import { suggestType, suggestTag } from "./suggest.js";
 
 export class TransactionValidationError extends Error {}
 
@@ -106,6 +107,29 @@ export interface CreateTransactionResult {
   duplicated: boolean; // true = retornou candidata em vez de criar
 }
 
+/** Entrada da sugestão: type opcional (inferido quando ausente). */
+export interface SuggestionInput {
+  userId: string;
+  description: string;
+  type?: string;
+}
+
+/** Saída da sugestão: type resolvido + Tag sugerida (null se nada casar). */
+export interface SuggestionResult {
+  type: string;
+  tagId: string | null;
+}
+
+/**
+ * Entrada de createSuggested: mesmos campos de criação exceto tagIds (a Tag vem
+ * da sugestão) e com type opcional (inferido quando ausente). source continua
+ * informado pelo chamador ("agent" no MCP).
+ */
+export type CreateSuggestedInput = Omit<
+  CreateTransactionInput,
+  "tagIds" | "type"
+> & { type?: string };
+
 export interface UpdateTransactionInput {
   userId: string;
   id: string;
@@ -133,11 +157,40 @@ function buildRepeatDates(
   return dates;
 }
 
+/**
+ * Consulta as Tags do usuário (base da sugestão). Injetada a partir do service
+ * de Tags no composition root — passa por listTags (e não pelo repo de Tags)
+ * porque é esse método que semeia as Tags de sistema antes de listar, invariante
+ * da qual a sugestão por categoria depende. Tipada pelo mínimo que o core usa
+ * ({ id, name }), sem importar o tipo Tag de outro domínio.
+ */
+export type ListTagsFn = (
+  userId: string,
+) => Promise<{ id: string; name: string }[]>;
+
 export function makeTransactionsService(
   repo: TransactionRepo,
-  deps: { logger?: CoreLogger } = {},
+  deps: { logger?: CoreLogger; listTags: ListTagsFn },
 ) {
   const logger = deps.logger ?? { warn: () => {} };
+  const listTags = deps.listTags;
+
+  /**
+   * Resolve `{ type, tagId }` a partir da descrição (e type opcional do chamador),
+   * consultando as Tags do usuário via listTags injetada. É a única fonte da
+   * regra de sugestão — fronteiras REST e MCP delegam aqui.
+   *
+   * Precedência do type: explícito do chamador > inferência por palavra-chave >
+   * default "saida". `diario` não é inferido (reservado à projeção); um type
+   * explícito inválido passa cru — a validação de escrita (createTransaction)
+   * é quem o rejeita.
+   */
+  async function suggest(input: SuggestionInput): Promise<SuggestionResult> {
+    const type = input.type ?? suggestType(input.description);
+    const userTags = await listTags(input.userId);
+    const tagId = suggestTag(input.description, userTags);
+    return { type, tagId };
+  }
 
   /**
    * Lista as Transactions do usuário aplicando filtros (mês/type/Tag ou intervalo
@@ -261,6 +314,31 @@ export function makeTransactionsService(
   }
 
   /**
+   * Compõe sugestão + criação: resolve type e Tag via `suggest` e cria a
+   * movimentação reaproveitando toda a validação/dedup/recorrência de
+   * `createTransaction`. Tag vem da sugestão (sem tagIds no input); type é
+   * opcional (inferido quando ausente). source continua do chamador.
+   *
+   * Um caso de uso do core atrás da interface do service — as fronteiras (REST,
+   * MCP, e futuras como WhatsApp) delegam aqui em vez de reimplementar a
+   * orquestração sugerir→criar.
+   */
+  async function createSuggested(
+    input: CreateSuggestedInput,
+  ): Promise<CreateTransactionResult> {
+    const { type, tagId } = await suggest({
+      userId: input.userId,
+      description: input.description,
+      type: input.type,
+    });
+    return createTransaction({
+      ...input,
+      type,
+      tagIds: tagId ? [tagId] : undefined,
+    });
+  }
+
+  /**
    * Edita os campos centrais de uma Transaction (patch parcial). Sempre escopado
    * ao próprio userId (anti-IDOR) — id de outro dono é indistinguível de
    * inexistente (TransactionNotFoundError). Reaproveita as validações do create
@@ -341,8 +419,10 @@ export function makeTransactionsService(
   }
 
   return {
+    suggest,
     listTransactions,
     createTransaction,
+    createSuggested,
     updateTransaction,
     deleteTransaction,
   };

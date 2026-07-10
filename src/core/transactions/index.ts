@@ -16,10 +16,13 @@ export {
   TransactionValidationError,
   TransactionNotFoundError,
   type CoreLogger,
+  type ListTagsFn,
   type CreateTransactionInput,
   type CreateTransactionResult,
+  type CreateSuggestedInput,
   type UpdateTransactionInput,
   type ListTransactionsFilter,
+  type SuggestionInput,
+  type SuggestionResult,
   type TransactionsService,
 } from "./service.js";
-export { suggestType, suggestTag } from "./suggest.js";

@@ -30,6 +30,10 @@ export const transactionsService = makeTransactionsService(
   drizzleTransactionRepo,
   {
     logger: { warn: (data, msg) => console.warn(msg, data) },
+    // Injeta a consulta de Tags do service de Tags (não do repo): é listTags que
+    // semeia as Tags de sistema antes de listar — invariante da sugestão por
+    // categoria. Padrão de injeção entre domínios, como getUserPlan em members.
+    listTags: (userId) => tagsService.listTags(userId),
   },
 );
 export const previsaoService = makePrevisaoService(drizzlePrevisaoRepo);

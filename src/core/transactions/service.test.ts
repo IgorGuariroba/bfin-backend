@@ -111,10 +111,30 @@ function fakeRepo() {
   return { repo, rows, grantTag };
 }
 
+/**
+ * Monta o service injetando listTags controlável. Default: usuário sem Tags —
+ * os testes de create/list/update/delete não exercitam sugestão. Os testes de
+ * suggest/createSuggested passam um listTags fake próprio (user story 17).
+ */
+function makeService(
+  repo: TransactionRepo,
+  deps: {
+    listTags?: (userId: string) => Promise<{ id: string; name: string }[]>;
+    logger?: {
+      warn: (data: Record<string, unknown>, msg: string) => void;
+    };
+  } = {},
+) {
+  return makeTransactionsService(repo, {
+    listTags: deps.listTags ?? (async () => []),
+    logger: deps.logger,
+  });
+}
+
 describe("createTransaction", () => {
   it("cria via porta com defaults (source manual, repeat none) e retorna duplicated:false", async () => {
     const { repo, rows } = fakeRepo();
-    const svc = makeTransactionsService(repo);
+    const svc = makeService(repo);
 
     const { transaction, duplicated } = await svc.createTransaction({
       userId: "u1",
@@ -137,7 +157,7 @@ describe("createTransaction", () => {
 
   it("rejeita campos ausentes, type inválido, diario e amount não-positivo sem tocar a porta", async () => {
     const { repo, rows } = fakeRepo();
-    const svc = makeTransactionsService(repo);
+    const svc = makeService(repo);
     const valid = {
       userId: "u1",
       type: "saida",
@@ -173,7 +193,7 @@ describe("createTransaction", () => {
   it("anti-IDOR: rejeita tagIds que não pertencem ao usuário e não cria nada", async () => {
     const { repo, rows, grantTag } = fakeRepo();
     grantTag("outro-usuario", "tag-alheia");
-    const svc = makeTransactionsService(repo);
+    const svc = makeService(repo);
 
     await expect(
       svc.createTransaction({
@@ -191,7 +211,7 @@ describe("createTransaction", () => {
   it("aceita tagIds duplicados (deduplica) e conecta a tag uma única vez", async () => {
     const { repo, grantTag } = fakeRepo();
     grantTag("u1", "tag-a");
-    const svc = makeTransactionsService(repo);
+    const svc = makeService(repo);
 
     const { transaction } = await svc.createTransaction({
       userId: "u1",
@@ -217,7 +237,7 @@ describe("createTransaction — dedup defensivo (ADR-0004)", () => {
 
   it("sem force, retorna a candidata existente (±2 dias, mesmo type+amount) sem criar", async () => {
     const { repo, rows } = fakeRepo();
-    const svc = makeTransactionsService(repo);
+    const svc = makeService(repo);
     const { transaction: original } = await svc.createTransaction(base);
 
     const { transaction, duplicated } = await svc.createTransaction({
@@ -233,7 +253,7 @@ describe("createTransaction — dedup defensivo (ADR-0004)", () => {
 
   it("com force=true cria nova mesmo havendo candidata; fora da janela cria normal", async () => {
     const { repo, rows } = fakeRepo();
-    const svc = makeTransactionsService(repo);
+    const svc = makeService(repo);
     await svc.createTransaction(base);
 
     const forced = await svc.createTransaction({ ...base, force: true });
@@ -252,7 +272,7 @@ describe("createTransaction — recorrência", () => {
   it("repeat mensal com repeatEnd=count gera as ocorrências extras com as mesmas tags", async () => {
     const { repo, rows, grantTag } = fakeRepo();
     grantTag("u1", "tag-a");
-    const svc = makeTransactionsService(repo);
+    const svc = makeService(repo);
 
     await svc.createTransaction({
       userId: "u1",
@@ -275,7 +295,7 @@ describe("createTransaction — recorrência", () => {
 
   it("repeat semanal com repeatEnd=forever gera 12 ocorrências extras", async () => {
     const { repo, rows } = fakeRepo();
-    const svc = makeTransactionsService(repo);
+    const svc = makeService(repo);
 
     await svc.createTransaction({
       userId: "u1",
@@ -331,7 +351,7 @@ describe("listTransactions", () => {
 
   it("filtra por mês (ordenado por data) sem vazar transações de outro usuário", async () => {
     const { repo } = fakeRepo();
-    const svc = makeTransactionsService(repo);
+    const svc = makeService(repo);
     await seed(svc);
 
     const result = await svc.listTransactions("u1", { month: "2026-06" });
@@ -340,7 +360,7 @@ describe("listTransactions", () => {
 
   it("filtra por intervalo from/to e por type", async () => {
     const { repo } = fakeRepo();
-    const svc = makeTransactionsService(repo);
+    const svc = makeService(repo);
     await seed(svc);
 
     const range = await svc.listTransactions("u1", {
@@ -355,7 +375,7 @@ describe("listTransactions", () => {
 
   it("rejeita month e from/to malformados com TransactionValidationError", async () => {
     const { repo } = fakeRepo();
-    const svc = makeTransactionsService(repo);
+    const svc = makeService(repo);
 
     await expect(
       svc.listTransactions("u1", { month: "2026-13" }),
@@ -371,7 +391,7 @@ describe("listTransactions", () => {
   it("corta no teto MAX_LIST_RESULTS e avisa o logger injetado", async () => {
     const { repo } = fakeRepo();
     const warnings: string[] = [];
-    const svc = makeTransactionsService(repo, {
+    const svc = makeService(repo, {
       logger: { warn: (_data, msg) => warnings.push(msg) },
     });
     for (let i = 0; i < MAX_LIST_RESULTS + 1; i++) {
@@ -412,7 +432,7 @@ describe("updateTransaction", () => {
 
   it("aplica patch parcial mantendo os demais campos", async () => {
     const { repo } = fakeRepo();
-    const svc = makeTransactionsService(repo);
+    const svc = makeService(repo);
     const tx = await seedTx(svc);
 
     const updated = await svc.updateTransaction({
@@ -429,7 +449,7 @@ describe("updateTransaction", () => {
 
   it("anti-IDOR: id de outro dono (ou inexistente) vira TransactionNotFoundError sem mutar", async () => {
     const { repo, rows } = fakeRepo();
-    const svc = makeTransactionsService(repo);
+    const svc = makeService(repo);
     const tx = await seedTx(svc);
 
     await expect(
@@ -449,7 +469,7 @@ describe("updateTransaction", () => {
 
   it("rejeita type/amount/date inválidos e transição para diario", async () => {
     const { repo, rows } = fakeRepo();
-    const svc = makeTransactionsService(repo);
+    const svc = makeService(repo);
     const tx = await seedTx(svc);
 
     await expect(
@@ -471,7 +491,7 @@ describe("updateTransaction", () => {
 
   it("aceita type=diario quando a transaction já é diario (edição de placeholder pela UI)", async () => {
     const { repo } = fakeRepo();
-    const svc = makeTransactionsService(repo);
+    const svc = makeService(repo);
     // Placeholder diario nasce fora do boundary de escrita (apply_previsao) —
     // simulado direto na porta.
     const placeholder = await repo.create(
@@ -504,7 +524,7 @@ describe("updateTransaction", () => {
     const { repo, grantTag } = fakeRepo();
     grantTag("u1", "tag-a");
     grantTag("outro", "tag-alheia");
-    const svc = makeTransactionsService(repo);
+    const svc = makeService(repo);
     const tx = await seedTx(svc);
 
     await expect(
@@ -534,7 +554,7 @@ describe("updateTransaction", () => {
 describe("deleteTransaction", () => {
   it("remove a Transaction do próprio usuário; id alheio/inexistente vira NotFound", async () => {
     const { repo, rows } = fakeRepo();
-    const svc = makeTransactionsService(repo);
+    const svc = makeService(repo);
     const { transaction } = await svc.createTransaction({
       userId: "u1",
       type: "saida",
@@ -550,5 +570,175 @@ describe("deleteTransaction", () => {
 
     await svc.deleteTransaction("u1", transaction.id);
     expect(rows).toHaveLength(0);
+  });
+});
+
+/**
+ * Tags em memória para o fake de listTags (user story 17): o core de Transações
+ * recebe a consulta como dependência, então o teste de sugestão não precisa do
+ * service de Tags real nem do banco.
+ */
+const TAGS = [
+  { id: "tag-academia", name: "Academia" },
+  { id: "tag-moradia", name: "Moradia" }, // casará por categoria (keyword "aluguel")
+];
+const listTagsFake = async () => TAGS;
+
+describe("suggest", () => {
+  it("sem type explícito, infere saida para gasto e entrada para receita", async () => {
+    const { repo } = fakeRepo();
+    const svc = makeService(repo, { listTags: listTagsFake });
+
+    const gasto = await svc.suggest({
+      userId: "u1",
+      description: "Mercado",
+    });
+    expect(gasto.type).toBe("saida");
+
+    const receita = await svc.suggest({
+      userId: "u1",
+      description: "Salário",
+    });
+    expect(receita.type).toBe("entrada");
+  });
+
+  it("com type explícito, prevalece sobre a inferência", async () => {
+    const { repo } = fakeRepo();
+    const svc = makeService(repo, { listTags: listTagsFake });
+
+    const result = await svc.suggest({
+      userId: "u1",
+      description: "Salário", // inferiria entrada
+      type: "saida",
+    });
+    expect(result.type).toBe("saida");
+  });
+
+  it("sugere Tag por nome próprio (prioridade) e ignora acentos", async () => {
+    const { repo } = fakeRepo();
+    const svc = makeService(repo, { listTags: listTagsFake });
+
+    const result = await svc.suggest({
+      userId: "u1",
+      description: "mensalidade da ACADEMIA",
+    });
+    expect(result).toEqual({ type: "saida", tagId: "tag-academia" });
+  });
+
+  it("cai na categoria quando nenhuma Tag casa por nome", async () => {
+    const { repo } = fakeRepo();
+    const svc = makeService(repo, { listTags: listTagsFake });
+
+    const result = await svc.suggest({
+      userId: "u1",
+      description: "aluguel do apartamento",
+    });
+    expect(result.tagId).toBe("tag-moradia");
+  });
+
+  it("retorna tagId null quando nada casa (não inventa Tag)", async () => {
+    const { repo } = fakeRepo();
+    const svc = makeService(repo, { listTags: listTagsFake });
+
+    const result = await svc.suggest({
+      userId: "u1",
+      description: "transferência interna",
+    });
+    expect(result.tagId).toBeNull();
+  });
+});
+
+describe("createSuggested", () => {
+  it("sem type explícito, infere type e aplica a Tag sugerida na criação", async () => {
+    const { repo, rows, grantTag } = fakeRepo();
+    // A Tag sugerida (tag-academia) precisa estar "owned" no fake — no mundo
+    // real, toda Tag devolvida por listTags pertence ao usuário por construção.
+    grantTag("u1", "tag-academia");
+    const svc = makeService(repo, { listTags: listTagsFake });
+
+    const result = await svc.createSuggested({
+      userId: "u1",
+      description: "mensalidade da academia",
+      amount: 90,
+      date: "2026-06-10",
+      source: "agent",
+    });
+
+    expect(result.duplicated).toBe(false);
+    expect(result.transaction.type).toBe("saida");
+    expect(result.transaction.tags.map((t) => t.id)).toEqual(["tag-academia"]);
+    expect(rows).toHaveLength(1);
+  });
+
+  it("com type explícito, prevalece sobre a inferência", async () => {
+    const { repo } = fakeRepo();
+    const svc = makeService(repo, { listTags: listTagsFake });
+
+    const result = await svc.createSuggested({
+      userId: "u1",
+      description: "Salário", // inferiria entrada
+      amount: 5000,
+      date: "2026-06-10",
+      type: "entrada",
+    });
+
+    expect(result.transaction.type).toBe("entrada");
+  });
+
+  it("sem Tag casando, cria sem conectar Tag", async () => {
+    const { repo, rows } = fakeRepo();
+    const svc = makeService(repo, { listTags: listTagsFake });
+
+    const result = await svc.createSuggested({
+      userId: "u1",
+      description: "transferência interna",
+      amount: 50,
+      date: "2026-06-10",
+    });
+
+    expect(result.transaction.tags).toEqual([]);
+    expect(rows).toHaveLength(1);
+  });
+
+  it("propaga duplicata: mesma janela/type+amount retorna candidata sem criar", async () => {
+    const { repo, rows } = fakeRepo();
+    const svc = makeService(repo, { listTags: listTagsFake });
+    await svc.createSuggested({
+      userId: "u1",
+      description: "Mercado",
+      amount: 100,
+      date: "2026-06-10",
+      force: true,
+    });
+
+    const dup = await svc.createSuggested({
+      userId: "u1",
+      description: "Compra no mercado",
+      amount: 100,
+      date: "2026-06-11", // dentro de ±2 dias
+    });
+
+    expect(dup.duplicated).toBe(true);
+    expect(rows).toHaveLength(1);
+  });
+
+  it("aceita recorrência (repeat) pelo mesmo contrato do create", async () => {
+    const { repo, rows, grantTag } = fakeRepo();
+    grantTag("u1", "tag-moradia"); // "Aluguel" casa a categoria Moradia
+    const svc = makeService(repo, { listTags: listTagsFake });
+
+    await svc.createSuggested({
+      userId: "u1",
+      description: "Aluguel",
+      amount: 1500,
+      date: "2026-06-10",
+      repeat: "monthly",
+      repeatEnd: "count",
+      repeatCount: 3,
+      force: true,
+    });
+
+    expect(rows).toHaveLength(3);
+    expect(rows.map((r) => r.date.getMonth())).toEqual([5, 6, 7]);
   });
 });
