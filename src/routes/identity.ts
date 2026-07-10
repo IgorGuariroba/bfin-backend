@@ -1,6 +1,5 @@
 import type { FastifyInstance } from "fastify";
 import { requireInternalSecret } from "./internal-api.js";
-import { ProRequiredError } from "../core/identity/index.js";
 import { identityService } from "../adapters/index.js";
 
 export function identityRoutes(app: FastifyInstance) {
@@ -33,14 +32,7 @@ export function identityRoutes(app: FastifyInstance) {
         .code(400)
         .send({ error: "userId e enabled são obrigatórios" });
     }
-    try {
-      await identityService.setAutoBaixaDiario(userId, enabled);
-      return reply.code(204).send();
-    } catch (error) {
-      if (error instanceof ProRequiredError) {
-        return reply.code(403).send({ error: error.message });
-      }
-      throw error;
-    }
+    await identityService.setAutoBaixaDiario(userId, enabled);
+    return reply.code(204).send();
   });
 }

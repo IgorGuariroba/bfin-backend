@@ -1,6 +1,5 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { requireInternalSecret } from "./internal-api.js";
-import { InsightsValidationError } from "../core/insights/index.js";
 import { insightsService } from "../adapters/index.js";
 
 function parseQuery(
@@ -24,52 +23,24 @@ export function insightsRoutes(app: FastifyInstance) {
   app.get("/insights/totais", async (request, reply) => {
     const parsed = parseQuery(request, reply);
     if (!parsed) return;
-    try {
-      return await insightsService.getTotais(parsed.userId, parsed.month);
-    } catch (error) {
-      if (error instanceof InsightsValidationError) {
-        return reply.code(400).send({ error: error.message });
-      }
-      throw error;
-    }
+    return insightsService.getTotais(parsed.userId, parsed.month);
   });
 
   app.get("/insights/saldos", async (request, reply) => {
     const parsed = parseQuery(request, reply);
     if (!parsed) return;
-    try {
-      return await insightsService.getSaldos(parsed.userId, parsed.month);
-    } catch (error) {
-      if (error instanceof InsightsValidationError) {
-        return reply.code(400).send({ error: error.message });
-      }
-      throw error;
-    }
+    return insightsService.getSaldos(parsed.userId, parsed.month);
   });
 
   app.get("/insights/month-summary", async (request, reply) => {
     const parsed = parseQuery(request, reply);
     if (!parsed) return;
-    try {
-      return await insightsService.getMonthSummary(parsed.userId, parsed.month);
-    } catch (error) {
-      if (error instanceof InsightsValidationError) {
-        return reply.code(400).send({ error: error.message });
-      }
-      throw error;
-    }
+    return insightsService.getMonthSummary(parsed.userId, parsed.month);
   });
 
   app.get("/insights/sugestoes", async (request, reply) => {
     const parsed = parseQuery(request, reply);
     if (!parsed) return;
-    try {
-      return await insightsService.getSugestoes(parsed.userId, parsed.month);
-    } catch (error) {
-      if (error instanceof InsightsValidationError) {
-        return reply.code(400).send({ error: error.message });
-      }
-      throw error;
-    }
+    return insightsService.getSugestoes(parsed.userId, parsed.month);
   });
 }
