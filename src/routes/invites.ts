@@ -1,5 +1,5 @@
-import { timingSafeEqual } from "node:crypto";
-import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
+import type { FastifyInstance, FastifyReply } from "fastify";
+import { requireInternalSecret } from "./internal-api.js";
 import {
   InviteForbiddenError,
   InviteNotFoundError,
@@ -7,28 +7,6 @@ import {
   ProRequiredError,
 } from "../core/identity/index.js";
 import { membersService } from "../adapters/index.js";
-
-/** Compara em tempo constante; length-mismatch → false (timingSafeEqual exige buffers do mesmo tamanho). */
-function safeEqual(a: string, b: string): boolean {
-  const ab = Buffer.from(a);
-  const bb = Buffer.from(b);
-  if (ab.length !== bb.length) return false;
-  return timingSafeEqual(ab, bb);
-}
-
-function requireInternalSecret(
-  request: FastifyRequest,
-  reply: FastifyReply,
-  done: () => void,
-) {
-  const secret = process.env.INTERNAL_API_SECRET;
-  const provided = request.headers["x-internal-secret"];
-  if (!secret || typeof provided !== "string" || !safeEqual(provided, secret)) {
-    reply.code(401).send({ error: "Unauthorized" });
-    return;
-  }
-  done();
-}
 
 // Mapeia erros de domínio do core para HTTP; retorna true se tratou.
 function domainErrorResponse(error: unknown, reply: FastifyReply): boolean {
