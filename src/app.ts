@@ -11,9 +11,14 @@ import { billingRoutes } from "./routes/billing.js";
 import { insightsRoutes } from "./routes/insights.js";
 import { mcpRoutes } from "./routes/mcp.js";
 import { webhookMercadoPagoRoutes } from "./routes/webhook-mercadopago.js";
+import { domainErrorHandler } from "./routes/domain-errors.js";
 
 export function buildApp(opts: FastifyServerOptions = {}) {
   const app = Fastify(opts);
+
+  // Erro de domínio lançado por qualquer rota vira HTTP aqui — antes cada rota
+  // carregava seu próprio mapeamento (domainErrorResponse / inline).
+  app.setErrorHandler(domainErrorHandler);
 
   // Healthcheck do Dokploy: só é "ok" se o Postgres responde.
   app.get("/health", async (_req, reply) => {

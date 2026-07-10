@@ -1,29 +1,6 @@
-import { timingSafeEqual } from "node:crypto";
-import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { ProRequiredError } from "../core/identity/index.js";
+import type { FastifyInstance } from "fastify";
+import { requireInternalSecret } from "./internal-api.js";
 import { identityService } from "../adapters/index.js";
-
-/** Compara em tempo constante; length-mismatch → false (timingSafeEqual exige buffers do mesmo tamanho). */
-function safeEqual(a: string, b: string): boolean {
-  const ab = Buffer.from(a);
-  const bb = Buffer.from(b);
-  if (ab.length !== bb.length) return false;
-  return timingSafeEqual(ab, bb);
-}
-
-function requireInternalSecret(
-  request: FastifyRequest,
-  reply: FastifyReply,
-  done: () => void,
-) {
-  const secret = process.env.INTERNAL_API_SECRET;
-  const provided = request.headers["x-internal-secret"];
-  if (!secret || typeof provided !== "string" || !safeEqual(provided, secret)) {
-    reply.code(401).send({ error: "Unauthorized" });
-    return;
-  }
-  done();
-}
 
 export function identityRoutes(app: FastifyInstance) {
   app.addHook("onRequest", requireInternalSecret);
@@ -55,14 +32,7 @@ export function identityRoutes(app: FastifyInstance) {
         .code(400)
         .send({ error: "userId e enabled são obrigatórios" });
     }
-    try {
-      await identityService.setAutoBaixaDiario(userId, enabled);
-      return reply.code(204).send();
-    } catch (error) {
-      if (error instanceof ProRequiredError) {
-        return reply.code(403).send({ error: error.message });
-      }
-      throw error;
-    }
+    await identityService.setAutoBaixaDiario(userId, enabled);
+    return reply.code(204).send();
   });
 }
