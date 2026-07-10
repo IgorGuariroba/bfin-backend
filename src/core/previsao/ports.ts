@@ -1,4 +1,4 @@
-import type { NewDiario, Previsao } from "./types.js";
+import type { AutoBaixaCandidate, NewDiario, Previsao } from "./types.js";
 
 export interface PrevisaoPatch {
   name?: string;
@@ -35,13 +35,16 @@ export interface PrevisaoRepo {
   /** Persiste os placeholders da projeção (type=diario, source=manual). */
   createDiarios(rows: NewDiario[]): Promise<void>;
   /**
-   * Baixa automática (ADR-0005): um único delete filtrado pela relação — os
-   * `diario` com source=manual na janela [gte, lt), apenas de usuários pro com
-   * autoBaixaDiario=true e plano vigente em `now` (planExpiresAt nulo ou > now,
-   * replicando getUserPlan). Retorna o total deletado.
+   * Usuários com autoBaixaDiario=true, com plan/planExpiresAt crus. Só dados —
+   * a elegibilidade (pro vigente) é regra do service (baixaDiaria).
    */
-  deleteManualDiarioForAutoBaixa(
+  listAutoBaixaCandidates(): Promise<AutoBaixaCandidate[]>;
+  /**
+   * Deleta os `diario` com source=manual na janela [gte, lt) dos usuários
+   * dados (um único delete). Retorna o total deletado.
+   */
+  deleteManualDiarioForUsers(
+    userIds: string[],
     window: { gte: Date; lt: Date },
-    now: Date,
   ): Promise<number>;
 }

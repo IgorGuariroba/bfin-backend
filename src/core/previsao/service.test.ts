@@ -69,16 +69,25 @@ function makeFakeRepo() {
         diarios.push({ id: `diario-${++seq}`, source: "manual", ...row });
       }
     },
-    deleteManualDiarioForAutoBaixa: async ({ gte, lt }, now) => {
+    // Fakes só de dados — a elegibilidade (regra) é do service, não do repo.
+    listAutoBaixaCandidates: async () =>
+      [...users.entries()]
+        .filter(([, u]) => u.autoBaixaDiario)
+        .map(([userId, u]) => ({
+          userId,
+          plan: u.plan,
+          planExpiresAt: u.planExpiresAt,
+        })),
+    deleteManualDiarioForUsers: async (userIds, { gte, lt }) => {
       let count = 0;
       for (let i = diarios.length - 1; i >= 0; i--) {
         const d = diarios[i];
-        const user = users.get(d.userId);
-        const eligible =
-          user?.autoBaixaDiario &&
-          user.plan === "pro" &&
-          (user.planExpiresAt === null || user.planExpiresAt > now);
-        if (eligible && d.source === "manual" && d.date >= gte && d.date < lt) {
+        if (
+          userIds.includes(d.userId) &&
+          d.source === "manual" &&
+          d.date >= gte &&
+          d.date < lt
+        ) {
           diarios.splice(i, 1);
           count++;
         }
@@ -351,6 +360,54 @@ describe("baixaDiaria", () => {
     expect(ids).toEqual(
       expect.arrayContaining(["amanha", "importado", "free"]),
     );
+  });
+
+  it("preserva o diario de pro com plano vencido e baixa o de pro com expiração futura", async () => {
+    fake.users.set("pro-vencido", {
+      autoBaixaDiario: true,
+      plan: "pro",
+      planExpiresAt: new Date(Date.UTC(2026, 6, 1, 0, 0, 0)), // antes de now
+    });
+    fake.users.set("pro-vigente", {
+      autoBaixaDiario: true,
+      plan: "pro",
+      planExpiresAt: new Date(Date.UTC(2026, 11, 31, 0, 0, 0)), // depois de now
+    });
+
+    const hoje = new Date(Date.UTC(2026, 6, 2, 12, 0, 0));
+    seedDiario("do-vencido", "pro-vencido", hoje);
+    seedDiario("do-vigente", "pro-vigente", hoje);
+
+    const { count } = await service.baixaDiaria(now);
+
+    expect(count).toBe(1);
+    const ids = fake.diarios.map((d) => d.id);
+    expect(ids).toContain("do-vencido");
+    expect(ids).not.toContain("do-vigente");
+  });
+
+  it("preserva o diario de pro que não optou (flag desligada)", async () => {
+    fake.users.set("pro-off", {
+      autoBaixaDiario: false,
+      plan: "pro",
+      planExpiresAt: null,
+    });
+    seedDiario(
+      "do-pro-off",
+      "pro-off",
+      new Date(Date.UTC(2026, 6, 2, 12, 0, 0)),
+    );
+
+    const { count } = await service.baixaDiaria(now);
+
+    expect(count).toBe(0);
+    expect(fake.diarios.map((d) => d.id)).toContain("do-pro-off");
+  });
+
+  it("retorna count 0 sem candidatos elegíveis", async () => {
+    const { count } = await service.baixaDiaria(now);
+
+    expect(count).toBe(0);
   });
 });
 

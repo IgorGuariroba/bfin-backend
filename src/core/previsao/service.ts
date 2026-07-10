@@ -1,5 +1,5 @@
 import type { PrevisaoRepo } from "./ports.js";
-import type { NewDiario, Previsao } from "./types.js";
+import type { AutoBaixaCandidate, NewDiario, Previsao } from "./types.js";
 import { saoPauloTodayRange } from "../dates.js";
 
 export class PrevisaoValidationError extends Error {}
@@ -126,16 +126,34 @@ export function makePrevisaoService(repo: PrevisaoRepo) {
   }
 
   /**
+   * Pro vigente em `now`: planExpiresAt nulo ou > now (borda === now é vencido,
+   * preservando o `gt` do SQL antigo; getUserPlan usa `<` e difere só nessa borda).
+   */
+  function isProVigente(candidate: AutoBaixaCandidate, now: Date): boolean {
+    return (
+      candidate.plan === "pro" &&
+      (candidate.planExpiresAt === null || candidate.planExpiresAt > now)
+    );
+  }
+
+  /**
    * Baixa automática do gasto diário (ADR-0005): exclui a projeção cujo dia é
    * "hoje" em America/Sao_Paulo dos usuários pro que optaram. Escopo deliberado:
-   * só o dia corrente — não recupera dias passados nem futuros. Elegibilidade e
-   * atomicidade (delete único filtrado pela relação) são contrato da porta.
+   * só o dia corrente — não recupera dias passados nem futuros. O opt-in
+   * (autoBaixaDiario) é critério de seleção da porta; o pro vigente é decidido
+   * aqui. Listar e deletar são duas queries sem transação: downgrade entre elas
+   * ainda baixa (janela de ms; o delete único antigo só diferia sob corrida).
    */
   async function baixaDiaria(
     now: Date = new Date(),
   ): Promise<{ count: number }> {
     const window = saoPauloTodayRange(now);
-    const count = await repo.deleteManualDiarioForAutoBaixa(window, now);
+    const candidates = await repo.listAutoBaixaCandidates();
+    const eligibleIds = candidates
+      .filter((candidate) => isProVigente(candidate, now))
+      .map((candidate) => candidate.userId);
+    if (eligibleIds.length === 0) return { count: 0 };
+    const count = await repo.deleteManualDiarioForUsers(eligibleIds, window);
     return { count };
   }
 
