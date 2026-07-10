@@ -1,7 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { requireInternalSecret } from "./internal-api.js";
-import { suggestTag, suggestType } from "../core/transactions/suggest.js";
-import { tagsService, transactionsService } from "../adapters/index.js";
+import { transactionsService } from "../adapters/index.js";
 
 export function transactionsRoutes(app: FastifyInstance) {
   app.addHook("onRequest", requireInternalSecret);
@@ -32,10 +31,7 @@ export function transactionsRoutes(app: FastifyInstance) {
         .code(400)
         .send({ error: "userId e description são obrigatórios" });
     }
-    const resolvedType = type ?? suggestType(description);
-    const userTags = await tagsService.listTags(userId);
-    const tagId = suggestTag(description, userTags);
-    return { type: resolvedType, tagId };
+    return transactionsService.suggest({ userId, description, type });
   });
 
   app.post("/transactions", async (request, reply) => {

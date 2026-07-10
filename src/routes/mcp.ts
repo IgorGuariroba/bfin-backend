@@ -14,7 +14,6 @@ import {
   TransactionNotFoundError,
   TransactionValidationError,
 } from "../core/transactions/index.js";
-import { suggestTag, suggestType } from "../core/transactions/suggest.js";
 import { TagValidationError } from "../core/tags/index.js";
 import { InsightsValidationError } from "../core/insights/index.js";
 import { checkRateLimit, classifyRpc, RATE_LIMITS } from "../lib/rate-limit.js";
@@ -150,23 +149,21 @@ function buildServer(userId: string, apiKeyId: string): McpServer {
       repeatCount,
     }) => {
       try {
-        // Resolve type e Tag sugerida a partir da descrição (ADR-0004) — em
-        // memória, já que Tags e Transactions vivem no mesmo processo.
-        const resolvedType = type ?? suggestType(description);
-        const userTags = await tagsService.listTags(userId);
-        const suggestedTagId = suggestTag(description, userTags);
-        const result = await transactionsService.createTransaction({
+        // Sugestão + criação compostas no core (suggest/createSuggested): a
+        // fronteira só transporta. A auditoria da escrita do agente
+        // (recordAgentWrite) permanece aqui — apiKeyId é preocupação de
+        // transporte, não do domínio de Transações.
+        const result = await transactionsService.createSuggested({
           userId,
-          type: resolvedType,
           description,
           amount,
           date,
+          type,
           source: "agent",
           force,
           repeat,
           repeatEnd,
           repeatCount,
-          tagIds: suggestedTagId ? [suggestedTagId] : undefined,
         });
         if (result.duplicated) {
           const dup = result.transaction;
