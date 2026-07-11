@@ -701,6 +701,8 @@ describe("listTransactions", () => {
     ).rejects.toBeInstanceOf(TransactionValidationError);
   });
 
+  // Timeout maior: são MAX_LIST_RESULTS+5 inserts sequenciais — sob o
+  // paralelismo do suite completo, os 5s default estouram.
   it("corta no teto MAX_LIST_RESULTS quando há mais registros que o limite", async () => {
     const user = await seedUser();
     for (let i = 0; i < MAX_LIST_RESULTS + 5; i++) {
@@ -710,7 +712,7 @@ describe("listTransactions", () => {
     const result = await listTransactions(user.id, {});
 
     expect(result).toHaveLength(MAX_LIST_RESULTS);
-  });
+  }, 30_000);
 
   it("não vaza transações de outro usuário", async () => {
     const user = await seedUser();
