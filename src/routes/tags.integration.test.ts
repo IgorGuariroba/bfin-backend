@@ -113,3 +113,41 @@ describe("rotas de tags", () => {
     expect(duplicate.statusCode).toBe(400);
   });
 });
+
+describe("validação de campos obrigatórios (parse zod)", () => {
+  let originalSecret: string | undefined;
+
+  beforeAll(() => {
+    originalSecret = process.env.INTERNAL_API_SECRET;
+    process.env.INTERNAL_API_SECRET = SECRET;
+  });
+
+  afterAll(() => {
+    process.env.INTERNAL_API_SECRET = originalSecret;
+  });
+
+  it("retorna 400 uniforme quando campo obrigatório falta", async () => {
+    const app = buildApp();
+    const headers = { "x-internal-secret": SECRET };
+
+    const semUserId = await app.inject({
+      method: "GET",
+      url: "/tags",
+      headers,
+    });
+    expect(semUserId.statusCode).toBe(400);
+    expect(semUserId.json()).toEqual({ error: "userId é obrigatório" });
+
+    const cases = [
+      { method: "POST" as const, url: "/tags/ensure-system", payload: {} },
+      { method: "POST" as const, url: "/tags", payload: {} },
+      { method: "PUT" as const, url: "/tags/x", payload: {} },
+      { method: "DELETE" as const, url: "/tags/x", payload: {} },
+    ];
+    for (const { method, url, payload } of cases) {
+      const res = await app.inject({ method, url, headers, payload });
+      expect(res.statusCode).toBe(400);
+      expect(res.json().error).toMatch(/obrigatóri/);
+    }
+  });
+});

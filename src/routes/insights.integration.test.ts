@@ -139,3 +139,31 @@ describe("GET /insights/sugestoes", () => {
     expect(body.map((s) => s.tipo)).toContain("saldo_negativo");
   });
 });
+
+describe("validação de campos obrigatórios (parse zod)", () => {
+  it("retorna 400 uniforme quando userId ou month faltam", async () => {
+    vi.stubEnv("INTERNAL_API_SECRET", SECRET);
+    const app = buildApp();
+    const headers = { "x-internal-secret": SECRET };
+
+    const semAmbos = await app.inject({
+      method: "GET",
+      url: "/insights/totais",
+      headers,
+    });
+    expect(semAmbos.statusCode).toBe(400);
+    expect(semAmbos.json()).toEqual({
+      error: "userId e month são obrigatórios",
+    });
+
+    for (const rota of ["saldos", "month-summary", "sugestoes"]) {
+      const res = await app.inject({
+        method: "GET",
+        url: `/insights/${rota}?userId=u1`,
+        headers,
+      });
+      expect(res.statusCode).toBe(400);
+      expect(res.json()).toEqual({ error: "month é obrigatório" });
+    }
+  });
+});

@@ -153,3 +153,55 @@ describe("rotas de apikeys", () => {
     expect(response.statusCode).toBe(204);
   });
 });
+
+describe("validação de campos obrigatórios (parse zod)", () => {
+  let originalSecret: string | undefined;
+
+  beforeAll(() => {
+    originalSecret = process.env.INTERNAL_API_SECRET;
+    process.env.INTERNAL_API_SECRET = SECRET;
+  });
+
+  afterAll(() => {
+    process.env.INTERNAL_API_SECRET = originalSecret;
+  });
+
+  it("retorna 400 uniforme quando campo obrigatório falta", async () => {
+    const app = buildApp();
+    const headers = { "x-internal-secret": SECRET };
+
+    const semUserId = await app.inject({
+      method: "GET",
+      url: "/apikeys",
+      headers,
+    });
+    expect(semUserId.statusCode).toBe(400);
+    expect(semUserId.json()).toEqual({ error: "userId é obrigatório" });
+
+    const recordWrite = await app.inject({
+      method: "POST",
+      url: "/apikeys/record-write",
+      headers,
+      payload: {},
+    });
+    expect(recordWrite.statusCode).toBe(400);
+    expect(recordWrite.json()).toEqual({
+      error: "apiKeyId, userId, action e entityId são obrigatórios",
+    });
+
+    const cases = [
+      { method: "POST" as const, url: "/apikeys", payload: {} },
+      { method: "DELETE" as const, url: "/apikeys/x", payload: {} },
+      {
+        method: "POST" as const,
+        url: "/apikeys/resolve-principal",
+        payload: {},
+      },
+    ];
+    for (const { method, url, payload } of cases) {
+      const res = await app.inject({ method, url, headers, payload });
+      expect(res.statusCode).toBe(400);
+      expect(res.json().error).toMatch(/obrigatóri/);
+    }
+  });
+});

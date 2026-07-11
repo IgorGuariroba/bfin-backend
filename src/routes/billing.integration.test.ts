@@ -196,3 +196,36 @@ describe("POST /billing/checkout", () => {
     expect(res.statusCode).toBe(400);
   });
 });
+
+describe("validação de campos obrigatórios (parse zod)", () => {
+  it("retorna 400 uniforme quando campo obrigatório falta", async () => {
+    const app = buildApp();
+    const headers = { "x-internal-secret": SECRET };
+
+    const semValores = await app.inject({
+      method: "PUT",
+      url: "/billing/plan-config",
+      headers,
+      payload: {},
+    });
+    expect(semValores.statusCode).toBe(400);
+    expect(semValores.json()).toEqual({
+      error: "monthlyAmount e annualAmount são obrigatórios",
+    });
+
+    const cases = [
+      { method: "GET" as const, url: "/billing/subscription" },
+      {
+        method: "DELETE" as const,
+        url: "/billing/subscription",
+        payload: {},
+      },
+      { method: "POST" as const, url: "/billing/checkout", payload: {} },
+    ];
+    for (const { method, url, payload } of cases) {
+      const res = await app.inject({ method, url, headers, payload });
+      expect(res.statusCode).toBe(400);
+      expect(res.json().error).toMatch(/obrigatóri/);
+    }
+  });
+});
