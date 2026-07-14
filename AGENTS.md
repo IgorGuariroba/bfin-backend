@@ -84,9 +84,9 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 ## 7. Self-learning
 
-**Lessons live in `docs/knowledge/lessons.md` (Open Knowledge Format). Read them before starting work.**
+**Knowledge lives in `docs/knowledge/` — an OKF v0.1 bundle. Read `docs/knowledge/index.md` before starting work to discover available concepts.**
 
-When the user corrects you, or you catch yourself making a mistake: before continuing, add the lesson as a one-line rule to `docs/knowledge/lessons.md`, so it never happens again.
+When the user corrects you, or you catch yourself making a mistake: before continuing, add the lesson as a one-line rule to `docs/knowledge/lessons.md`, so it never happens again. Other kinds of reusable knowledge (runbooks, references, schemas, etc.) may be added as new concept files in the same bundle.
 
 Admission criteria — a lesson only enters if it:
 

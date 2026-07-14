@@ -1,0 +1,3 @@
+# Crie um arquivo .md por agente aqui.
+# O nome do arquivo vira o nome do agente (ex.: implementer.md -> agente "implementer").
+# O conteúdo do arquivo vira o system prompt do agente (passado via --append-system-prompt).
