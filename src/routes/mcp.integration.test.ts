@@ -13,7 +13,8 @@ import {
   fromDbTimestamp,
   toDbTimestamp,
 } from "../adapters/drizzle/timestamp.js";
-import { apiKeysService } from "../adapters/index.js";
+import { apiKeysService, previsaoService } from "../adapters/index.js";
+import { PrevisaoValidationError } from "../core/previsao/index.js";
 import { RATE_LIMITS } from "../lib/rate-limit.js";
 import { buildApp } from "../app.js";
 
@@ -780,6 +781,27 @@ describe("POST /mcp", () => {
     expect(res.statusCode).toBe(200);
     expect(res.body).toContain("Mercado");
     expect(res.body).toContain("1200");
+  });
+
+  it("get_previsao converte PrevisaoValidationError em tool error (isError), corrigindo o drift do classificador único (issue #31: helper de leitura antes só conhecia 3 classes, Previsão ficava de fora)", async () => {
+    const app = buildApp();
+    const { plain } = await seedProKey();
+    const spy = vi
+      .spyOn(previsaoService, "listPrevisoes")
+      .mockRejectedValue(new PrevisaoValidationError("Previsão inválida"));
+
+    const res = await mcpInject(app, plain, {
+      jsonrpc: "2.0",
+      id: 1,
+      method: "tools/call",
+      params: { name: "get_previsao", arguments: {} },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toContain('"isError":true');
+    expect(res.body).toContain("Previsão inválida");
+
+    spy.mockRestore();
   });
 
   it("T20: nenhuma tool apply_previsao é exposta (projeção destrutiva fora de escopo)", async () => {
