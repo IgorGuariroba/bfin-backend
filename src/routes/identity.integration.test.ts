@@ -143,3 +143,58 @@ describe("rotas de identity", () => {
     });
   });
 });
+
+describe("validação de campos obrigatórios (parse zod)", () => {
+  let originalSecret: string | undefined;
+
+  beforeAll(() => {
+    originalSecret = process.env.INTERNAL_API_SECRET;
+    process.env.INTERNAL_API_SECRET = SECRET;
+  });
+
+  afterAll(() => {
+    process.env.INTERNAL_API_SECRET = originalSecret;
+  });
+
+  it("retorna 400 uniforme quando campo obrigatório falta", async () => {
+    const app = buildApp();
+    const headers = { "x-internal-secret": SECRET };
+
+    const semSessionUser = await app.inject({
+      method: "POST",
+      url: "/identity/resolve-effective-user",
+      headers,
+      payload: {},
+    });
+    expect(semSessionUser.statusCode).toBe(400);
+    expect(semSessionUser.json()).toEqual({
+      error: "sessionUserId é obrigatório",
+    });
+
+    const semUserId = await app.inject({
+      method: "GET",
+      url: "/identity/plan",
+      headers,
+    });
+    expect(semUserId.statusCode).toBe(400);
+    expect(semUserId.json()).toEqual({ error: "userId é obrigatório" });
+
+    const semEnabled = await app.inject({
+      method: "POST",
+      url: "/identity/auto-baixa-diario",
+      headers,
+      payload: { userId: "u1" },
+    });
+    expect(semEnabled.statusCode).toBe(400);
+    expect(semEnabled.json()).toEqual({ error: "enabled é obrigatório" });
+
+    const enabledInvalido = await app.inject({
+      method: "POST",
+      url: "/identity/auto-baixa-diario",
+      headers,
+      payload: { userId: "u1", enabled: "sim" },
+    });
+    expect(enabledInvalido.statusCode).toBe(400);
+    expect(enabledInvalido.json()).toEqual({ error: "enabled é inválido" });
+  });
+});

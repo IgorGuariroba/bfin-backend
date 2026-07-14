@@ -1,6 +1,31 @@
 import type { FastifyInstance } from "fastify";
+import { z } from "zod";
 import { requireInternalSecret } from "./internal-api.js";
 import { billingService } from "../adapters/index.js";
+import { parseOr400, requiredString } from "./parse.js";
+
+const planConfigBodySchema = z.object({
+  monthlyAmount: z.number(),
+  annualAmount: z.number(),
+});
+
+const userIdQuerySchema = z.object({ userId: requiredString });
+
+const userIdBodySchema = z.object({ userId: requiredString });
+
+const checkoutBodySchema = z.object({
+  userId: requiredString,
+  email: z.string().nullish(),
+  cycle: z.enum(["monthly", "annual"]),
+  origin: requiredString,
+  click: z
+    .object({
+      gclid: z.string().optional(),
+      gbraid: z.string().optional(),
+      wbraid: z.string().optional(),
+    })
+    .optional(),
+});
 
 export function billingRoutes(app: FastifyInstance) {
   app.addHook("onRequest", requireInternalSecret);
@@ -13,49 +38,28 @@ export function billingRoutes(app: FastifyInstance) {
     return billingService.getPlanConfig();
   });
 
-  app.put("/billing/plan-config", async (request) => {
-    const { monthlyAmount, annualAmount } = request.body as {
-      monthlyAmount?: number;
-      annualAmount?: number;
-    };
-    return billingService.updatePlanConfig({
-      monthlyAmount: monthlyAmount as number,
-      annualAmount: annualAmount as number,
-    });
+  app.put("/billing/plan-config", async (request, reply) => {
+    const body = parseOr400(planConfigBodySchema, request.body, reply);
+    if (!body) return;
+    return billingService.updatePlanConfig(body);
   });
 
   app.get("/billing/subscription", async (request, reply) => {
-    const { userId } = request.query as { userId?: string };
-    if (!userId) return reply.code(400).send({ error: "userId é obrigatório" });
-    return billingService.getSubscription(userId);
+    const query = parseOr400(userIdQuerySchema, request.query, reply);
+    if (!query) return;
+    return billingService.getSubscription(query.userId);
   });
 
   app.delete("/billing/subscription", async (request, reply) => {
-    const { userId } = request.body as { userId?: string };
-    if (!userId) return reply.code(400).send({ error: "userId é obrigatório" });
-    await billingService.cancelSubscription(userId);
+    const body = parseOr400(userIdBodySchema, request.body, reply);
+    if (!body) return;
+    await billingService.cancelSubscription(body.userId);
     return { ok: true };
   });
 
   app.post("/billing/checkout", async (request, reply) => {
-    const { userId, email, cycle, origin, click } = request.body as {
-      userId?: string;
-      email?: string | null;
-      cycle?: "monthly" | "annual";
-      origin?: string;
-      click?: { gclid?: string; gbraid?: string; wbraid?: string };
-    };
-    if (!userId || !origin) {
-      return reply
-        .code(400)
-        .send({ error: "userId e origin são obrigatórios" });
-    }
-    return billingService.checkout({
-      userId,
-      email,
-      cycle: cycle as "monthly" | "annual",
-      origin,
-      click,
-    });
+    const body = parseOr400(checkoutBodySchema, request.body, reply);
+    if (!body) return;
+    return billingService.checkout({ ...body, email: body.email });
   });
 }
