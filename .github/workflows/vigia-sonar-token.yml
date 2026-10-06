@@ -55,16 +55,22 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VALIDO: ${{ steps.token.outputs.valido }}
+          # O `gh` precisa saber em qual repositório agir. Este job não usa o
+          # código, então não faz checkout — e sem `--repo` o `gh` tenta ler o git
+          # local e morre com "failed to run git: fatal: not a git repository".
+          # Foi exatamente o que aconteceu no primeiro workflow_dispatch.
+          REPO: ${{ github.repository }}
         run: |
           chave="[detection:sonar-token-stale]"
           # Busca sem os colchetes: o GitHub Search interpreta `[` como sintaxe.
-          aberta=$(gh issue list --state open --search "sonar-token-stale in:title" \
+          aberta=$(gh issue list --repo "$REPO" --state open \
+            --search "sonar-token-stale in:title" \
             --json number --jq '.[0].number // empty')
           if [ "$VALIDO" = "sim" ]; then
             if [ -n "$aberta" ]; then
-              gh issue comment "$aberta" \
+              gh issue comment "$aberta" --repo "$REPO" \
                 --body "Token voltou a ser válido em $(date -u +%FT%TZ). Fechando conforme a decisão do detection-playbook."
-              gh issue close "$aberta"
+              gh issue close "$aberta" --repo "$REPO"
             fi
             exit 0
           fi
@@ -89,9 +95,9 @@ jobs:
           Detectado por [Vigia do SONAR_TOKEN](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}).
           MD
           if [ -n "$aberta" ]; then
-            gh issue comment "$aberta" --body-file /tmp/corpo.md
+            gh issue comment "$aberta" --repo "$REPO" --body-file /tmp/corpo.md
           else
-            gh issue create \
+            gh issue create --repo "$REPO" \
               --title "$chave SONAR_TOKEN inválido — todo PR deste repositório está travado" \
               --body-file /tmp/corpo.md
           fi
