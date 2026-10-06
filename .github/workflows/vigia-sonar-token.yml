@@ -1,0 +1,103 @@
+name: Vigia do SONAR_TOKEN
+
+# O token do SonarCloud expira a cada 90 dias. Quando ele morre, o job `sonar` do
+# CI passa a falhar com HTTP 403 — e `sonar` é required check do ruleset
+# `main quality gates`, então **todo** PR deste repositório trava, inclusive os do
+# Dependabot (que param de entrar e a fila de vulnerabilidades cresce em silêncio).
+#
+# O sintoma só aparece quando alguém abre um PR: em 04/10/2026 o token morreu e a
+# descoberta veio dois dias depois, junto com uma tentativa de merge. O problema
+# não é a expiração — é a expiração ser invisível. Este vigia troca "descobrir no
+# PR" por "aviso na semana em que morreu", e registra na convenção de detecção do
+# `docs/observability/detection-playbook.md`: título `[detection:<chave>] <resumo>`.
+on:
+  schedule:
+    # Segunda 09:00 UTC (06:00 em America/Sao_Paulo).
+    - cron: "0 9 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  valida:
+    name: Token ainda vale?
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Validar o SONAR_TOKEN contra o SonarCloud
+        id: token
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          # Sem credencial o endpoint responde {"valid":true} (acesso anônimo),
+          # então o caso "secret ausente" precisa ser barrado antes: um vigia que
+          # fica verde sem token é pior que nenhum vigia.
+          if [ -z "$SONAR_TOKEN" ]; then
+            echo "::error::SONAR_TOKEN não existe neste repositório"
+            echo "valido=nao" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          resposta=$(curl -sS -u "$SONAR_TOKEN:" -w '\n%{http_code}' \
+            https://sonarcloud.io/api/authentication/validate)
+          codigo=$(printf '%s' "$resposta" | tail -n1)
+          corpo=$(printf '%s' "$resposta" | sed '$d')
+          valido=$(printf '%s' "$corpo" | jq -r '.valid // false')
+          echo "HTTP $codigo · $corpo"
+          if [ "$codigo" = "200" ] && [ "$valido" = "true" ]; then
+            echo "valido=sim" >> "$GITHUB_OUTPUT"
+          else
+            echo "valido=nao" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Abrir, atualizar ou fechar a issue de detecção
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VALIDO: ${{ steps.token.outputs.valido }}
+        run: |
+          chave="[detection:sonar-token-stale]"
+          # Busca sem os colchetes: o GitHub Search interpreta `[` como sintaxe.
+          aberta=$(gh issue list --state open --search "sonar-token-stale in:title" \
+            --json number --jq '.[0].number // empty')
+          if [ "$VALIDO" = "sim" ]; then
+            if [ -n "$aberta" ]; then
+              gh issue comment "$aberta" \
+                --body "Token voltou a ser válido em $(date -u +%FT%TZ). Fechando conforme a decisão do detection-playbook."
+              gh issue close "$aberta"
+            fi
+            exit 0
+          fi
+          cat > /tmp/corpo.md <<'MD'
+          O `SONAR_TOKEN` não está válido (expirado, revogado ou ausente).
+
+          Consequência: o job `sonar` do CI falha com HTTP 403 e ele é required check
+          do ruleset `main quality gates` — **nenhum PR deste repositório consegue
+          mergear**, inclusive os do Dependabot. O sintoma só aparece quando alguém
+          tenta mergear, por isso este aviso existe.
+
+          Para resolver:
+          1. sonarcloud.io → My Account → Security → Generate token
+             (organização `igorguariroba`, projeto `IgorGuariroba_bfin-backend2`)
+          2. Atualizar o secret:
+             `gh secret set SONAR_TOKEN --repo ${{ github.repository }}`
+             ou Settings → Secrets and variables → Actions → SONAR_TOKEN → Update
+
+          Ao gerar, **anote a data de expiração**: o padrão do SonarCloud é 90 dias.
+          O PAT do ghcr usado pelo Dokploy foi gerado no mesmo dia e vence junto.
+
+          Detectado por [Vigia do SONAR_TOKEN](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}).
+          MD
+          if [ -n "$aberta" ]; then
+            gh issue comment "$aberta" --body-file /tmp/corpo.md
+          else
+            gh issue create \
+              --title "$chave SONAR_TOKEN inválido — todo PR deste repositório está travado" \
+              --body-file /tmp/corpo.md
+          fi
+
+      - name: Repreender o run quando o token estiver inválido
+        if: steps.token.outputs.valido != 'sim'
+        run: |
+          echo "::error::SONAR_TOKEN inválido (ou ausente). Ver a issue [detection:sonar-token-stale]."
+          exit 1
