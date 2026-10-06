@@ -92,3 +92,15 @@ jobs:
       - uses: amannn/action-semantic-pull-request@v6
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # O artefato que o Dokploy builda e roda é a imagem Docker
+  # (`docker-compose.yml`), não o `npm run build` do job `ci`. Sem este job,
+  # uma quebra que só existe no Dockerfile fica verde no CI e aparece só no
+  # deploy — o mesmo buraco que o job `docker` do bfin-app fechou depois do
+  # incidente de set/out 2026 (ver `.github/workflows/ci.yml` de bfin-app).
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build da imagem de produção
+        run: docker build -t bfin-backend:ci .
