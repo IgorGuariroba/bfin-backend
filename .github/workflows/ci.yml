@@ -5,9 +5,19 @@ on:
     branches: [main]
   pull_request:
 
+# O `npm ci` só aceita os lockfiles que o Dependabot gera com o npm 12: o npm do
+# Node 22 (10.x) e o 11 podam os pacotes de plataforma opcionais do lock e depois
+# rejeitam o próprio resultado (`Missing: @esbuild/... from lock file`). Era isso
+# que travava os 20 PRs de bump deste repositório — inclusive os criados no mesmo
+# dia, então fechar e deixar recriar não resolveria. Reprodução e medição no
+# corpo do PR. O mesmo pin está no Dockerfile: o build da imagem roda `npm ci` e
+# falharia igual.
+env:
+  NPM_VERSION: "12.2.0"
+
 jobs:
   ci:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     services:
       postgres:
         image: postgres:16-alpine
@@ -25,11 +35,12 @@ jobs:
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/bfin_backend_ci
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
+      - run: npm install -g npm@${{ env.NPM_VERSION }}
       - run: npm ci
       - run: npm run lint
       - run: npm run type-check
@@ -37,27 +48,28 @@ jobs:
       - run: npm test -- --coverage
       - run: npm run build
       # O job sonar consome o lcov (quality gate exige coverage em new code).
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: coverage
           path: coverage/lcov.info
 
   semgrep:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     container:
       image: semgrep/semgrep
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - run: semgrep scan --config p/typescript --config p/security-audit --error
 
   jscpd:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
+      - run: npm install -g npm@${{ env.NPM_VERSION }}
       - run: npm ci
       # Threshold calibrado no ADR-0003 (5,45% na adoção); apertar conforme refatora.
       - run: npx jscpd src --ignore "**/*.test.ts" --threshold 6
@@ -65,17 +77,17 @@ jobs:
   sonar:
     # Depende do ci só pelo artifact de coverage.
     needs: ci
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           # Histórico completo para o SonarCloud calcular new code corretamente.
           fetch-depth: 0
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v7
         with:
           name: coverage
           path: coverage
-      - uses: SonarSource/sonarqube-scan-action@v6
+      - uses: SonarSource/sonarqube-scan-action@v7
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: https://sonarcloud.io
@@ -87,8 +99,20 @@ jobs:
     # Squash merge usa o título do PR como commit da main — validar aqui é o
     # que garante o histórico padronizado (ADR-0004).
     if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: amannn/action-semantic-pull-request@v6
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # O artefato que o Dokploy builda e roda é a imagem Docker
+  # (`docker-compose.yml`), não o `npm run build` do job `ci`. Sem este job,
+  # uma quebra que só existe no Dockerfile fica verde no CI e aparece só no
+  # deploy — o mesmo buraco que o job `docker` do bfin-app fechou depois do
+  # incidente de set/out 2026 (ver `.github/workflows/ci.yml` de bfin-app).
+  docker:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - name: Build da imagem de produção
+        run: docker build -t bfin-backend:ci .
