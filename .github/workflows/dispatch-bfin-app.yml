@@ -15,7 +15,7 @@ on:
 
 jobs:
   dispatch:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Disparar CI do bfin-app (backend-merged)
         env:
