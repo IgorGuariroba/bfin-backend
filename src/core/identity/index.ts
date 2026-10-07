@@ -23,13 +23,3 @@ export {
   InviteForbiddenError,
   type MembersService,
 } from "./members.js";
-export { isAdminEmail } from "./admin.js";
-export {
-  FREE_HISTORY_MONTHS,
-  FREE_FUTURE_MONTHS,
-  freeOldestMonth,
-  freeNewestMonth,
-  currentYearMonth,
-  isMonthAllowed,
-  isFutureMonthAllowed,
-} from "./gates.js";

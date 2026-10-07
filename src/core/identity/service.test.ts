@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { makeIdentityService, ProRequiredError } from "./service.js";
-import { isAdminEmail } from "./admin.js";
 import type { IdentityRepo } from "./ports.js";
 
 // Repo fake em memória: prova que o core é testável sem DB e sem Next (ADR-0013).
@@ -193,16 +192,5 @@ describe("setAutoBaixaDiario", () => {
     await service.setAutoBaixaDiario("free", false);
 
     expect(fake.users.get("free")?.autoBaixaDiario).toBe(false);
-  });
-});
-
-describe("isAdminEmail", () => {
-  it("compara case-insensitive contra a lista; email ausente é false", () => {
-    const admins = ["admin@bfin.app"];
-
-    expect(isAdminEmail("Admin@BFIN.app", admins)).toBe(true);
-    expect(isAdminEmail("outro@bfin.app", admins)).toBe(false);
-    expect(isAdminEmail(null, admins)).toBe(false);
-    expect(isAdminEmail(undefined, admins)).toBe(false);
   });
 });
