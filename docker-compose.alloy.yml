@@ -28,7 +28,12 @@ services:
       - /sys:/sys:ro
       - /var/lib/docker:/var/lib/docker:ro
       # cadvisor resolve metadados via containerd (Docker+overlayfs).
-      - /run/containerd/containerd.sock:/run/containerd/containerd.sock:ro
+      # Montar o DIRETÓRIO, não o arquivo do socket: bind mount de arquivo prende
+      # o inode e, quando o containerd reinicia (novo socket no mesmo path), o
+      # container segue no inode morto e o dial falha com "connection refused" —
+      # o cAdvisor para de criar os containers ("Failed to create existing
+      # container") e as métricas de container somem do Grafana Cloud.
+      - /run/containerd:/run/containerd:ro
     networks:
       - dokploy-network
 
