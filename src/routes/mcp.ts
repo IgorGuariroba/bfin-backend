@@ -10,12 +10,7 @@ import {
   tagsService,
   transactionsService,
 } from "../adapters/index.js";
-import {
-  TransactionNotFoundError,
-  TransactionValidationError,
-} from "../core/transactions/index.js";
-import { TagValidationError } from "../core/tags/index.js";
-import { InsightsValidationError } from "../core/insights/index.js";
+import { classifyDomainError } from "../core/error-classifier.js";
 import { checkRateLimit, classifyRpc, RATE_LIMITS } from "../lib/rate-limit.js";
 
 const fmt = (val: number) =>
@@ -38,26 +33,37 @@ function ymd(date: Date): string {
 }
 
 /**
- * Executa uma leitura e empacota o resultado como JSON. Erros de validação
- * (mês/data inválidos) viram tool error estruturado (isError) — espelha o
- * tratamento de create_transaction, em vez de propagar erro JSON-RPC genérico.
+ * Empacota o resultado de uma tool (ação síncrona) tratando qualquer erro de
+ * domínio classificado (src/core/error-classifier.ts) como resposta de tool
+ * com isError — mensagem legível em vez de erro JSON-RPC opaco. Erros não
+ * classificados propagam (500/erro de protocolo).
  */
-async function readContent(produce: () => Promise<unknown>) {
+async function toolResult(
+  produce: () => Promise<{
+    content: Array<{ type: "text"; text: string }>;
+    structuredContent?: Record<string, unknown>;
+  }>,
+) {
   try {
-    return jsonContent(await produce());
+    return await produce();
   } catch (error) {
-    if (
-      error instanceof TransactionValidationError ||
-      error instanceof TagValidationError ||
-      error instanceof InsightsValidationError
-    ) {
+    if (classifyDomainError(error)) {
       return {
         isError: true,
-        content: [{ type: "text" as const, text: error.message }],
+        content: [{ type: "text" as const, text: (error as Error).message }],
       };
     }
     throw error;
   }
+}
+
+/**
+ * Executa uma leitura e empacota o resultado como JSON. Erros de domínio
+ * classificados viram tool error estruturado (isError) em vez de propagar
+ * erro JSON-RPC genérico.
+ */
+async function readContent(produce: () => Promise<unknown>) {
+  return toolResult(async () => jsonContent(await produce()));
 }
 
 const monthSchema = z
@@ -147,8 +153,8 @@ function buildServer(userId: string, apiKeyId: string): McpServer {
       repeat,
       repeatEnd,
       repeatCount,
-    }) => {
-      try {
+    }) =>
+      toolResult(async () => {
         // Sugestão + criação compostas no core (suggest/createSuggested): a
         // fronteira só transporta. A auditoria da escrita do agente
         // (recordAgentWrite) permanece aqui — apiKeyId é preocupação de
@@ -215,16 +221,7 @@ function buildServer(userId: string, apiKeyId: string): McpServer {
             tagId: tx.tags[0]?.id ?? null,
           },
         };
-      } catch (error) {
-        if (error instanceof TransactionValidationError) {
-          return {
-            isError: true,
-            content: [{ type: "text" as const, text: error.message }],
-          };
-        }
-        throw error;
-      }
-    },
+      }),
   );
 
   server.registerTool(
@@ -334,8 +331,8 @@ function buildServer(userId: string, apiKeyId: string): McpServer {
         tagIds: z.array(z.string()).describe("Conjunto de Tags resultante."),
       },
     },
-    async ({ id, description, amount, date, type, tagIds }) => {
-      try {
+    async ({ id, description, amount, date, type, tagIds }) =>
+      toolResult(async () => {
         const tx = await transactionsService.updateTransaction({
           userId,
           id,
@@ -366,19 +363,7 @@ function buildServer(userId: string, apiKeyId: string): McpServer {
             tagIds: tx.tags.map((t) => t.id),
           },
         };
-      } catch (error) {
-        if (
-          error instanceof TransactionValidationError ||
-          error instanceof TransactionNotFoundError
-        ) {
-          return {
-            isError: true,
-            content: [{ type: "text" as const, text: error.message }],
-          };
-        }
-        throw error;
-      }
-    },
+      }),
   );
 
   server.registerTool(
@@ -391,8 +376,8 @@ function buildServer(userId: string, apiKeyId: string): McpServer {
         id: z.string().describe("Identificador da movimentação a remover."),
       },
     },
-    async ({ id }) => {
-      try {
+    async ({ id }) =>
+      toolResult(async () => {
         await transactionsService.deleteTransaction(userId, id);
         await apiKeysService.recordAgentWrite({
           apiKeyId,
@@ -405,19 +390,7 @@ function buildServer(userId: string, apiKeyId: string): McpServer {
             { type: "text" as const, text: `Movimentação ${id} removida.` },
           ],
         };
-      } catch (error) {
-        if (
-          error instanceof TransactionValidationError ||
-          error instanceof TransactionNotFoundError
-        ) {
-          return {
-            isError: true,
-            content: [{ type: "text" as const, text: error.message }],
-          };
-        }
-        throw error;
-      }
-    },
+      }),
   );
 
   server.registerTool(
@@ -445,8 +418,8 @@ function buildServer(userId: string, apiKeyId: string): McpServer {
         color: z.string().describe("Cor resolvida da Tag (hex)."),
       },
     },
-    async ({ name, color }) => {
-      try {
+    async ({ name, color }) =>
+      toolResult(async () => {
         const tag = await tagsService.createTag({ userId, name, color });
         await apiKeysService.recordAgentWrite({
           apiKeyId,
@@ -460,16 +433,7 @@ function buildServer(userId: string, apiKeyId: string): McpServer {
           ],
           structuredContent: { id: tag.id, name: tag.name, color: tag.color },
         };
-      } catch (error) {
-        if (error instanceof TagValidationError) {
-          return {
-            isError: true,
-            content: [{ type: "text" as const, text: error.message }],
-          };
-        }
-        throw error;
-      }
-    },
+      }),
   );
 
   server.registerTool(
