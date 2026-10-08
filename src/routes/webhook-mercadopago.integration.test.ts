@@ -168,4 +168,45 @@ describe("POST /api/webhook/mercadopago — evento legítimo", () => {
     expect(inDb.plan).toBe("pro");
     expect(inDb.mpSubscriptionId).toBe(DATA_ID);
   });
+
+  it("reenvio do mesmo webhook: processa de forma idempotente sem alterar plano", async () => {
+    const user = await seedUser({ plan: "free" });
+    mockPreApprovalGet.mockResolvedValue({
+      id: DATA_ID,
+      status: "authorized",
+      external_reference: `${user.id}:monthly`,
+    });
+
+    const res1 = await inject(buildApp());
+    expect(res1.statusCode).toBe(200);
+
+    const res2 = await inject(buildApp());
+    expect(res2.statusCode).toBe(200);
+    expect(res2.json()).toEqual({ ok: true });
+
+    const [inDb] = await db
+      .select()
+      .from(userTable)
+      .where(eq(userTable.id, user.id));
+    expect(inDb.plan).toBe("pro");
+  });
+
+  it("lentidão diagnosticável: dependência com atraso conclui com telemetria sem perda", async () => {
+    const user = await seedUser({ plan: "free" });
+    mockPreApprovalGet.mockImplementation(async () => {
+      await new Promise((r) => setTimeout(r, 100));
+      return {
+        id: DATA_ID,
+        status: "authorized",
+        external_reference: `${user.id}:monthly`,
+      };
+    });
+
+    const start = Date.now();
+    const res = await inject(buildApp());
+    const duration = Date.now() - start;
+
+    expect(res.statusCode).toBe(200);
+    expect(duration).toBeGreaterThanOrEqual(90);
+  });
 });
