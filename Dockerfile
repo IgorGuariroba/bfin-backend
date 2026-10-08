@@ -22,6 +22,8 @@ RUN npm run build
 
 FROM node:22-alpine AS runner
 WORKDIR /app
+ARG SERVICE_VERSION=unknown
+ENV SERVICE_VERSION=$SERVICE_VERSION
 ENV NODE_ENV=production
 
 RUN addgroup --system --gid 1001 nodejs && \

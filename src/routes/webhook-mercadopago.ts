@@ -1,3 +1,4 @@
+import { logEvent, observe, operationId } from "../lib/observabilidade.js";
 import type { FastifyInstance } from "fastify";
 import { WebhookSignatureValidator } from "mercadopago";
 import { billingService } from "../adapters/index.js";
@@ -43,56 +44,65 @@ function verifySignature(
  * pela assinatura HMAC do MercadoPago, não pelo x-internal-secret.
  */
 export function webhookMercadoPagoRoutes(app: FastifyInstance) {
-  app.post("/api/webhook/mercadopago", async (request, reply) => {
-    const { type, data } = (request.body ?? {}) as {
-      type?: string;
-      data?: { id?: string };
-    };
+  app.post("/api/webhook/mercadopago", async (request, reply) =>
+    observe("webhook.receive", async () => {
+      const { type, data } = (request.body ?? {}) as {
+        type?: string;
+        data?: { id?: string };
+      };
 
-    if (type !== "subscription_preapproval" || !data?.id) {
-      console.log("mp-webhook: ignored", {
-        type: type ?? null,
-        hasDataId: Boolean(data?.id),
-      });
+      if (type !== "subscription_preapproval" || !data?.id) {
+        logEvent("webhook.validation", "ignored");
+        return { ok: true };
+      }
+
+      // Fail-closed: sem secret não há como verificar a origem — processar seria
+      // aceitar webhook forjado ativando Pro de graça (mesmo padrão do CRON_SECRET).
+      const secret = process.env.MERCADO_PAGO_WEBHOOK_SECRET;
+      if (!secret) {
+        logEvent("webhook.validation", "misconfigured");
+        return reply
+          .code(500)
+          .send({ error: "MERCADO_PAGO_WEBHOOK_SECRET not configured" });
+      }
+
+      const xSignature = request.headers["x-signature"];
+      const xRequestId = request.headers["x-request-id"];
+      const id = operationId(data.id, secret);
+      const verified = await observe(
+        "webhook.validation",
+        async () =>
+          verifySignature(
+            {
+              xSignature: typeof xSignature === "string" ? xSignature : "",
+              xRequestId: typeof xRequestId === "string" ? xRequestId : null,
+            },
+            data.id!,
+            secret,
+          ),
+        id,
+      );
+      if (!verified) {
+        logEvent("webhook.result", "rejected", id);
+        return reply.code(401).send({ error: "Invalid signature" });
+      }
+
+      // Verificada a origem, segue o processamento de domínio (mudança de plano).
+      // Erro aqui é nosso (ou do MP upstream) — responde 500 uniforme pro MP
+      // re-tentar, sem repassar o status da chamada interna à API deles.
+      try {
+        await observe(
+          "webhook.processing",
+          () => billingService.processSubscriptionEvent(data.id!),
+          id,
+        );
+      } catch {
+        logEvent("webhook.result", "error", id);
+        return reply.code(500).send({ error: "Failed to process event" });
+      }
+
+      logEvent("webhook.result", "completed", id);
       return { ok: true };
-    }
-
-    // Fail-closed: sem secret não há como verificar a origem — processar seria
-    // aceitar webhook forjado ativando Pro de graça (mesmo padrão do CRON_SECRET).
-    const secret = process.env.MERCADO_PAGO_WEBHOOK_SECRET;
-    if (!secret) {
-      console.error("mp-webhook: secret not configured");
-      return reply
-        .code(500)
-        .send({ error: "MERCADO_PAGO_WEBHOOK_SECRET not configured" });
-    }
-
-    const xSignature = request.headers["x-signature"];
-    const xRequestId = request.headers["x-request-id"];
-    const verified = verifySignature(
-      {
-        xSignature: typeof xSignature === "string" ? xSignature : "",
-        xRequestId: typeof xRequestId === "string" ? xRequestId : null,
-      },
-      data.id,
-      secret,
-    );
-    if (!verified) {
-      console.warn("mp-webhook: invalid signature", { dataId: data.id });
-      return reply.code(401).send({ error: "Invalid signature" });
-    }
-
-    // Verificada a origem, segue o processamento de domínio (mudança de plano).
-    // Erro aqui é nosso (ou do MP upstream) — responde 500 uniforme pro MP
-    // re-tentar, sem repassar o status da chamada interna à API deles.
-    try {
-      await billingService.processSubscriptionEvent(data.id);
-    } catch (err) {
-      console.error("mp-webhook: processing failed", { dataId: data.id, err });
-      return reply.code(500).send({ error: "Failed to process event" });
-    }
-
-    console.log("mp-webhook: processed", { dataId: data.id });
-    return { ok: true };
-  });
+    }),
+  );
 }

@@ -1,27 +1,27 @@
-# Grafana Alloy (ADR-0005) — deployar como stack separado no Dokploy.
-# Recebe OTLP do bfin-backend, coleta logs de todos os containers e métricas
-# de containers, e encaminha tudo ao Grafana Cloud.
-#
-# Env vars exigidas (configurar no painel do Dokploy, nunca no repo):
-#   GCLOUD_OTLP_ENDPOINT  ex.: https://otlp-gateway-prod-sa-east-1.grafana.net/otlp
-#   GCLOUD_INSTANCE_ID    instance ID do stack no Grafana Cloud
-#   GCLOUD_API_TOKEN      token com escopo de escrita (metrics/logs/traces)
+# Alloy: rede interna, destino próprio, filas e recursos limitados.
 services:
   alloy:
-    image: grafana/alloy:latest
+    image: grafana/alloy:v1.20.1@sha256:2aa2099af76c0098d4af7a4d6e48f86cb66dc1a000222ad927a1c67c6542d13f
     restart: unless-stopped
+    mem_limit: 1g
+    memswap_limit: 1g
+    cpus: 0.5
     command:
       - run
       - /etc/alloy/config.alloy
       - --server.http.listen-addr=0.0.0.0:12345
+      - --storage.path=/var/lib/alloy
+      - --disable-reporting
     environment:
-      GCLOUD_OTLP_ENDPOINT: ${GCLOUD_OTLP_ENDPOINT}
-      GCLOUD_INSTANCE_ID: ${GCLOUD_INSTANCE_ID}
-      GCLOUD_API_TOKEN: ${GCLOUD_API_TOKEN}
+      OPENOBSERVE_OTLP_ENDPOINT: http://observabilidade-openobserve:5080/api/default
+      OPENOBSERVE_USERNAME: ${OPENOBSERVE_USERNAME}
+      OPENOBSERVE_PASSWORD: ${OPENOBSERVE_PASSWORD}
+      GOMEMLIMIT: 800MiB
     # privileged + mounts do host: exigidos pelo cadvisor embutido para ler
     # cgroups por container (sem eles só o cgroup raiz "/" é reportado).
     privileged: true
     volumes:
+      - alloy-data:/var/lib/alloy
       - ./alloy/config.alloy:/etc/alloy/config.alloy:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /:/rootfs:ro
@@ -37,6 +37,25 @@ services:
     networks:
       - dokploy-network
 
+  faro-gateway:
+    image: nginx:stable-alpine@sha256:0985e772fb9f729e6fa0980da05fca5d9c468e870eed43071545afa9d2e27d94
+    restart: unless-stopped
+    mem_limit: 64m
+    memswap_limit: 64m
+    cpus: 0.1
+    volumes:
+      - ./alloy/faro-nginx.conf:/etc/nginx/nginx.conf:ro
+    networks:
+      - dokploy-network
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
 networks:
   dokploy-network:
     external: true
+
+volumes:
+  alloy-data:

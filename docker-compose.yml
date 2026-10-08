@@ -12,7 +12,10 @@
 # externo bfin-app_pgdata ao mesmo tempo (corrupção).
 services:
   backend:
-    build: .
+    build:
+      context: .
+      args:
+        SERVICE_VERSION: ${SERVICE_VERSION:-unknown}
     restart: unless-stopped
     environment:
       DATABASE_URL: ${DATABASE_URL}
@@ -32,6 +35,14 @@ services:
       # Sem valor, a instrumentação fica desligada (src/otel.ts).
       OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
       OTEL_SERVICE_NAME: bfin-backend
+      APP_ENV: production
+      OTEL_RESOURCE_ATTRIBUTES: deployment.environment.name=production,service.version=${SERVICE_VERSION:-unknown}
+      OTEL_LOGS_EXPORTER: none
+      OTEL_METRIC_EXPORT_INTERVAL: "60000"
+      OTEL_BSP_MAX_QUEUE_SIZE: "512"
+      OTEL_BSP_EXPORT_TIMEOUT: "5000"
+      OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+      OTEL_NODE_DISABLED_INSTRUMENTATIONS: fs,dns,net
     depends_on:
       db:
         condition: service_healthy

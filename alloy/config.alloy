@@ -1,31 +1,36 @@
-// Grafana Alloy — pipeline único para o Grafana Cloud via gateway OTLP.
+// Grafana Alloy — pipeline único para o OpenObserve próprio via gateway OTLP.
 // Três fontes: OTLP do app (traces/métricas), logs dos containers Docker
 // e métricas de containers (cadvisor embutido).
 
-// ── Saída: Grafana Cloud ────────────────────────────────────────────────
-otelcol.auth.basic "grafana_cloud" {
-  username = sys.env("GCLOUD_INSTANCE_ID")
-  password = sys.env("GCLOUD_API_TOKEN")
+// ── Saída: OpenObserve próprio ────────────────────────────────────────────────
+otelcol.auth.basic "openobserve" {
+  username = sys.env("OPENOBSERVE_USERNAME")
+  password = sys.env("OPENOBSERVE_PASSWORD")
 }
 
-otelcol.exporter.otlphttp "grafana_cloud" {
+otelcol.exporter.otlphttp "openobserve" {
   client {
-    endpoint = sys.env("GCLOUD_OTLP_ENDPOINT")
-    auth     = otelcol.auth.basic.grafana_cloud.handler
+    endpoint = sys.env("OPENOBSERVE_OTLP_ENDPOINT")
+    auth     = otelcol.auth.basic.openobserve.handler
+    headers = { "stream-name" = "aplicacoes" }
+    timeout = "5s"
   }
 
-  // Fila maior absorve o backlog da primeira leitura dos logs do host.
+  // Fila limitada; descarte/falha expostos nas métricas internas. Sem histórico ilimitado.
   sending_queue {
-    queue_size = 5000
+    queue_size = 256
   }
 }
 
 // Batch amortece picos entre receivers e exporter (evita "sending queue is full").
 otelcol.processor.batch "default" {
+  send_batch_size = 256
+  send_batch_max_size = 512
+  timeout = "5s"
   output {
-    traces  = [otelcol.exporter.otlphttp.grafana_cloud.input]
-    metrics = [otelcol.exporter.otlphttp.grafana_cloud.input]
-    logs    = [otelcol.exporter.otlphttp.grafana_cloud.input]
+    traces  = [otelcol.exporter.otlphttp.openobserve.input]
+    metrics = [otelcol.exporter.otlphttp.openobserve.input]
+    logs    = [otelcol.exporter.otlphttp.openobserve.input]
   }
 }
 
@@ -40,9 +45,9 @@ otelcol.receiver.otlp "app" {
   }
 
   output {
-    traces  = [otelcol.processor.batch.default.input]
-    metrics = [otelcol.processor.batch.default.input]
-    logs    = [otelcol.processor.batch.default.input]
+    traces  = [otelcol.processor.memory_limiter.bounded.input]
+    metrics = [otelcol.processor.memory_limiter.bounded.input]
+    logs    = [otelcol.processor.transform.docker_logs.input]
   }
 }
 
@@ -56,6 +61,11 @@ discovery.relabel "containers" {
 
   rule {
     source_labels = ["__meta_docker_container_name"]
+    regex = "/(bfin-app-cuyqsk.*|bfinbackend-bfinbackend-nkjhcm.*backend.*|athlyt-athlyt-t9oeii.*web.*|whatsappbfin-agente-pzks5j.*)"
+    action = "keep"
+  }
+  rule {
+    source_labels = ["__meta_docker_container_name"]
     regex         = "/(.*)"
     target_label  = "container"
   }
@@ -64,7 +74,7 @@ discovery.relabel "containers" {
 loki.source.docker "containers" {
   host       = "unix:///var/run/docker.sock"
   targets    = discovery.relabel.containers.output
-  forward_to = [otelcol.receiver.loki.docker.receiver]
+  forward_to = [loki.process.structured.receiver]
 }
 
 otelcol.receiver.loki "docker" {
@@ -73,23 +83,29 @@ otelcol.receiver.loki "docker" {
   }
 }
 
-// stdout de container não carrega OTEL_SERVICE_NAME e o Grafana Cloud
-// classificava tudo como "unknown_service" (bfin-app#232). Nome fixo e
-// estável para o canal: o container de origem continua consultável no
-// atributo `container` (| container="..."). Os logs estruturados dos apps
-// seguem chegando com service_name próprio pelo caminho OTLP (Fonte 1).
+// JSON por allowlist: identidade e contexto promovidos; conteúdo livre excluído.
 otelcol.processor.transform "docker_logs" {
   error_mode = "ignore"
 
   log_statements {
-    context    = "resource"
+    context = "log"
     statements = [
-      "set(attributes[\"service.name\"], \"docker-stdout\")",
+      `merge_maps(cache, attributes, "upsert")`,
+      `merge_maps(cache, ParseJSON(body), "upsert") where IsString(body)`,
+      `keep_keys(cache, ["time", "level", "service", "environment", "version", "event", "result", "operation_id", "trace_id", "span_id", "traceId", "spanId", "request_id", "operation", "status", "durationMs"])`,
+      `set(trace_id, TraceID(cache["trace_id"])) where cache["trace_id"] != nil`,
+      `set(span_id, SpanID(cache["span_id"])) where cache["span_id"] != nil`,
+      `set(trace_id, TraceID(cache["traceId"])) where cache["traceId"] != nil`,
+      `set(span_id, SpanID(cache["spanId"])) where cache["spanId"] != nil`,
+      `set(resource.attributes["service.name"], cache["service"]) where cache["service"] != nil`,
+      `set(resource.attributes["service.version"], cache["version"]) where cache["version"] != nil`,
+      `set(resource.attributes["deployment.environment.name"], "production")`,
+      `set(body, cache)`,
     ]
   }
 
   output {
-    logs = [otelcol.processor.batch.default.input]
+    logs = [otelcol.processor.memory_limiter.bounded.input]
   }
 }
 
@@ -110,6 +126,117 @@ prometheus.scrape "containers" {
 
 otelcol.receiver.prometheus "containers" {
   output {
+    metrics = [otelcol.processor.memory_limiter.bounded.input]
+  }
+}
+
+// Ignore legacy plaintext: it can contain conversation/payment details.
+loki.process "structured" {
+  stage.match {
+    selector = "{container=~\".+\"} !~ \"^\\\\{\""
+    action = "drop"
+    drop_counter_reason = "unstructured_privacy"
+  }
+  forward_to = [otelcol.receiver.loki.docker.receiver]
+}
+
+otelcol.processor.memory_limiter "bounded" {
+  check_interval = "1s"
+  limit = "800MiB"
+  spike_limit = "150MiB"
+  output {
+    traces = [otelcol.processor.transform.sanitize.input]
+    metrics = [otelcol.processor.transform.sanitize.input]
+    logs = [otelcol.processor.transform.sanitize.input]
+  }
+}
+
+otelcol.processor.transform "sanitize" {
+  error_mode = "ignore"
+  trace_statements {
+    context = "resource"
+    statements = [`keep_keys(attributes, ["service.name", "service.version", "deployment.environment.name", "service.instance.id"])`]
+  }
+  trace_statements {
+    context = "span"
+    statements = [
+      `set(name, "database.query") where attributes["db.system"] != nil or attributes["db.system.name"] != nil`,
+      `keep_keys(attributes, ["http.request.method", "http.method", "http.route", "http.response.status_code", "http.status_code", "server.address", "server.port", "db.system", "db.system.name", "db.operation.name", "operation.id", "operation.result", "operation.name", "operation.status", "ia.operacao", "ia.modelo", "error.type"])`,
+      `set(status.message, "")`,
+    ]
+  }
+  trace_statements {
+    context = "spanevent"
+    statements = [
+      `keep_keys(attributes, ["exception.type", "error.type"])`,
+    ]
+  }
+  output {
+    traces = [otelcol.processor.batch.default.input]
     metrics = [otelcol.processor.batch.default.input]
+    logs = [otelcol.processor.batch.default.input]
+  }
+}
+
+prometheus.exporter.unix "host" {
+  rootfs_path = "/rootfs"
+  sysfs_path = "/sys"
+  procfs_path = "/rootfs/proc"
+  enable_collectors = ["cpu", "meminfo", "filesystem", "diskstats", "loadavg"]
+}
+prometheus.scrape "host" {
+  targets = prometheus.exporter.unix.host.targets
+  scrape_interval = "60s"
+  forward_to = [otelcol.receiver.prometheus.containers.receiver]
+}
+prometheus.scrape "alloy" {
+  targets = [{ "__address__" = "127.0.0.1:12345", "job" = "alloy" }]
+  scrape_interval = "60s"
+  forward_to = [otelcol.receiver.prometheus.containers.receiver]
+}
+
+// Browser: somente origem BFIN, payload curto, taxa global limitada, sem chave de backend.
+faro.receiver "browser" {
+  log_format = "json"
+  server {
+    listen_address = "0.0.0.0"
+    listen_port = 12347
+    cors_allowed_origins = ["https://bfincont.com.br"]
+    max_allowed_payload_size = "64KiB"
+    rate_limiting {
+      rate = 5
+      burst_size = 10
+    }
+  }
+  sourcemaps {
+    download = false
+  }
+  output {
+    logs = [otelcol.receiver.loki.browser.receiver]
+    traces = [otelcol.processor.memory_limiter.bounded.input]
+  }
+}
+otelcol.receiver.loki "browser" {
+  output {
+    logs = [otelcol.processor.transform.browser.input]
+  }
+}
+otelcol.processor.transform "browser" {
+  error_mode = "ignore"
+  log_statements {
+    context = "log"
+    statements = [
+      `merge_maps(cache, ParseJSON(body), "upsert") where IsString(body)`,
+      `keep_keys(cache, ["kind", "type", "timestamp", "traceID", "spanID", "level", "app_name", "app_version", "app_environment", "measurement_type", "measurement_value", "exception_type"])`,
+      `set(resource.attributes["service.name"], "bfin-browser")`,
+      `set(resource.attributes["deployment.environment.name"], "production")`,
+      `set(resource.attributes["service.version"], cache["app_version"]) where cache["app_version"] != nil`,
+      `set(trace_id, TraceID(cache["traceID"])) where cache["traceID"] != nil`,
+      `set(span_id, SpanID(cache["spanID"])) where cache["spanID"] != nil`,
+      `set(body, cache)`,
+    ]
+  }
+  output {
+    logs = [otelcol.processor.memory_limiter.bounded.input]
   }
 }

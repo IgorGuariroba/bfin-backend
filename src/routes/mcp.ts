@@ -1,3 +1,4 @@
+import { observe } from "../lib/observabilidade.js";
 import { Readable } from "node:stream";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -570,7 +571,9 @@ export function mcpRoutes(app: FastifyInstance) {
     });
     await server.connect(transport);
 
-    const response = await transport.handleRequest(webRequest);
+    const response = await observe(`mcp.${kind}`, () =>
+      transport.handleRequest(webRequest),
+    );
 
     // Resposta pode ser um stream SSE — sai do fluxo automático do Fastify
     // (hijack) e escreve status/headers/corpo direto no ServerResponse cru.

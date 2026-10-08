@@ -1,3 +1,4 @@
+import { observe, logEvent } from "../lib/observabilidade.js";
 import { makeTagsService } from "../core/tags/index.js";
 import { makeTransactionsService } from "../core/transactions/index.js";
 import { makePrevisaoService } from "../core/previsao/index.js";
@@ -51,12 +52,36 @@ export const apiKeysService = makeApiKeysService(drizzleApiKeyRepo, {
   },
 });
 export const billingService = makeBillingService(
-  drizzleBillingRepo,
-  mercadoPagoGateway,
+  {
+    ...drizzleBillingRepo,
+    activatePro: (...args) =>
+      observe("webhook.persistence.activate", () =>
+        drizzleBillingRepo.activatePro(...args),
+      ),
+    clearSubscription: (...args) =>
+      observe("webhook.persistence.clear", () =>
+        drizzleBillingRepo.clearSubscription(...args),
+      ),
+    conversionAlreadyReported: (...args) =>
+      observe("webhook.idempotency", async () => {
+        const duplicate = await drizzleBillingRepo.conversionAlreadyReported(
+          ...args,
+        );
+        logEvent("webhook.idempotency", duplicate ? "duplicate" : "first");
+        return duplicate;
+      }),
+  },
+  {
+    ...mercadoPagoGateway,
+    getSubscription: (...args) =>
+      observe("webhook.dependency.mercadopago", () =>
+        mercadoPagoGateway.getSubscription(...args),
+      ),
+  },
   {
     logger: {
-      warn: (data, msg) => console.warn(msg, data),
-      error: (data, msg) => console.error(msg, data),
+      warn: () => logEvent("billing.warning", "expected"),
+      error: () => logEvent("billing.error", "error"),
     },
     conversions: {
       isConfigured: isGoogleAdsConfigured,

@@ -3,7 +3,7 @@ type: Playbook
 title: Lessons
 description: One-line rules learned from user corrections and self-caught mistakes, read at the start of every agent session.
 tags: [lessons, agents, self-learning]
-timestamp: 2026-07-11T01:00:00Z
+timestamp: 2026-10-08T00:25:00Z
 ---
 
 # Lessons
@@ -15,3 +15,5 @@ Regras de uma linha aprendidas de correções. Critérios de admissão e fluxo d
 - O bfin-backend é GitHub com branch default `main`; scripts/agentes que fazem diffs devem usar `main`, nunca `master`.
 - Estado de fluxo do `/ship` no bfin: `.ship/` é gitignored (events.jsonl, spec.md, logs); papéis específicos do projeto vão em `.pi/agent-roles/` e sobrepõem os globais (`~/.pi/agent/agent-roles/`).
 - Nunca rodar bash que depende de diretório/arquivo criado por `write` na mesma mensagem paralela: o `cd ~/projetos/pong-game` falhou porque o dir ainda não existia e operou no bfin (commit vazio `chore: init` em main + `.gitignore` sobrescrito — revertidos). Execute sequencial quando houver dependência.
+
+- Instalar dependências de instrumentação com `workdir=/home/movida/projetos/bfin-backend`; o diretório pai `projetos` não é um pacote npm.
